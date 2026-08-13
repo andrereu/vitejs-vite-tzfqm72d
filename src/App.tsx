@@ -145,17 +145,24 @@ export default function App() {
 
   // 🔑 AUTENTICAÇÃO DA MÉDICA COM FIREBASE AUTH
   const handleDoctorLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError("");
-    try {
-      await signInWithEmailAndPassword(auth, doctorEmail, doctorPassword);
-      setUserRole('medica');
-      setCurrentScreen('admin_dashboard');
-      setShowDoctorLoginModal(false);
-    } catch (err: any) {
-      setLoginError("E-mail ou senha incorretos.");
-    }
-  };
+  e.preventDefault();
+  setLoginError("");
+  
+  // Limpa espaços em branco e força minúsculas no e-mail
+  const cleanEmail = doctorEmail.trim().toLowerCase();
+  const cleanPassword = doctorPassword.trim();
+
+  try {
+    await signInWithEmailAndPassword(auth, cleanEmail, cleanPassword);
+    setUserRole('medica');
+    setCurrentScreen('admin_dashboard');
+    setShowDoctorLoginModal(false);
+  } catch (err: any) {
+    console.error("Erro detalhado do Firebase Auth:", err.code, err.message);
+    setLoginError(`Erro: ${err.code || "E-mail ou senha incorretos."}`);
+  }
+};
+
 
   // 🔑 LOGOUT REAL
   const handleLogout = async () => {
