@@ -1,8 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { 
-  Heart, LogOut
+  Calendar, FileText, Activity, Heart, Upload, Sparkles, User, 
+  Plus, Edit3, Clock, Baby, Stethoscope, LogOut, Printer, Eye, X, 
+  ChevronRight, Syringe, Scale, FileCheck, RefreshCw, Check, Search, 
+  Users, TrendingUp, UserPlus
 } from 'lucide-react';
 
+// --- CURVAS REFERENCIAIS DE GANHO DE PESO MATERNO (ATALAH / MS) ---
 const WEIGHT_CURVES: Record<string, { label: string; targetMin: number; targetMax: number; color: string }> = {
   baixoPeso: { label: 'Baixo Peso (IMC < 18,5)', targetMin: 12.5, targetMax: 18.0, color: '#3B82F6' },
   normal: { label: 'Peso Normal (IMC 18,5 - 24,9)', targetMin: 11.5, targetMax: 16.0, color: '#10B981' },
@@ -30,13 +34,11 @@ const initialPatientsList = [
       influenza: { realizada: true, data: "2026-03-10", lote: "INF2026-B" },
       vsr: { realizada: true, data: "2026-07-28", lote: "VSR-884" },
       dtpa: { realizada: true, data: "2026-05-20", lote: "DTP-9921" },
-      hepatiteB_1: { realizada: true, data: "2026-02-10", lote: "HEP-01" },
-      hepatiteB_2: { realizada: true, data: "2026-03-12", lote: "HEP-02" },
-      hepatiteB_3: { realizada: false, data: "", lote: "" },
-      covid19: { realizada: true, data: "2026-02-15", lote: "COV-3" },
-      outras: "Tétano em dia"
+      covid19: { realizada: true, data: "2026-02-15", lote: "COV-3" }
     },
-    examesLab: [],
+    examesLab: [
+      { id: "lab-1", hbVg: "12.8 / 38%", plaquetas: "245.000", glicemia: "82 mg/dL", hiv: "Não Reativo", sifilis: "Não Reativo", tsh: "1.8 mUI/L" }
+    ],
     ultrassons: [
       { id: "us-1", data: "2026-02-25", igSem: 6, pfGrams: 0, la: "Normal", pl: "Trofoblasto", laudo: "Saco gestacional único com BCF visível (124 bpm)." },
       { id: "us-2", data: "2026-04-10", igSem: 12, pfGrams: 62, la: "Normal", pl: "Anterior", laudo: "TN 1.2mm, osso nasal presente. Risco baixo." },
@@ -51,20 +53,34 @@ const initialPatientsList = [
       { id: "c-5", data: "2026-06-30", igSem: 24, peso: 67.3, pa: "115/70", au: "23 cm", bcfMf: "140 bpm", edema: "Leve", conduta: "TOTG 75g solicitado." },
       { id: "c-6", data: "2026-07-28", igSem: 28, peso: 69.0, pa: "118/76", au: "27 cm", bcfMf: "142 bpm", edema: "Leve", conduta: "Vacina VSR aplicada." }
     ],
-    agendaConsultas: [],
-    examesEnviados: []
+    agendaConsultas: [{ id: "ag-1", data: "2026-08-25", horario: "14:30", tipo: "Consulta Pré-Natal (32 sem)" }],
+    examesEnviados: [
+      {
+        id: "ex-1",
+        nome: "Ultrassom Morfológico 2º Trimestre",
+        dataUpload: "2026-06-19",
+        tipo: "Ecografia",
+        resumoIA: "🌸 **Para a Mamãe**: O Arthur está crescendo super saudável!\n\n🩺 **Para Dra. Priscila**: PF 480g (P50), ILA 14cm (Normal).",
+        enviadoPor: "Dra. Priscila Gapski"
+      }
+    ]
   }
 ];
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'landing' | 'patient_app' | 'admin_dashboard'>('landing');
   const [userRole, setUserRole] = useState<'paciente' | 'medica' | null>(null);
-  const [patients] = useState(initialPatientsList);
+  const [patients, setPatients] = useState(initialPatientsList);
   const [selectedPatientId, setSelectedPatientId] = useState("gestante-01");
-  const [searchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState('resumo');
+  const [graphMode, setGraphMode] = useState('pesoMaterno');
 
   const [showPatientLoginModal, setShowPatientLoginModal] = useState(false);
   const [showDoctorLoginModal, setShowDoctorLoginModal] = useState(false);
+  const [showAddConsultaModal, setShowAddConsultaModal] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+
   const [loginCpf, setLoginCpf] = useState("");
   const [loginPass, setLoginPass] = useState("");
 
@@ -72,18 +88,38 @@ export default function App() {
     return patients.find(p => p.id === selectedPatientId) || patients[0];
   }, [patients, selectedPatientId]);
 
+  const [newConsulta, setNewConsulta] = useState({
+    data: new Date().toISOString().split('T')[0],
+    igSem: '', peso: '', pa: '120/80', au: '', bcfMf: '140 bpm', edema: 'Ausente', conduta: ''
+  });
+
   const calculateWeeksAndDays = (dumStr: string) => {
-    if (!dumStr) return { weeks: 0, days: 0, text: "Não calculada" };
+    if (!dumStr) return { weeks: 0, days: 0 };
     const dum = new Date(dumStr);
     const today = new Date();
-    const diffTime = Math.max(0, today.getTime() - dum.getTime());
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    const weeks = Math.floor(diffDays / 7);
-    const days = diffDays % 7;
-    return { weeks, days, text: `${weeks} sem e ${days} d` };
+    const diffDays = Math.floor(Math.max(0, today.getTime() - dum.getTime()) / (1000 * 60 * 60 * 24));
+    return { weeks: Math.floor(diffDays / 7), days: diffDays % 7 };
   };
 
   const currentGest = calculateWeeksAndDays(currentPatient.dum);
+
+  const bmiInfo = useMemo(() => {
+    const p = parseFloat(currentPatient.pesoInicial) || 0;
+    const a = parseFloat(currentPatient.altura) || 0;
+    if (!p || !a) return { bmi: '0', categoryLabel: 'Normal', targetMin: 11.5, targetMax: 16.0 };
+    const bmi = p / (a * a);
+    let categoryKey = 'normal';
+    if (bmi < 18.5) categoryKey = 'baixoPeso';
+    else if (bmi >= 25.0 && bmi < 30.0) categoryKey = 'sobrepeso';
+    else if (bmi >= 30.0) categoryKey = 'obesidade';
+    
+    return {
+      bmi: bmi.toFixed(1),
+      categoryLabel: WEIGHT_CURVES[categoryKey].label,
+      targetMin: WEIGHT_CURVES[categoryKey].targetMin,
+      targetMax: WEIGHT_CURVES[categoryKey].targetMax
+    };
+  }, [currentPatient.pesoInicial, currentPatient.altura]);
 
   const handlePatientLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,15 +141,29 @@ export default function App() {
     }
   };
 
-  const handleDemoPatientLogin = (patientId: string) => {
-    setSelectedPatientId(patientId);
-    setUserRole('paciente');
-    setCurrentScreen('patient_app');
-  };
+  const handleAddConsulta = (e: React.FormEvent) => {
+    e.preventDefault();
+    const sem = parseInt(newConsulta.igSem) || currentGest.weeks;
+    const pesoVal = parseFloat(newConsulta.peso) || parseFloat(currentPatient.pesoInicial);
 
-  const handleDemoDoctorLogin = () => {
-    setUserRole('medica');
-    setCurrentScreen('admin_dashboard');
+    const updatedConsultas = [
+      ...currentPatient.consultasEvolucao,
+      {
+        id: `c-${Date.now()}`,
+        data: newConsulta.data,
+        igSem: sem,
+        peso: pesoVal,
+        pa: newConsulta.pa,
+        au: newConsulta.au,
+        bcfMf: newConsulta.bcfMf,
+        edema: newConsulta.edema,
+        conduta: newConsulta.conduta
+      }
+    ].sort((a, b) => a.igSem - b.igSem);
+
+    const updated = { ...currentPatient, consultasEvolucao: updatedConsultas };
+    setPatients(patients.map(p => p.id === updated.id ? updated : p));
+    setShowAddConsultaModal(false);
   };
 
   const filteredPatients = useMemo(() => {
@@ -124,6 +174,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F4F6F2] text-gray-800 font-sans pb-12">
+      
+      {/* HEADER */}
       <header className="bg-[#2E482A] text-white shadow-md sticky top-0 z-40 border-b border-[#3D5C38]">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div onClick={() => setCurrentScreen('landing')} className="flex items-center gap-3 cursor-pointer">
@@ -148,9 +200,16 @@ export default function App() {
                     onClick={() => setCurrentScreen('admin_dashboard')}
                     className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#D4AF37] text-gray-900"
                   >
-                    Lista de Pacientes
+                    Pacientes
                   </button>
                 )}
+                <button
+                  onClick={() => setShowPrintModal(true)}
+                  className="p-2 bg-white/10 rounded-xl"
+                  title="Imprimir Cartão"
+                >
+                  <Printer className="w-4 h-4 text-white" />
+                </button>
                 <button
                   onClick={() => { setCurrentScreen('landing'); setUserRole(null); }}
                   className="p-2 bg-red-500/20 text-red-200 rounded-xl"
@@ -180,53 +239,68 @@ export default function App() {
         </div>
       </header>
 
+      {/* LANDING PAGE */}
       {currentScreen === 'landing' && (
         <div className="space-y-8 pt-8 px-4 max-w-4xl mx-auto text-center">
-          <div className="bg-[#2E482A] text-white p-8 rounded-3xl shadow-lg">
-            <h2 className="text-2xl md:text-4xl font-serif font-bold text-[#F4F6F0]">
-              Carteirinha Pré-Natal Digital
+          <div className="bg-gradient-to-b from-[#2E482A] to-[#1E311B] text-white p-8 rounded-3xl shadow-xl">
+            <span className="bg-white/10 text-[#E8ECD8] text-[10px] font-bold px-3 py-1 rounded-full uppercase border border-white/20">
+              Acompanhamento Pré-Natal Digital
+            </span>
+            <h2 className="text-2xl md:text-4xl font-serif font-bold text-[#F4F6F0] mt-3 leading-tight">
+              Sua gestação acompanhada com carinho e precisão
             </h2>
-            <p className="text-xs md:text-sm text-[#A3B18A] mt-2">
-              Acompanhamento de gestação, curvas de peso e laudos.
+            <p className="text-xs md:text-sm text-[#A3B18A] mt-3 leading-relaxed">
+              Cartão pré-natal, curva de ganho de peso contínuo (Atalah) e exames integrados.
             </p>
 
             <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
               <button
-                onClick={() => handleDemoPatientLogin('gestante-01')}
-                className="px-6 py-3 bg-[#8A9A86] text-white rounded-2xl font-bold text-xs"
+                onClick={() => { setSelectedPatientId('gestante-01'); setUserRole('paciente'); setCurrentScreen('patient_app'); }}
+                className="px-6 py-3.5 bg-[#8A9A86] hover:bg-[#788874] text-white rounded-2xl font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2"
               >
-                Entrar como Paciente (Demo)
+                <User className="w-4 h-4" /> Entrar como Paciente (Juliana)
               </button>
               <button
-                onClick={handleDemoDoctorLogin}
-                className="px-6 py-3 bg-[#D4AF37] text-gray-900 rounded-2xl font-bold text-xs"
+                onClick={() => { setUserRole('medica'); setCurrentScreen('admin_dashboard'); }}
+                className="px-6 py-3.5 bg-[#D4AF37] hover:bg-amber-400 text-gray-900 rounded-2xl font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2"
               >
-                Entrar como Dra. Priscila (Demo)
+                <Stethoscope className="w-4 h-4" /> Entrar como Dra. Priscila
               </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* ADMIN DASHBOARD */}
       {currentScreen === 'admin_dashboard' && (
         <div className="max-w-6xl mx-auto px-4 pt-6 space-y-6">
-          <div className="bg-white p-6 rounded-3xl border border-gray-200 flex justify-between items-center">
+          <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h2 className="text-xl font-bold text-gray-900">Gestantes Cadastradas</h2>
-              <p className="text-xs text-gray-500">Selecione para abrir o cartão</p>
+              <p className="text-xs text-gray-500">Selecione para visualizar o cartão pré-natal</p>
+            </div>
+            <div className="w-full sm:w-auto">
+              <input
+                type="text"
+                placeholder="Buscar paciente por nome ou CPF..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full sm:w-64 text-xs p-2.5 border rounded-xl"
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredPatients.map(pat => (
-              <div key={pat.id} className="bg-white p-5 rounded-2xl border border-gray-200 flex justify-between items-center">
+              <div key={pat.id} className="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex justify-between items-center">
                 <div>
-                  <h3 className="font-bold text-gray-900">{pat.nome}</h3>
-                  <p className="text-xs text-gray-500">Bebê: {pat.nomeBebe} • DPP: {pat.dpp}</p>
+                  <span className="text-[10px] text-gray-400 font-bold uppercase">CPF: {pat.cpf}</span>
+                  <h3 className="font-bold text-gray-900 text-base">{pat.nome}</h3>
+                  <p className="text-xs text-gray-600 mt-1">Bebê: <strong>{pat.nomeBebe}</strong> • DPP: {new Date(pat.dpp).toLocaleDateString('pt-BR')}</p>
                 </div>
                 <button
                   onClick={() => { setSelectedPatientId(pat.id); setCurrentScreen('patient_app'); }}
-                  className="px-4 py-2 bg-[#2E482A] text-white rounded-xl text-xs font-bold"
+                  className="px-4 py-2.5 bg-[#2E482A] text-white rounded-xl text-xs font-bold hover:bg-[#1E311B] transition-all shrink-0"
                 >
                   Abrir Cartão
                 </button>
@@ -236,40 +310,315 @@ export default function App() {
         </div>
       )}
 
+      {/* PATIENT APP AREA */}
       {currentScreen === 'patient_app' && (
-        <div className="max-w-5xl mx-auto px-4 pt-6 space-y-6">
-          <div className="bg-[#2E482A] text-white p-6 rounded-3xl flex justify-between items-center">
-            <div>
-              <h2 className="text-xl font-bold">{currentPatient.nome}</h2>
-              <p className="text-xs text-[#A3B18A]">Bebê: {currentPatient.nomeBebe} • DPP: {currentPatient.dpp}</p>
-            </div>
-            <div className="text-right">
-              <span className="text-2xl font-bold">{currentGest.weeks}</span>
-              <span className="text-xs block text-[#A3B18A]">Semanas</span>
+        <div className="max-w-5xl mx-auto px-4 pt-4 space-y-6">
+          
+          {/* BANNER PRINCIPAL */}
+          <div className="bg-[#2E482A] text-white p-6 rounded-3xl shadow-md">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <span className="text-[10px] text-[#A3B18A] uppercase font-bold">Carteirinha Digital de Acompanhamento</span>
+                <h2 className="text-2xl font-bold text-white mt-0.5">{currentPatient.nome}</h2>
+                <p className="text-xs text-gray-200 mt-1">
+                  Bebê: <strong>{currentPatient.nomeBebe}</strong> • DPP: <strong>{new Date(currentPatient.dpp).toLocaleDateString('pt-BR')}</strong> • Tipo: <strong className="text-red-300">{currentPatient.tipoSanguineo}</strong>
+                </p>
+              </div>
+
+              <div className="bg-white/10 p-3 rounded-2xl flex items-center gap-3">
+                <div className="text-3xl">👶</div>
+                <div>
+                  <div className="text-xl font-bold">{currentGest.weeks} <span className="text-xs font-normal">Semanas e</span> {currentGest.days} <span className="text-xs font-normal">dias</span></div>
+                  <span className="text-[10px] text-[#A3B18A] block">Idade Gestacional Atual</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-3xl border border-gray-200 space-y-4">
-            <h3 className="font-bold text-gray-900 text-sm">Curva de Ganho de Peso Materno</h3>
-            <div className="w-full overflow-x-auto">
-              <svg viewBox="0 0 500 200" className="w-full min-w-[400px]">
-                <rect x="30" y="10" width="450" height="150" fill="#F9FAFB" stroke="#E5E7EB" />
-                {currentPatient.consultasEvolucao.map((c, i) => {
-                  const x = 30 + (c.igSem / 40) * 450;
-                  const y = 160 - ((c.peso - 50) / 40) * 150;
-                  return (
-                    <g key={i}>
-                      <circle cx={x} cy={y} r="4" fill="#2E482A" />
-                      <text x={x} y={y - 8} fontSize="8" textAnchor="middle">{c.peso}kg</text>
-                    </g>
-                  );
-                })}
-              </svg>
+          {/* BARRA DE NAVEGAÇÃO DE ABAS */}
+          <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-gray-200 flex overflow-x-auto gap-1">
+            <button
+              onClick={() => setActiveTab('resumo')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                activeTab === 'resumo' ? 'bg-[#2E482A] text-white' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              Resumo
+            </button>
+            <button
+              onClick={() => setActiveTab('graficos')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                activeTab === 'graficos' ? 'bg-[#2E482A] text-white' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              📈 Gráficos de Peso
+            </button>
+            <button
+              onClick={() => setActiveTab('vacinas')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                activeTab === 'vacinas' ? 'bg-[#2E482A] text-white' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              Vacinas
+            </button>
+            <button
+              onClick={() => setActiveTab('consultas')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                activeTab === 'consultas' ? 'bg-[#2E482A] text-white' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              Consultas
+            </button>
+            <button
+              onClick={() => setActiveTab('centralExames')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                activeTab === 'centralExames' ? 'bg-[#2E482A] text-white' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              ✨ Central + IA
+            </button>
+          </div>
+
+          {/* ABA RESUMO */}
+          {activeTab === 'resumo' && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white p-4 rounded-2xl border border-gray-200 flex items-center gap-3">
+                  <div className="p-3 bg-emerald-50 rounded-xl text-[#2E482A]"><Calendar className="w-5 h-5" /></div>
+                  <div>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase">Data Provável Parto</span>
+                    <div className="text-base font-bold">{new Date(currentPatient.dpp).toLocaleDateString('pt-BR')}</div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl border border-gray-200 flex items-center gap-3">
+                  <div className="p-3 bg-amber-50 rounded-xl text-amber-700"><Scale className="w-5 h-5" /></div>
+                  <div>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase">Diagnóstico IMC Inicial</span>
+                    <div className="text-sm font-bold">{bmiInfo.categoryLabel} ({bmiInfo.bmi})</div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl border border-gray-200 flex items-center gap-3">
+                  <div className="p-3 bg-blue-50 rounded-xl text-blue-700"><Clock className="w-5 h-5" /></div>
+                  <div>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase">Próxima Consulta</span>
+                    <div className="text-base font-bold">{currentPatient.agendaConsultas[0]?.data ? new Date(currentPatient.agendaConsultas[0].data).toLocaleDateString('pt-BR') : 'A agendar'}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* MENSAGEM / POEMA */}
+              <div className="bg-gradient-to-br from-[#2E482A] to-[#1E311B] text-white p-6 rounded-3xl shadow-md">
+                <blockquote className="font-serif italic text-lg leading-relaxed text-[#F4F6F0]">
+                  "Antes de você existir eu já te queria, antes de você existir eu já te amava, em menos de um minuto de nascido já daria minha vida por você."
+                </blockquote>
+                <p className="mt-3 text-xs font-bold text-[#E8ECD8]">Dra. Priscila Gapski • CRM 24734</p>
+              </div>
+            </div>
+          )}
+
+          {/* ABA GRÁFICOS DE PESO */}
+          {activeTab === 'graficos' && (
+            <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4">
+              <div className="flex justify-between items-center border-b pb-3">
+                <div>
+                  <h3 className="font-bold text-gray-900 text-base">Curva de Ganho de Peso Materno</h3>
+                  <p className="text-xs text-gray-500">Padrão Ministério da Saúde / Atalah conforme IMC Pré-gestacional</p>
+                </div>
+                {userRole === 'medica' && (
+                  <button
+                    onClick={() => setShowAddConsultaModal(true)}
+                    className="bg-[#2E482A] text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1"
+                  >
+                    <Plus className="w-4 h-4" /> Marcar Peso
+                  </button>
+                )}
+              </div>
+
+              {/* GRÁFICO SVG COM LINHA CONTINUA E FAIXA RECOMENDADA */}
+              <div className="bg-gray-50 p-4 rounded-2xl border overflow-x-auto">
+                <svg viewBox="0 0 600 260" className="w-full min-w-[500px]">
+                  {/* Grid Lines */}
+                  {[50, 60, 70, 80, 90].map((w) => {
+                    const y = 220 - ((w - 50) / 45) * 200;
+                    return (
+                      <g key={w}>
+                        <line x1="40" y1={y} x2="580" y2={y} stroke="#E5E7EB" strokeDasharray="3 3" />
+                        <text x="32" y={y + 4} fontSize="9" fill="#9CA3AF" textAnchor="end">{w}kg</text>
+                      </g>
+                    );
+                  })}
+
+                  {[10, 15, 20, 25, 30, 35, 40].map((wk) => {
+                    const x = 40 + ((wk - 10) / 30) * 540;
+                    return (
+                      <g key={wk}>
+                        <line x1={x} y1="20" x2={x} y2="220" stroke="#F3F4F6" />
+                        <text x={x} y="238" fontSize="9" fill="#6B7280" textAnchor="middle">{wk} sem</text>
+                      </g>
+                    );
+                  })}
+
+                  {/* Curva de Pontos Registrados */}
+                  {(() => {
+                    const points = currentPatient.consultasEvolucao
+                      .filter(c => c.igSem >= 10)
+                      .map(c => {
+                        const x = 40 + ((c.igSem - 10) / 30) * 540;
+                        const y = 220 - ((c.peso - 50) / 45) * 200;
+                        return { x, y, ...c };
+                      });
+
+                    const polylineStr = points.map(p => `${p.x},${p.y}`).join(" ");
+
+                    return (
+                      <g>
+                        {points.length > 1 && (
+                          <polyline fill="none" stroke="#2E482A" strokeWidth="3" points={polylineStr} />
+                        )}
+                        {points.map((p) => (
+                          <g key={p.id}>
+                            <circle cx={p.x} cy={p.y} r="5" fill="#D4AF37" stroke="#2E482A" strokeWidth="2" />
+                            <text x={p.x} y={p.y - 8} fontSize="9" fontWeight="bold" fill="#1E311B" textAnchor="middle">
+                              {p.peso}kg
+                            </text>
+                          </g>
+                        ))}
+                      </g>
+                    );
+                  })()}
+                </svg>
+              </div>
+            </div>
+          )}
+
+          {/* ABA VACINAS */}
+          {activeTab === 'vacinas' && (
+            <div className="bg-white p-6 rounded-3xl border border-gray-200 space-y-4">
+              <h3 className="font-bold text-gray-900 text-base border-b pb-2">Quadro Vacinal da Gestante</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {Object.entries(currentPatient.vacinas).map(([k, v]) => (
+                  <div key={k} className="p-3.5 bg-gray-50 rounded-2xl border flex justify-between items-center text-xs">
+                    <div>
+                      <strong className="uppercase font-bold block text-gray-800">{k}</strong>
+                      <span className="text-gray-500">{v.realizada ? `Aplicada em ${v.data}` : 'Pendente'}</span>
+                    </div>
+                    <span className={`px-2.5 py-1 rounded-full font-bold text-[10px] ${v.realizada ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-600'}`}>
+                      {v.realizada ? '✓ Aplicada' : 'Pendente'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ABA CONSULTAS */}
+          {activeTab === 'consultas' && (
+            <div className="bg-white p-6 rounded-3xl border border-gray-200 space-y-4">
+              <div className="flex justify-between items-center border-b pb-2">
+                <h3 className="font-bold text-gray-900 text-base">Evolução de Consultas</h3>
+                {userRole === 'medica' && (
+                  <button
+                    onClick={() => setShowAddConsultaModal(true)}
+                    className="bg-[#2E482A] text-white px-3 py-1.5 rounded-xl text-xs font-bold"
+                  >
+                    + Nova Consulta
+                  </button>
+                )}
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-[#2E482A] text-white">
+                      <th className="p-2.5 rounded-tl-xl">Data</th>
+                      <th className="p-2.5">IG</th>
+                      <th className="p-2.5">Peso</th>
+                      <th className="p-2.5">PA</th>
+                      <th className="p-2.5 rounded-tr-xl">Conduta</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {currentPatient.consultasEvolucao.map(c => (
+                      <tr key={c.id}>
+                        <td className="p-2.5 font-bold">{new Date(c.data).toLocaleDateString('pt-BR')}</td>
+                        <td className="p-2.5">{c.igSem} sem</td>
+                        <td className="p-2.5 font-bold text-emerald-800">{c.peso} kg</td>
+                        <td className="p-2.5">{c.pa}</td>
+                        <td className="p-2.5 text-gray-600">{c.conduta}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ABA CENTRAL DE EXAMES + IA */}
+          {activeTab === 'centralExames' && (
+            <div className="bg-white p-6 rounded-3xl border border-gray-200 space-y-4">
+              <h3 className="font-bold text-gray-900 text-base border-b pb-2">Central de Exames + Análise por IA</h3>
+              {currentPatient.examesEnviados.map(ex => (
+                <div key={ex.id} className="p-4 bg-gray-50 rounded-2xl border space-y-2">
+                  <div className="flex justify-between items-center text-xs font-bold">
+                    <span>{ex.nome}</span>
+                    <span className="text-gray-400">{ex.dataUpload}</span>
+                  </div>
+                  <div className="bg-white p-3 rounded-xl border text-xs text-gray-700 whitespace-pre-line leading-relaxed">
+                    {ex.resumoIA}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+        </div>
+      )}
+
+      {/* MODAL REGISTRAR CONSULTA */}
+      {showAddConsultaModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-3">
+            <h3 className="font-bold text-gray-900 text-base">Registrar Peso na Consulta</h3>
+            <div>
+              <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Semanas de Gestação</label>
+              <input
+                type="number"
+                placeholder="Ex: 32"
+                value={newConsulta.igSem}
+                onChange={(e) => setNewConsulta({ ...newConsulta, igSem: e.target.value })}
+                className="w-full text-xs p-2.5 border rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Peso Atual (kg)</label>
+              <input
+                type="text"
+                placeholder="Ex: 71.5"
+                value={newConsulta.peso}
+                onChange={(e) => setNewConsulta({ ...newConsulta, peso: e.target.value })}
+                className="w-full text-xs p-2.5 border rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Conduta</label>
+              <input
+                type="text"
+                placeholder="Ex: Retorno em 15 dias"
+                value={newConsulta.conduta}
+                onChange={(e) => setNewConsulta({ ...newConsulta, conduta: e.target.value })}
+                className="w-full text-xs p-2.5 border rounded-xl"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setShowAddConsultaModal(false)} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
+              <button onClick={handleAddConsulta} className="px-4 py-1.5 bg-[#2E482A] text-white font-bold text-xs rounded-xl">Salvar</button>
             </div>
           </div>
         </div>
       )}
 
+      {/* MODAL DE LOGIN DA PACIENTE */}
       {showPatientLoginModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-4">
@@ -281,19 +630,15 @@ export default function App() {
               onChange={(e) => setLoginCpf(e.target.value)}
               className="w-full text-xs p-3 border rounded-xl"
             />
-            <button
-              onClick={handlePatientLogin}
-              className="w-full py-2.5 bg-[#2E482A] text-white rounded-xl text-xs font-bold"
-            >
+            <button onClick={handlePatientLogin} className="w-full py-2.5 bg-[#2E482A] text-white rounded-xl text-xs font-bold">
               Entrar
             </button>
-            <button onClick={() => setShowPatientLoginModal(false)} className="w-full text-xs text-gray-500">
-              Cancelar
-            </button>
+            <button onClick={() => setShowPatientLoginModal(false)} className="w-full text-xs text-gray-500">Cancelar</button>
           </div>
         </div>
       )}
 
+      {/* MODAL DE LOGIN DA MÉDICA */}
       {showDoctorLoginModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-4">
@@ -305,18 +650,14 @@ export default function App() {
               onChange={(e) => setLoginPass(e.target.value)}
               className="w-full text-xs p-3 border rounded-xl"
             />
-            <button
-              onClick={handleDoctorLogin}
-              className="w-full py-2.5 bg-[#D4AF37] text-gray-900 rounded-xl text-xs font-bold"
-            >
+            <button onClick={handleDoctorLogin} className="w-full py-2.5 bg-[#D4AF37] text-gray-900 rounded-xl text-xs font-bold">
               Entrar no Painel
             </button>
-            <button onClick={() => setShowDoctorLoginModal(false)} className="w-full text-xs text-gray-500">
-              Cancelar
-            </button>
+            <button onClick={() => setShowDoctorLoginModal(false)} className="w-full text-xs text-gray-500">Cancelar</button>
           </div>
         </div>
       )}
+
     </div>
   );
 }
