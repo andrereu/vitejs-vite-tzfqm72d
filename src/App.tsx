@@ -2,13 +2,20 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Calendar, Activity, Heart, Upload, Sparkles, User, 
   Plus, Clock, Baby, Stethoscope, LogOut, Printer, X, 
-  Syringe, Scale, FileCheck, Check, Search, 
+  Syringe, Scale, FileCheck, Check,
   TrendingUp, UserPlus
 } from 'lucide-react';
 
-import { db } from './firebase';
+// Importa o banco Firestore e o módulo de Autenticação
+import { db, auth } from './firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { 
+  signInWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged 
+} from 'firebase/auth';
 
+// --- CURVAS REFERENCIAIS DE GANHO DE PESO MATERNO (ATALAH / MS) ---
 const WEIGHT_CURVES: Record<string, { label: string; targetMin: number; targetMax: number; color: string }> = {
   baixoPeso: { label: 'Baixo Peso (IMC < 18,5)', targetMin: 12.5, targetMax: 18.0, color: '#3B82F6' },
   normal: { label: 'Peso Normal (IMC 18,5 - 24,9)', targetMin: 11.5, targetMax: 16.0, color: '#10B981' },
@@ -38,31 +45,25 @@ const initialPatientsList = [
       dtpa: { realizada: true, data: "2026-05-20", lote: "DTP-9921" },
       covid19: { realizada: true, data: "2026-02-15", lote: "COV-3" }
     },
-    examesLab: [
-      { id: "lab-1", hbVg: "12.8 / 38%", plaquetas: "245.000", glicemia: "82 mg/dL", hiv: "Não Reativo", sifilis: "Não Reativo", tsh: "1.8 mUI/L" }
-    ],
-    ultrassons: [
-      { id: "us-1", data: "2026-02-25", igSem: 6, pfGrams: 0, la: "Normal", pl: "Trofoblasto", laudo: "Saco gestacional único com BCF visível (124 bpm)." },
-      { id: "us-2", data: "2026-04-10", igSem: 12, pfGrams: 62, la: "Normal", pl: "Anterior", laudo: "TN 1.2mm, osso nasal presente. Risco baixo." }
-    ],
+    examesLab: [],
+    ultrassons: [],
     consultasEvolucao: [
-      { id: "c-1", data: "2026-02-20", igSem: 6, peso: 62.5, pa: "110/70", au: "NP", bcfMf: "Visível USG", edema: "Ausente", conduta: "Início do Ácido Fólico." },
-      { id: "c-2", data: "2026-03-24", igSem: 10, peso: 63.1, pa: "115/75", au: "NP", bcfMf: "152 bpm", edema: "Ausente", conduta: "Solicitado Morfológico 1º Trim." },
-      { id: "c-3", data: "2026-04-28", igSem: 15, peso: 64.2, pa: "110/70", au: "14 cm", bcfMf: "148 bpm", edema: "Ausente", conduta: "Exames 1º trim normais." }
+      { id: "c-1", data: "2026-02-20", igSem: 6, peso: 62.5, pa: "110/70", au: "NP", bcfMf: "Visível USG", edema: "Ausente", conduta: "Início do Ácido Fólico." }
     ],
-    agendaConsultas: [{ id: "ag-1", data: "2026-08-25", horario: "14:30", tipo: "Consulta Pré-Natal (32 sem)" }],
+    agendaConsultas: [],
     examesEnviados: []
   }
 ];
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'landing' | 'patient_app' | 'admin_dashboard'>('admin_dashboard');
-  const [userRole, setUserRole] = useState<'paciente' | 'medica' | null>('medica');
+  const [currentScreen, setCurrentScreen] = useState<'landing' | 'patient_app' | 'admin_dashboard'>('landing');
+  const [userRole, setUserRole] = useState<'paciente' | 'medica' | null>(null);
   const [patients, setPatients] = useState(initialPatientsList);
   const [selectedPatientId, setSelectedPatientId] = useState("gestante-01");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState('resumo');
 
+  // MODAIS
   const [showPatientLoginModal, setShowPatientLoginModal] = useState(false);
   const [showDoctorLoginModal, setShowDoctorLoginModal] = useState(false);
   const [showAddConsultaModal, setShowAddConsultaModal] = useState(false);
@@ -71,9 +72,13 @@ export default function App() {
   const [showNewPatientModal, setShowNewPatientModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
 
+  // CAMPOS DE LOGIN REAL
+  const [doctorEmail, setDoctorEmail] = useState("");
+  const [doctorPassword, setDoctorPassword] = useState("");
   const [loginCpf, setLoginCpf] = useState("");
-  const [loginPass, setLoginPass] = useState("");
+  const [loginError, setLoginError] = useState("");
 
+  // ESTADOS DOS FORMULÁRIOS
   const [newPatient, setNewPatient] = useState({
     nome: '', cpf: '', idade: '', pai: '', nomeBebe: '',
     dum: new Date().toISOString().split('T')[0],
@@ -85,13 +90,19 @@ export default function App() {
     igSem: '', peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente', conduta: ''
   });
 
-  const [newUS, setNewUS] = useState({
-    data: new Date().toISOString().split('T')[0],
-    igSem: '', pfGrams: '', la: 'Normal', pl: 'Normoinserida', laudo: ''
-  });
+  // 🔐 PERSISTÊNCIA E VERIFICAÇÃO DE SESSÃO COM FIREBASE AUTH
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        // Se houver usuário autenticado no Firebase, entra no modo Médica
+        setUserRole('medica');
+        setCurrentScreen('admin_dashboard');
+      }
+    });
+    return () => unsubscribeAuth();
+  }, []);
 
-  const [newExamUpload, setNewExamUpload] = useState({ nome: '', tipo: 'Ecografia' });
-
+  // 🔄 SINCRONIZAÇÃO EM TEMPO REAL DO FIRESTORE
   useEffect(() => {
     try {
       const docRef = doc(db, "prenatal", "lista_pacientes");
@@ -104,7 +115,7 @@ export default function App() {
       });
       return () => unsubscribe();
     } catch (err) {
-      console.warn("Offline fallback:", err);
+      console.warn("Modo offline:", err);
     }
   }, []);
 
@@ -114,7 +125,7 @@ export default function App() {
       const docRef = doc(db, "prenatal", "lista_pacientes");
       await setDoc(docRef, { lista: updatedList }, { merge: true });
     } catch (err) {
-      console.error("Erro ao salvar no banco:", err);
+      console.error("Erro ao salvar:", err);
     }
   };
 
@@ -132,23 +143,26 @@ export default function App() {
 
   const currentGest = calculateWeeksAndDays(currentPatient.dum);
 
-  const bmiInfo = useMemo(() => {
-    const p = parseFloat(currentPatient.pesoInicial) || 0;
-    const a = parseFloat(currentPatient.altura) || 0;
-    if (!p || !a) return { bmi: '0', categoryLabel: 'Normal', targetMin: 11.5, targetMax: 16.0 };
-    const bmi = p / (a * a);
-    let categoryKey = 'normal';
-    if (bmi < 18.5) categoryKey = 'baixoPeso';
-    else if (bmi >= 25.0 && bmi < 30.0) categoryKey = 'sobrepeso';
-    else if (bmi >= 30.0) categoryKey = 'obesidade';
-    
-    return {
-      bmi: bmi.toFixed(1),
-      categoryLabel: WEIGHT_CURVES[categoryKey].label,
-      targetMin: WEIGHT_CURVES[categoryKey].targetMin,
-      targetMax: WEIGHT_CURVES[categoryKey].targetMax
-    };
-  }, [currentPatient.pesoInicial, currentPatient.altura]);
+  // 🔑 AUTENTICAÇÃO DA MÉDICA COM FIREBASE AUTH
+  const handleDoctorLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError("");
+    try {
+      await signInWithEmailAndPassword(auth, doctorEmail, doctorPassword);
+      setUserRole('medica');
+      setCurrentScreen('admin_dashboard');
+      setShowDoctorLoginModal(false);
+    } catch (err: any) {
+      setLoginError("E-mail ou senha incorretos.");
+    }
+  };
+
+  // 🔑 LOGOUT REAL
+  const handleLogout = async () => {
+    await signOut(auth);
+    setUserRole(null);
+    setCurrentScreen('landing');
+  };
 
   const handlePatientLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,15 +172,8 @@ export default function App() {
       setUserRole('paciente');
       setCurrentScreen('patient_app');
       setShowPatientLoginModal(false);
-    }
-  };
-
-  const handleDoctorLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (loginPass === "1234" || loginPass === "admin") {
-      setUserRole('medica');
-      setCurrentScreen('admin_dashboard');
-      setShowDoctorLoginModal(false);
+    } else {
+      setLoginError("CPF não encontrado.");
     }
   };
 
@@ -281,10 +288,7 @@ export default function App() {
                     Lista de Pacientes
                   </button>
                 )}
-                <button onClick={() => setShowPrintModal(true)} className="p-2 bg-white/10 rounded-xl hover:bg-white/20">
-                  <Printer className="w-4 h-4 text-white" />
-                </button>
-                <button onClick={() => { setCurrentScreen('landing'); setUserRole(null); }} className="p-2 bg-red-500/20 text-red-200 rounded-xl">
+                <button onClick={handleLogout} className="p-2 bg-red-500/20 text-red-200 rounded-xl">
                   <LogOut className="w-4 h-4" />
                 </button>
               </>
@@ -303,6 +307,35 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      {/* LANDING PAGE */}
+      {currentScreen === 'landing' && (
+        <div className="space-y-8 pt-8 px-4 max-w-4xl mx-auto text-center">
+          <div className="bg-gradient-to-b from-[#2E482A] to-[#1E311B] text-white p-8 rounded-3xl shadow-xl">
+            <span className="bg-white/10 text-[#E8ECD8] text-[10px] font-bold px-3 py-1 rounded-full uppercase border border-white/20">
+              Acompanhamento Pré-Natal Digital
+            </span>
+            <h2 className="text-2xl md:text-4xl font-serif font-bold text-[#F4F6F0] mt-3 leading-tight">
+              Sua gestação acompanhada com carinho, tecnologia e precisão
+            </h2>
+
+            <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={() => setShowPatientLoginModal(true)}
+                className="px-6 py-3.5 bg-[#8A9A86] hover:bg-[#788874] text-white rounded-2xl font-bold text-xs shadow-md"
+              >
+                Área da Paciente
+              </button>
+              <button
+                onClick={() => setShowDoctorLoginModal(true)}
+                className="px-6 py-3.5 bg-[#D4AF37] hover:bg-amber-400 text-gray-900 rounded-2xl font-bold text-xs shadow-md"
+              >
+                Acesso Dra. Priscila
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* DASHBOARD MÉDICO */}
       {currentScreen === 'admin_dashboard' && (
@@ -450,18 +483,54 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL REGISTRAR CONSULTA */}
-      {showAddConsultaModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+      {/* MODAL LOGIN PACIENTE */}
+      {showPatientLoginModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-4">
+            <h3 className="font-bold text-gray-900">Área da Paciente</h3>
+            {loginError && <p className="text-red-500 text-xs">{loginError}</p>}
+            <input type="text" placeholder="Digite seu CPF" value={loginCpf} onChange={(e) => setLoginCpf(e.target.value)} className="w-full text-xs p-3 border rounded-xl" />
+            <button onClick={handlePatientLogin} className="w-full py-2.5 bg-[#2E482A] text-white rounded-xl text-xs font-bold">Entrar</button>
+            <button onClick={() => setShowPatientLoginModal(false)} className="w-full text-xs text-gray-500">Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL LOGIN REAL MÉDICA (FIREBASE AUTH) */}
+      {showDoctorLoginModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-3">
-            <h3 className="font-bold text-gray-900 text-base">Nova Consulta</h3>
-            <input type="number" placeholder="Semanas de Gestação" value={newConsulta.igSem} onChange={(e) => setNewConsulta({ ...newConsulta, igSem: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-            <input type="text" placeholder="Peso Atual (kg)" value={newConsulta.peso} onChange={(e) => setNewConsulta({ ...newConsulta, peso: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-            <input type="text" placeholder="Conduta" value={newConsulta.conduta} onChange={(e) => setNewConsulta({ ...newConsulta, conduta: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-            <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowAddConsultaModal(false)} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
-              <button onClick={handleAddConsulta} className="px-4 py-1.5 bg-[#2E482A] text-white font-bold text-xs rounded-xl">Salvar</button>
+            <h3 className="font-bold text-gray-900">Acesso Médico Seguro</h3>
+            {loginError && <p className="text-red-500 text-xs font-semibold">{loginError}</p>}
+            
+            <div>
+              <label className="text-[10px] text-gray-400 font-bold uppercase block mb-1">E-mail Cadastrado</label>
+              <input 
+                type="email" 
+                placeholder="dra@priscilagapski.com.br" 
+                value={doctorEmail} 
+                onChange={(e) => setDoctorEmail(e.target.value)} 
+                className="w-full text-xs p-3 border rounded-xl" 
+              />
             </div>
+
+            <div>
+              <label className="text-[10px] text-gray-400 font-bold uppercase block mb-1">Senha de Acesso</label>
+              <input 
+                type="password" 
+                placeholder="••••••••" 
+                value={doctorPassword} 
+                onChange={(e) => setDoctorPassword(e.target.value)} 
+                className="w-full text-xs p-3 border rounded-xl" 
+              />
+            </div>
+
+            <button onClick={handleDoctorLogin} className="w-full py-2.5 bg-[#D4AF37] text-gray-900 rounded-xl text-xs font-bold shadow-md">
+              Entrar no Painel
+            </button>
+            <button onClick={() => setShowDoctorLoginModal(false)} className="w-full text-xs text-gray-500 pt-1">
+              Cancelar
+            </button>
           </div>
         </div>
       )}
