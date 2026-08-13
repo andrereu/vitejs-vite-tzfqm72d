@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth"; // Importe o Auth
 
-// Credenciais geradas para o projeto prenatal-dra-priscila
 const firebaseConfig = {
   apiKey: "AIzaSyBdndR_Dl4Fqyop0C7bcj_Jd07oGnoYyuE",
   authDomain: "prenatal-dra-priscila.firebaseapp.com",
@@ -12,6 +12,6 @@ const firebaseConfig = {
   measurementId: "G-NZT5QRYVNJ"
 };
 
-// Inicializa o Firebase e exporta a instância do Firestore Database
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
+export const auth = getAuth(app); // Exporte o auth
