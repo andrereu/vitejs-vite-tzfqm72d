@@ -16,57 +16,67 @@ export const sendPrenatalChatMessage = async (
   const apiKey = (import.meta.env.VITE_GEMINI_API_KEY || "").trim();
 
   if (!apiKey) {
-    return "❌ Erro: Chave VITE_GEMINI_API_KEY não encontrada nas variáveis de ambiente da Vercel.";
+    return "❌ Erro: VITE_GEMINI_API_KEY não encontrada na Vercel.";
   }
 
   const promptText = `Você é a Assistente Virtual Pré-Natal da Dra. Priscila Gapski (CRM 24734).
-Informações da paciente:
+Informações da gestante:
 - Nome: ${patient.nome}
 - Gestação: ${weeks} semanas
 - Nome do Bebê: ${patient.nomeBebe || 'Bebê'}
 
 Dúvida da gestante: "${userMessage}"
 
-Diretrizes de resposta:
-1. Responda em português com muito carinho, acolhimento e emojis delicados (🌸, 👶, ✨).
-2. Explique de forma simples e didática o que é esperado para a fase de ${weeks} semanas.
-3. NUNCA prescreva medicamentos. Se houver sangramentos, dor forte ou perda de líquido, oriente atendimento médico de urgência com calma e firmeza.`;
+Diretrizes:
+- Responda em português com muito carinho, acolhimento e emojis delicados (🌸, 👶, ✨).
+- Dê orientações práticas e seguras para a gestação na ${weeks}ª semana.
+- NUNCA prescreva medicamentos. Em caso de sangramento, dor intensa ou perda de líquido, oriente atendimento médico de urgência com calma e firmeza.`;
 
-  // Endpoint oficial da Interactions API com chave na URL
   const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`;
 
-  const payload = {
-    model: "models/gemini-2.5-flash",
-    input: promptText
-  };
+  // Modelos suportados na Interactions API em ordem de preferência
+  const candidateModels = [
+    "gemini-2.0-flash",
+    "gemini-1.5-pro",
+    "gemini-1.5-flash-8b"
+  ];
 
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
+  let lastErrorDetail = "";
 
-    const data = await response.json();
+  for (const modelName of candidateModels) {
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey
+        },
+        body: JSON.stringify({
+          model: modelName,
+          input: promptText
+        })
+      });
 
-    if (response.ok) {
-      // Extração resiliente do texto da Interactions API
-      const textOutput =
-        data.output?.text ||
-        data.output ||
-        (Array.isArray(data.outputs) ? data.outputs.map((o: any) => o.text || o.content || JSON.stringify(o)).join("\n") : null) ||
-        data.text ||
-        data.candidates?.[0]?.content?.parts?.[0]?.text;
+      const data = await response.json();
 
-      if (textOutput && typeof textOutput === "string") return textOutput;
-      if (typeof textOutput === "object") return JSON.stringify(textOutput);
-      return JSON.stringify(data);
-    } else {
-      return `❌ [v-interactions] Erro da API (${response.status}): ${data?.error?.message || JSON.stringify(data)}`;
+      if (response.ok) {
+        const reply =
+          data.output?.text ||
+          data.output ||
+          (Array.isArray(data.outputs) ? data.outputs.map((o: any) => o.text || o.content || JSON.stringify(o)).join("\n") : null) ||
+          data.text ||
+          data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (reply && typeof reply === "string") return reply;
+        if (typeof reply === "object") return JSON.stringify(reply);
+        return JSON.stringify(data);
+      } else {
+        lastErrorDetail = `[${modelName} - ${response.status}]: ${data?.error?.message || JSON.stringify(data)}`;
+      }
+    } catch (err: any) {
+      lastErrorDetail = `[Fetch Error]: ${err?.message || err}`;
     }
-  } catch (error: any) {
-    return `❌ [v-interactions] Erro de rede: ${error?.message || error}`;
   }
+
+  return `❌ Erro da API (${lastErrorDetail})`;
 };
