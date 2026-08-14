@@ -16,13 +16,78 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
   const consultas = patient.consultasEvolucao || [];
 
   const content = (
-    <div id="print-carteirinha-root" className="hidden print:block text-gray-800 text-[11px] leading-tight font-sans">
-      
-      {/* ================= PÁGINA 1: CAPA + GRÁFICO GPG ================= */}
-      <div className="print-page">
+    <div id="print-carteirinha-wrapper">
+      <style>{`
+        @media screen {
+          #print-carteirinha-wrapper {
+            display: none !important;
+          }
+        }
+        @media print {
+          @page {
+            size: 297mm 210mm landscape;
+            margin: 0mm !important;
+          }
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            width: 297mm !important;
+            height: 210mm !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          #root {
+            display: none !important;
+          }
+          #print-carteirinha-wrapper {
+            display: block !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 297mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            z-index: 999999 !important;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+          }
+          .folha-a4 {
+            width: 297mm !important;
+            height: 210mm !important;
+            max-height: 210mm !important;
+            box-sizing: border-box !important;
+            padding: 10mm 12mm !important;
+            display: flex !important;
+            flex-direction: row !important;
+            gap: 14mm !important;
+            background: #ffffff !important;
+            page-break-after: always !important;
+            break-after: page !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            overflow: hidden !important;
+          }
+          .folha-a4:last-child {
+            page-break-after: auto !important;
+            break-after: auto !important;
+          }
+          .coluna-a4 {
+            width: 50% !important;
+            height: 100% !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            box-sizing: border-box !important;
+          }
+        }
+      `}</style>
+
+      {/* ================= PÁGINA 1: CAPA + GPG ================= */}
+      <div className="folha-a4 text-gray-800 text-[11px] leading-tight">
         
         {/* COLUNA ESQUERDA: CAPA & DADOS */}
-        <div className="w-1/2 flex flex-col justify-between border-r-2 border-dashed border-[#2E482A]/30 pr-5">
+        <div className="coluna-a4 border-r-2 border-dashed border-[#2E482A]/30 pr-5">
           <div className="space-y-3">
             <div className="bg-[#2E482A] text-white p-3.5 rounded-xl flex items-center justify-between shadow-xs">
               <div>
@@ -74,7 +139,7 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
         </div>
 
         {/* COLUNA DIREITA: GPG */}
-        <div className="w-1/2 flex flex-col justify-between pl-1">
+        <div className="coluna-a4 pl-2">
           <div className="space-y-3">
             <div className="bg-[#2E482A]/10 p-2.5 rounded-xl border border-[#2E482A]/20">
               <h2 className="text-xs font-bold text-[#2E482A] uppercase">
@@ -135,10 +200,10 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
       </div>
 
       {/* ================= PÁGINA 2: CONSULTAS + EXAMES ================= */}
-      <div className="print-page">
+      <div className="folha-a4 text-gray-800 text-[11px] leading-tight">
         
         {/* COLUNA ESQUERDA: CONSULTAS */}
-        <div className="w-1/2 flex flex-col justify-between border-r-2 border-dashed border-[#2E482A]/30 pr-5">
+        <div className="coluna-a4 border-r-2 border-dashed border-[#2E482A]/30 pr-5">
           <div>
             <div className="bg-[#2E482A] text-white p-2.5 rounded-xl mb-3">
               <h2 className="text-xs font-bold uppercase tracking-wider">
@@ -184,7 +249,7 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
         </div>
 
         {/* COLUNA DIREITA: EXAMES */}
-        <div className="w-1/2 flex flex-col justify-between pl-1">
+        <div className="coluna-a4 pl-2">
           <div>
             <div className="bg-[#2E482A] text-white p-2.5 rounded-xl mb-3">
               <h2 className="text-xs font-bold uppercase tracking-wider">
