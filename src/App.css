@@ -7,183 +7,25 @@
   border: 2px solid transparent;
   transition: border-color 0.3s;
   margin-bottom: 24px;
-
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
 }
 
-.hero {
-  position: relative;
-
-  .base,
-  .framework,
-  .vite {
-    inset-inline: 0;
-    margin: 0 auto;
-  }
-
-  .base {
-    width: 170px;
-    position: relative;
-    z-index: 0;
-  }
-
-  .framework,
-  .vite {
-    position: absolute;
-  }
-
-  .framework {
-    z-index: 1;
-    top: 34px;
-    height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
-  }
-
-  .vite {
-    z-index: 0;
-    top: 107px;
-    height: 26px;
-    width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
-  }
+.counter:hover {
+  border-color: var(--accent-border);
 }
 
-#center {
+.counter:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+#root {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 25px;
-  place-content: center;
-  place-items: center;
-  flex-grow: 1;
-
-  @media (max-width: 1024px) {
-    padding: 32px 20px 24px;
-    gap: 18px;
-  }
 }
 
-#next-steps {
-  display: flex;
-  border-top: 1px solid var(--border);
-  text-align: left;
-
-  & > div {
-    flex: 1 1 0;
-    padding: 32px;
-    @media (max-width: 1024px) {
-      padding: 24px 20px;
-    }
-  }
-
-  .icon {
-    margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
-  }
-
-  @media (max-width: 1024px) {
-    flex-direction: column;
-    text-align: center;
-  }
-}
-
-#docs {
-  border-right: 1px solid var(--border);
-
-  @media (max-width: 1024px) {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-}
-
-#next-steps ul {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  gap: 8px;
-  margin: 32px 0 0;
-
-  .logo {
-    height: 18px;
-  }
-
-  a {
-    color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
-    background: var(--social-bg);
-    display: flex;
-    padding: 6px 12px;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    transition: box-shadow 0.3s;
-
-    &:hover {
-      box-shadow: var(--shadow);
-    }
-    .button-icon {
-      height: 18px;
-      width: 18px;
-    }
-  }
-
-  @media (max-width: 1024px) {
-    margin-top: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-
-    li {
-      flex: 1 1 calc(50% - 8px);
-    }
-
-    a {
-      width: 100%;
-      justify-content: center;
-      box-sizing: border-box;
-    }
-  }
-}
-
-#spacer {
-  height: 88px;
-  border-top: 1px solid var(--border);
-  @media (max-width: 1024px) {
-    height: 48px;
-  }
-}
-
-.ticks {
-  position: relative;
-  width: 100%;
-
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4.5px;
-    border: 5px solid transparent;
-  }
-
-  &::before {
-    left: 0;
-    border-left-color: var(--border);
-  }
-  &::after {
-    right: 0;
-    border-right-color: var(--border);
-  }
-}
 /* ===================================================
-   IMPRESSÃO A4 PAISAGEM: 2 PÁGINAS EXATAS
+   IMPRESSÃO A4 PAISAGEM: 2 PÁGINAS EXATAS (ZERO ERRO)
    =================================================== */
 @media print {
   @page {
@@ -191,51 +33,45 @@
     margin: 0;
   }
 
-  html, body, #root {
+  html, body {
     margin: 0 !important;
     padding: 0 !important;
     background: #ffffff !important;
     width: 297mm !important;
+    height: 100% !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* Oculta tudo da tela normal */
-  body * {
-    visibility: hidden;
+  /* Oculta completamente toda a aplicação web */
+  #root, header, nav, button, .min-h-screen {
+    display: none !important;
   }
 
-  /* Deixa visível apenas a nova Carteirinha Oficial */
-  #print-carteirinha-root, #print-carteirinha-root * {
-    visibility: visible;
-  }
-
+  /* Exibe exclusivamente o portal de impressão da carteirinha */
   #print-carteirinha-root {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 297mm;
     display: block !important;
+    position: relative !important;
+    width: 297mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   .print-page {
     width: 297mm !important;
     height: 210mm !important;
+    max-height: 210mm !important;
     page-break-after: always !important;
     break-after: page !important;
-    box-sizing: border-box;
-    padding: 10mm !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    box-sizing: border-box !important;
+    padding: 12mm 15mm !important;
+    overflow: hidden !important;
   }
 
   .print-page:last-child {
-    page-break-after: avoid !important;
-    break-after: avoid !important;
-  }
-}
-
-
-  .print-page {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
+    page-break-after: auto !important;
+    break-after: auto !important;
   }
 }
