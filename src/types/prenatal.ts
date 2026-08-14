@@ -40,6 +40,7 @@ export interface Patient {
   id: string;
   cpf: string;
   telefone?: string;
+  email?: string;
   senhaAcc?: string;
   nome: string;
   idade: string;
