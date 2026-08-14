@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Calendar, Heart, Upload, 
+  Heart, Upload, 
   Plus, LogOut, Printer,
   Syringe, 
   UserPlus, Calculator, AlertCircle, Edit3, Bot,
@@ -22,6 +22,7 @@ import { processExamWithGeminiIA } from './services/geminiService';
 import { Tooltip } from './components/Tooltip';
 import { PrintCardA4 } from './components/PrintCardA4';
 import { AppModals } from './components/AppModals';
+import { PrenatalChatTab } from './components/PrenatalChatTab';
 
 const LISTA_EXAMES_OFICIAIS = [
   { id: 'hbVg', label: 'HB / VG', placeholder: 'Ex: 12.5 g/dL / 38%' },
@@ -644,7 +645,6 @@ export default function App() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5">
-              {/* BOTÃO COMPARTILHAR CARTEIRINHA */}
               <button 
                 onClick={() => sharePatientCard(currentPatient)}
                 className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all"
@@ -671,6 +671,7 @@ export default function App() {
             </div>
           </div>
 
+          {/* LISTA DE ABAS */}
           <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-gray-200 flex overflow-x-auto gap-1 print:hidden">
             {[
               { id: 'resumo', label: 'Resumo' },
@@ -680,6 +681,7 @@ export default function App() {
               { id: 'agenda', label: 'Agenda & Lembretes' },
               { id: 'graficos', label: 'Gráfico GPG (MS)' },
               { id: 'calculadora', label: 'Calculadora Gestacional' },
+              { id: 'chatIA', label: '💬 Assistente Pré-Natal (IA)' },
               { id: 'consultas', label: 'Consultas' },
               { id: 'examesCentral', label: 'Central de Exames + IA' }
             ].map((tab) => (
@@ -1025,7 +1027,6 @@ export default function App() {
                           {formatDateBR(item.data)} às {item.horario}
                         </span>
 
-                        {/* BOTÃO LEMBRETE WHATSAPP */}
                         {userRole === 'medica' && (
                           <a
                             href={generateAppointmentReminderLink(currentPatient, item)}
@@ -1158,7 +1159,15 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB CONSULTAS (COM ENVIO DE RESUMO ZAP) */}
+          {/* TAB ASSISTENTE PRÉ-NATAL IA */}
+          {activeTab === 'chatIA' && (
+            <PrenatalChatTab
+              currentPatient={currentPatient}
+              gestationalWeeks={currentGest.weeks}
+            />
+          )}
+
+          {/* TAB CONSULTAS */}
           {activeTab === 'consultas' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4 print:hidden">
               <h3 className="font-bold text-gray-900 text-base border-b pb-3">Evolução das Consultas</h3>
