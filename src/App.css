@@ -183,7 +183,7 @@
   }
 }
 /* ===================================================
-   REGRAS DE IMPRESSÃO A4 PAISAGEM (FRENTE E VERSO)
+   REGRAS DE IMPRESSÃO A4 PAISAGEM (SEGURO)
    =================================================== */
 @media print {
   @page {
@@ -191,45 +191,32 @@
     margin: 8mm;
   }
 
-  html, body {
+  html, body, #root {
     width: 297mm !important;
     height: auto !important;
+    background: #ffffff !important;
     margin: 0 !important;
     padding: 0 !important;
-    background: #ffffff !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-    color-adjust: exact !important;
   }
 
-  /* Oculta tudo que é interativo da tela normal */
-  header, nav, button, form, .print\\:hidden, #root > div > *:not(#print-carteirinha-root) {
+  /* Esconde apenas os elementos com a classe do Tailwind ou botões/menus globais */
+  header, nav, form, button, .print\:hidden {
     display: none !important;
   }
 
-  /* Exibe exclusivamente a carteirinha diagramada */
+  /* Garante que a carteirinha ocupe a folha inteira */
   #print-carteirinha-root {
     display: block !important;
     width: 100% !important;
+    position: absolute;
+    top: 0;
+    left: 0;
   }
 
-  /* Força a divisão exata entre Página 1 (Frente) e Página 2 (Verso) */
   .print-page {
-    width: 100% !important;
-    height: 190mm !important;
-    box-sizing: border-box !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
-
-  .print-page:first-child {
-    page-break-after: always !important;
-    break-after: page !important;
-  }
-
-  .print-page:last-child {
-    page-break-after: avoid !important;
-    break-after: avoid !important;
-  }
 }
-
