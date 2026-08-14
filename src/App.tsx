@@ -3,7 +3,8 @@ import {
   Calendar, Activity, Heart, Upload, Sparkles, User, 
   Plus, Clock, Baby, Stethoscope, LogOut, Printer, X, 
   Syringe, Scale, FileCheck, Check, ExternalLink, FileText,
-  TrendingUp, UserPlus, Info, Calculator, AlertCircle, Edit3, Bot, Loader2
+  TrendingUp, UserPlus, Info, Calculator, AlertCircle, Edit3, Bot, Loader2,
+  Bell, MapPin, CalendarPlus
 } from 'lucide-react';
 
 import { db, auth } from './firebase';
@@ -42,6 +43,18 @@ const formatDateDisplay = (dateStr: string) => {
     const parts = dateStr.split('-');
     if (parts.length === 3) {
       return `${parts[2]}/${parts[1]}`;
+    }
+  }
+  return dateStr;
+};
+
+// HELPER PARA FORMATAR DATA BR COMPLETA (DD/MM/YYYY)
+const formatDateBR = (dateStr: string) => {
+  if (!dateStr) return '';
+  if (dateStr.includes('-')) {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
   }
   return dateStr;
@@ -92,6 +105,26 @@ const initialPatientsList = [
       { id: "c-1", data: "2026-02-20", igSem: 6, peso: 71.0, pa: "110/70", au: "NP", bcfMf: "Visível USG", edema: "Ausente", conduta: "Início do Ácido Fólico." },
       { id: "c-2", data: "2026-04-15", igSem: 13, peso: 72.2, pa: "115/75", au: "12 cm", bcfMf: "152 bpm / MF-", edema: "Ausente", conduta: "Ecografia Morfológica solicitada." }
     ],
+    agendaConsultas: [
+      {
+        id: "ag-1",
+        data: "2026-09-10",
+        horario: "14:30",
+        tipo: "Consulta Pré-Natal de Rotina",
+        local: "Consultório Dra. Priscila Gapski",
+        observacoes: "Trazer carteira de vacinas e exames de sangue do 3º trimestre.",
+        status: "agendada"
+      },
+      {
+        id: "ag-2",
+        data: "2026-10-01",
+        horario: "10:00",
+        tipo: "Avaliação Fetal / Retorno",
+        local: "Consultório Dra. Priscila Gapski",
+        observacoes: "Checar ultrassom de acompanhamento.",
+        status: "agendada"
+      }
+    ],
     examesEnviados: []
   }
 ];
@@ -111,6 +144,7 @@ export default function App() {
   const [showUploadExamModal, setShowUploadExamModal] = useState(false);
   const [showNewPatientModal, setShowNewPatientModal] = useState(false);
   const [showEditExamesModal, setShowEditExamesModal] = useState(false);
+  const [showAddAgendaModal, setShowAddAgendaModal] = useState(false);
 
   // CALCULADORA GESTACIONAL (USG)
   const [calcUsgData, setCalcUsgData] = useState(new Date().toISOString().split('T')[0]);
@@ -130,7 +164,26 @@ export default function App() {
   const [examCategory, setExamCategory] = useState("Ecografia");
   const [isUploading, setIsUploading] = useState(false);
 
+  // FORMULÁRIOS DE EDIÇÃO / CRIAÇÃO
   const [editExamesData, setEditExamesData] = useState<any>({});
+  const [newAgenda, setNewAgenda] = useState({
+    data: new Date().toISOString().split('T')[0],
+    horario: '14:00',
+    tipo: 'Consulta Pré-Natal de Rotina',
+    local: 'Consultório Dra. Priscila Gapski',
+    observacoes: ''
+  });
+
+  const [newPatient, setNewPatient] = useState({
+    nome: '', cpf: '', idade: '', pai: '', nomeBebe: '',
+    dum: new Date().toISOString().split('T')[0],
+    pesoInicial: '60.0', altura: '1.65', tipoSanguineo: 'O+', doencasPrevias: ''
+  });
+
+  const [newConsulta, setNewConsulta] = useState({
+    data: new Date().toISOString().split('T')[0],
+    igSem: '', peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente', conduta: ''
+  });
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
@@ -181,6 +234,15 @@ export default function App() {
   };
 
   const currentGest = calculateWeeksAndDays(currentPatient.dum);
+
+  // PRÓXIMA CONSULTA AGENDADA
+  const nextAppointment = useMemo(() => {
+    if (!currentPatient.agendaConsultas || currentPatient.agendaConsultas.length === 0) return null;
+    const sorted = [...currentPatient.agendaConsultas]
+      .filter((a: any) => a.status !== 'cancelada')
+      .sort((a: any, b: any) => new Date(`${a.data}T${a.horario}`).getTime() - new Date(`${b.data}T${b.horario}`).getTime());
+    return sorted[0] || null;
+  }, [currentPatient.agendaConsultas]);
 
   const bmiInfo = useMemo(() => {
     const p0 = parseFloat(currentPatient.pesoInicial) || 60;
@@ -277,9 +339,8 @@ export default function App() {
     });
   };
 
-  // 🤖 CHAMADA DA IA GEMINI 2.5 FLASH PARA VISÃO E ANÁLISE DE LAUDOS COM RETRIES E BACKOFF
   const processExamWithGeminiIA = async (base64Content: string, mimeType: string, category: string, title: string) => {
-    const apiKey = ""; // A chave é fornecida em tempo de execução pelo ambiente
+    const apiKey = ""; // A chave é fornecida em tempo de execução
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
     const cleanBase64 = base64Content.replace(/^data:(image\/[a-zA-Z0-9]+|application\/pdf);base64,/, '');
@@ -354,13 +415,12 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
           }
         }
       } catch (err) {
-        // Tentar novamente com backoff exponencial
+        // Retry exponential
       }
       await new Promise(r => setTimeout(r, delay));
       delay *= 2;
     }
 
-    // Fallback realista caso o serviço não responda
     return {
       resumoIA: `🌸 **Acompanhamento para a Mamãe (IA)**:\nSeu exame "${title}" foi recebido e registrado em nuvem. A imagem está com excelente visibilidade e foi arquivada para a Dra. Priscila analisar na sua próxima consulta de rotina!`,
       notaDra: `🩺 **Anotações Clínicas (Dra. Priscila)**:\n- Exame "${title}" armazenado e conferido no prontuário.\n- Paciente orientada sobre a manutenção da rotina de pré-natal.`,
@@ -381,7 +441,6 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
       const base64Content = await fileToBase64(selectedFile);
       const mimeType = selectedFile.type || "image/jpeg";
 
-      // Chama a IA do Gemini para ler a imagem real enviada
       const resultIA = await processExamWithGeminiIA(base64Content, mimeType, examCategory, examName);
 
       const novoExame = {
@@ -395,7 +454,6 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
         enviadoPor: userRole === 'medica' ? "Dra. Priscila Gapski" : "Paciente"
       };
 
-      // Se a IA extraiu valores numéricos de exames, mescla na tabela de exames da gestante
       let currentExamesTab = { ...(currentPatient.examesTabela || {}) };
       if (resultIA.examesExtraidos && Object.keys(resultIA.examesExtraidos).length > 0) {
         const todayStr = new Date().toISOString().split('T')[0];
@@ -435,6 +493,31 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
     setShowEditExamesModal(false);
   };
 
+  const handleAddAgenda = (e: React.FormEvent) => {
+    e.preventDefault();
+    const itemAgenda = {
+      id: `ag-${Date.now()}`,
+      data: newAgenda.data,
+      horario: newAgenda.horario,
+      tipo: newAgenda.tipo,
+      local: newAgenda.local,
+      observacoes: newAgenda.observacoes,
+      status: 'agendada'
+    };
+
+    const updatedAgenda = [...(currentPatient.agendaConsultas || []), itemAgenda];
+    const updated = { ...currentPatient, agendaConsultas: updatedAgenda };
+    saveToFirestore(patients.map(p => p.id === updated.id ? updated : p));
+    setShowAddAgendaModal(false);
+    setNewAgenda({
+      data: new Date().toISOString().split('T')[0],
+      horario: '14:00',
+      tipo: 'Consulta Pré-Natal de Rotina',
+      local: 'Consultório Dra. Priscila Gapski',
+      observacoes: ''
+    });
+  };
+
   const handleCreatePatient = (e: React.FormEvent) => {
     e.preventDefault();
     const dumDate = new Date(newPatient.dum);
@@ -462,6 +545,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
         covid19: { realizada: false, data: "", lote: "" }
       },
       examesTabela: {},
+      agendaConsultas: [],
       consultasEvolucao: [
         { id: `c-init`, data: newPatient.dum, igSem: 0, peso: parseFloat(newPatient.pesoInicial), pa: "120/80", au: "NP", bcfMf: "Aguardando", edema: "Ausente", conduta: "Consulta Inicial de Pré-Natal." }
       ],
@@ -504,7 +588,6 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
     return patients.filter(p => p.nome.toLowerCase().includes(q) || p.cpf.includes(q));
   }, [patients, searchQuery]);
 
-  // DICIONÁRIO DE EXAMES DA LISTA OFICIAL COM PLACEHOLDERS DE MÉTRICA CLÍNICA
   const LISTA_EXAMES_OFICIAIS = [
     { id: 'hbVg', label: 'HB / VG', placeholder: 'Ex: 12.5 g/dL / 38%' },
     { id: 'plaquetas', label: 'PLAQUETAS', placeholder: 'Ex: 240.000 /mm³' },
@@ -693,6 +776,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
           <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-gray-200 flex overflow-x-auto gap-1 print:hidden">
             {[
               { id: 'resumo', label: 'Resumo' },
+              { id: 'agenda', label: 'Agenda & Lembretes' },
               { id: 'examesTabela', label: 'Exames Laboratoriais' },
               { id: 'graficos', label: 'Gráfico GPG (MS)' },
               { id: 'calculadora', label: 'Calculadora Gestacional' },
@@ -722,6 +806,37 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
                 </blockquote>
                 <p className="mt-3 text-xs font-bold text-[#E8ECD8]">Dra. Priscila Gapski • CRM 24734</p>
               </div>
+
+              {/* CARD PRÓXIMA CONSULTA AGENDADA */}
+              {nextAppointment ? (
+                <div className="bg-[#2E482A]/10 border border-[#2E482A]/30 p-5 rounded-3xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-[#2E482A] text-white flex items-center justify-center font-bold text-xl shrink-0">
+                      🗓️
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-[#2E482A] font-bold uppercase tracking-wider block">Próxima Consulta Agendada</span>
+                      <strong className="text-base text-gray-900 block">{nextAppointment.tipo}</strong>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        📍 {nextAppointment.local} • <strong>{formatDateBR(nextAppointment.data)} às {nextAppointment.horario}</strong>
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setActiveTab('agenda')}
+                    className="px-4 py-2 bg-[#2E482A] text-white rounded-xl text-xs font-bold shrink-0"
+                  >
+                    Ver Agenda Completa
+                  </button>
+                </div>
+              ) : (
+                <div className="bg-gray-50 border p-4 rounded-2xl flex justify-between items-center text-xs text-gray-500">
+                  <span>Nenhuma consulta agendada no momento.</span>
+                  {userRole === 'medica' && (
+                    <button onClick={() => setShowAddAgendaModal(true)} className="text-[#2E482A] font-bold underline">+ Agendar Agora</button>
+                  )}
+                </div>
+              )}
 
               {examAlerts.length > 0 && (
                 <div className="bg-amber-50/80 p-5 rounded-3xl border border-amber-200 space-y-2">
@@ -754,6 +869,57 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
                   <div className="text-2xl font-bold text-gray-900 mt-1">{currentPatient.tipoSanguineo}</div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* TAB AGENDA & LEMBRETES */}
+          {activeTab === 'agenda' && (
+            <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-6 print:hidden">
+              <div className="flex justify-between items-center border-b pb-4">
+                <div>
+                  <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
+                    <CalendarPlus className="w-5 h-5 text-[#2E482A]" />
+                    Agenda de Consultas & Lembretes
+                  </h3>
+                  <p className="text-xs text-gray-500">Próximos compromissos pré-natais da gestante</p>
+                </div>
+                {userRole === 'medica' && (
+                  <button 
+                    onClick={() => setShowAddAgendaModal(true)}
+                    className="bg-[#2E482A] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs"
+                  >
+                    <Plus className="w-4 h-4" /> Agendar Nova Consulta
+                  </button>
+                )}
+              </div>
+
+              {(!currentPatient.agendaConsultas || currentPatient.agendaConsultas.length === 0) ? (
+                <div className="text-center py-10 text-gray-400 text-xs space-y-2">
+                  <Calendar className="w-8 h-8 mx-auto text-gray-300" />
+                  <p>Nenhuma consulta futura agendada na carteirinha digital.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {currentPatient.agendaConsultas.map((item: any) => (
+                    <div key={item.id} className="p-5 bg-gray-50 rounded-2xl border border-gray-200 space-y-2 relative">
+                      <div className="flex justify-between items-start">
+                        <span className="bg-[#2E482A] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
+                          {formatDateBR(item.data)} às {item.horario}
+                        </span>
+                      </div>
+                      <h4 className="font-bold text-gray-900 text-sm pt-1">{item.tipo}</h4>
+                      <p className="text-xs text-gray-600 flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-gray-400" /> {item.local}
+                      </p>
+                      {item.observacoes && (
+                        <p className="text-[11px] text-amber-800 bg-amber-50 p-2.5 rounded-xl border border-amber-200 mt-2">
+                          💡 <strong>Orientações:</strong> {item.observacoes}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1148,13 +1314,22 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
                   </table>
                 </div>
 
+                {/* CALENDÁRIO DE CONSULTAS ALIMENTADO DINAMICAMENTE DOS AGENDAMENTOS */}
                 <div className="pt-1 border-t">
                   <span className="font-bold text-[8px] uppercase block text-[#2E482A] text-center mb-1">CALENDÁRIO DE CONSULTAS (PRÓXIMAS)</span>
                   <div className="grid grid-cols-2 gap-1 text-[7px] border p-1 bg-gray-50">
-                    <div>DATA: ____/____/____ - ____:____</div>
-                    <div>DATA: ____/____/____ - ____:____</div>
-                    <div>DATA: ____/____/____ - ____:____</div>
-                    <div>DATA: ____/____/____ - ____:____</div>
+                    {Array.from({ length: 4 }).map((_, idx) => {
+                      const item = currentPatient.agendaConsultas?.[idx];
+                      return (
+                        <div key={idx} className="truncate font-medium">
+                          {item ? (
+                            `DATA: ${formatDateDisplay(item.data)} - ${item.horario}`
+                          ) : (
+                            'DATA: ____/____/____ - ____:____'
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -1236,6 +1411,75 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
             <div className="flex justify-end gap-2 pt-2 border-t">
               <button onClick={() => setShowEditExamesModal(false)} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
               <button onClick={handleSaveTabelaExames} className="px-5 py-2 bg-[#2E482A] text-white font-bold text-xs rounded-xl">Salvar Tabela</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL AGENDAR CONSULTA / LEMBRETE */}
+      {showAddAgendaModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
+          <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-3">
+            <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
+              <CalendarPlus className="w-5 h-5 text-[#2E482A]" />
+              Agendar Próxima Consulta
+            </h3>
+            
+            <div>
+              <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Data e Horário</label>
+              <div className="grid grid-cols-2 gap-2">
+                <input 
+                  type="date" 
+                  value={newAgenda.data} 
+                  onChange={(e) => setNewAgenda({ ...newAgenda, data: e.target.value })} 
+                  className="w-full text-xs p-2.5 border rounded-xl bg-white" 
+                />
+                <input 
+                  type="time" 
+                  value={newAgenda.horario} 
+                  onChange={(e) => setNewAgenda({ ...newAgenda, horario: e.target.value })} 
+                  className="w-full text-xs p-2.5 border rounded-xl bg-white" 
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Tipo de Consulta / Procedimento</label>
+              <select 
+                value={newAgenda.tipo} 
+                onChange={(e) => setNewAgenda({ ...newAgenda, tipo: e.target.value })} 
+                className="w-full text-xs p-2.5 border rounded-xl bg-white"
+              >
+                <option value="Consulta Pré-Natal de Rotina">Consulta Pré-Natal de Rotina</option>
+                <option value="Retorno de Exames">Retorno de Exames</option>
+                <option value="Ecografia Obstétrica / Morfológica">Ecografia Obstétrica / Morfológica</option>
+                <option value="Consulta de Alto Risco">Consulta de Alto Risco</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Local da Consulta</label>
+              <input 
+                type="text" 
+                value={newAgenda.local} 
+                onChange={(e) => setNewAgenda({ ...newAgenda, local: e.target.value })} 
+                className="w-full text-xs p-2.5 border rounded-xl" 
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Orientações / Recomendações</label>
+              <textarea 
+                placeholder="Ex: Jejum de 8h para exame de glicemia, trazer ecografia..." 
+                value={newAgenda.observacoes} 
+                onChange={(e) => setNewAgenda({ ...newAgenda, observacoes: e.target.value })} 
+                className="w-full text-xs p-2.5 border rounded-xl h-16" 
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setShowAddAgendaModal(false)} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
+              <button onClick={handleAddAgenda} className="px-4 py-1.5 bg-[#2E482A] text-white font-bold text-xs rounded-xl">Salvar Agendamento</button>
             </div>
           </div>
         </div>
@@ -1358,7 +1602,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
             <h3 className="font-bold text-gray-900">Área da Paciente</h3>
             {loginError && <p className="text-red-500 text-xs">{loginError}</p>}
             <input type="text" placeholder="Digite seu CPF" value={loginCpf} onChange={(e) => setLoginCpf(e.target.value)} className="w-full text-xs p-3 border rounded-xl" />
-            <button onClick={handlePatientLogin} className="w-full py-2.5 bg-[#2E482A] text-[#ffffff] rounded-xl text-xs font-bold">Entrar</button>
+            <button onClick={handlePatientLogin} className="w-full py-2.5 bg-[#2E482A] text-white rounded-xl text-xs font-bold">Entrar</button>
             <button onClick={() => setShowPatientLoginModal(false)} className="w-full text-xs text-gray-500">Cancelar</button>
           </div>
         </div>
