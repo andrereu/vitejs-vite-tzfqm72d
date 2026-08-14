@@ -13,68 +13,57 @@ export const sendPrenatalChatMessage = async (
   weeks: number,
   chatHistory: ChatMessage[]
 ): Promise<string> => {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+  const apiKey = (import.meta.env.VITE_GEMINI_API_KEY || "").trim();
 
-
-
-  // Log para conferir se a chave está carregando (visível no F12 -> Console)
   if (!apiKey) {
-    console.error("ERRO: Variável VITE_GEMINI_API_KEY está vazia ou indefinida!");
-  } else {
-    console.log("API Key carregada com sucesso (início):", apiKey.substring(0, 6) + "...");
+    console.error("VITE_GEMINI_API_KEY não foi encontrada.");
+    return "🌸 Mamãe, o serviço de IA está sendo inicializado. Se persistir, consulte a Dra. Priscila diretamente!";
   }
 
+  // Endpoint oficial Google Generative Language
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
-  const systemInstruction = `Você é a "Assistente Virtual Pré-Natal" integrada à carteirinha digital da gestante acompanhada pela Dra. Priscila Gapski (CRM 24734).
-Informações da paciente:
-- Nome: ${patient.nome}
-- Nome do Bebê: ${patient.nomeBebe || 'Bebê'}
-- Idade Gestacional Atual: ${weeks} semanas
-- Tipo Sanguíneo: ${patient.tipoSanguineo || 'Não informado'}
-- Alergias/Doenças: ${patient.doencasPrevias || 'Nenhuma'}
+  const promptText = `Você é a Assistente Pré-Natal da Dra. Priscila Gapski (CRM 24734).
+Paciente: ${patient.nome}, Gestação: ${weeks} semanas, Bebê: ${patient.nomeBebe || 'Bebê'}.
+Mensagem da Gestante: "${userMessage}"
 
-Diretrizes obrigatórias de resposta:
-1. Tom extremamente carinhoso, empático, seguro e acolhedor (use emojis delicados como 🌸, 👶, ✨).
-2. Explique sintomas comuns para a idade gestacional exata (${weeks} semanas), alimentação segura, bem-estar e cuidados.
-3. NUNCA prescreva medicamentos controlados ou altere condutas médicas.
-4. Em caso de sangramentos, perda de líquido, dores fortes, febre ou ausência de movimentos fetais, oriente com firmeza e calma a buscar atendimento de urgência ou contatar a Dra. Priscila imediatamente.
-5. Mantenha respostas sucintas, didáticas e formatadas em tópicos quando apropriado.`;
-
-  const previousContents = chatHistory.slice(-6).map((msg) => ({
-    role: msg.sender === 'user' ? 'user' : 'model',
-    parts: [{ text: msg.text }]
-  }));
+Diretrizes:
+- Responda em português com carinho, acolhimento e emojis (🌸, 👶).
+- Explique de forma simples para a fase de ${weeks} semanas.
+- NUNCA prescreva remédios. Em caso de dor forte, sangramento ou perda de líquido, oriente ir ao pronto-atendimento com urgência.`;
 
   const payload = {
     contents: [
-      ...previousContents,
       {
         role: "user",
-        parts: [{ text: userMessage }]
+        parts: [{ text: promptText }]
       }
-    ],
-    systemInstruction: {
-      parts: [{ text: systemInstruction }]
-    }
+    ]
   };
 
   try {
     const response = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey 
+      },
       body: JSON.stringify(payload)
     });
 
     if (response.ok) {
       const data = await response.json();
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || "Desculpe, mamãe, não consegui processar a resposta agora. Pode repetir?";
+      const answer = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (answer) return answer;
     } else {
-      const errBody = await response.text();
-      console.error(`Erro da API Gemini (Status ${response.status}):`, errBody);
+      const errorJson = await response.json().catch(() => null);
+      console.error("Erro da API Gemini:", response.status, errorJson);
+      if (response.status === 400 || response.status === 403) {
+        return "🌸 Mamãe, a chave de autenticação do assistente precisa de uma validação no painel. Qualquer dúvida urgente, fale com a Dra. Priscila!";
+      }
     }
   } catch (error) {
-    console.error("Erro de requisição fetch no chat IA:", error);
+    console.error("Erro de conexão fetch:", error);
   }
 
   return "🌸 Desculpe, mamãe! Tive uma oscilação temporária de conexão. Qualquer dúvida urgente sobre sua gestação, fale com a Dra. Priscila!";
