@@ -1339,13 +1339,14 @@ export default function App() {
       {/* 👇 ADICIONE AQUI NO FINAL (invisível na tela, só surge na impressão) */}
                   {/* Printable Carteirinha Segura */}
       <div className="hidden print:block">
-              {currentPatient && (
+                    {currentPatient && (
         <PrintableCarteirinha 
           patient={currentPatient} 
           weeks={gestationalWeeks} 
         />
       )}
     </div>
+  </div>
   );
 }
 
