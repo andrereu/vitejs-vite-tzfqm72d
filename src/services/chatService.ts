@@ -13,7 +13,8 @@ export const sendPrenatalChatMessage = async (
   weeks: number,
   chatHistory: ChatMessage[]
 ): Promise<string> => {
-  cconst apiKey = import.meta.env.VITE_GEMINI_API_KEY || "COLE_SUA_CHAVE_AQUI_DIRETO";
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+
 
 
   // Log para conferir se a chave está carregando (visível no F12 -> Console)
