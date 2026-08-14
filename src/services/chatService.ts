@@ -16,35 +16,52 @@ export const sendPrenatalChatMessage = async (
   const apiKey = (import.meta.env.VITE_GEMINI_API_KEY || "").trim();
 
   if (!apiKey) {
-    return "❌ Erro: VITE_GEMINI_API_KEY não foi encontrada nas variáveis de ambiente da Vercel.";
+    return "🌸 Mamãe, o serviço de IA está sendo inicializado. Qualquer dúvida urgente, fale com a Dra. Priscila!";
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  // Modelo oficial estável ativo
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
 
   const promptText = `Você é a Assistente Virtual Pré-Natal da Dra. Priscila Gapski (CRM 24734).
-Paciente: ${patient.nome}, Gestação: ${weeks} semanas, Bebê: ${patient.nomeBebe || 'Bebê'}.
-Dúvida: "${userMessage}"
+Informações da gestante:
+- Nome: ${patient.nome}
+- Idade Gestacional: ${weeks} semanas
+- Nome do Bebê: ${patient.nomeBebe || 'Bebê'}
 
-Responda em português com carinho, acolhimento e emojis. Sem prescrições médicas.`;
+Dúvida da gestante: "${userMessage}"
+
+Diretrizes:
+- Responda em português com carinho, empatia e emojis delicados (🌸, 👶, ✨).
+- Explique de forma simples e acolhedora os sintomas comuns para ${weeks} semanas de gestação.
+- NUNCA prescreva medicamentos. Em caso de dores fortes, sangramentos ou perda de líquido, oriente a procurar atendimento médico de urgência com calma e firmeza.`;
+
+  const payload = {
+    contents: [
+      {
+        parts: [{ text: promptText }]
+      }
+    ]
+  };
 
   try {
     const response = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: promptText }] }]
-      })
+      headers: { 
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
     });
 
-    const data = await response.json();
-
     if (response.ok) {
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || "Resposta vazia da IA.";
+      const data = await response.json();
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || "Desculpe, mamãe, não consegui processar a resposta agora. Pode repetir?";
     } else {
-      // Retorna o motivo exato retornado pelo Google na tela
-      return `❌ Erro da API (${response.status}): ${data?.error?.message || JSON.stringify(data)}`;
+      const errData = await response.json().catch(() => null);
+      console.error("Erro da API Gemini:", response.status, errData);
+      return "🌸 Desculpe, mamãe! Tive uma oscilação temporária de conexão. Qualquer dúvida urgente, fale com a Dra. Priscila!";
     }
-  } catch (error: any) {
-    return `❌ Erro no fetch/rede: ${error?.message || error}`;
+  } catch (error) {
+    console.error("Erro de requisição fetch:", error);
+    return "🌸 Desculpe, mamãe! Tive uma oscilação temporária de conexão. Qualquer dúvida urgente, fale com a Dra. Priscila!";
   }
 };
