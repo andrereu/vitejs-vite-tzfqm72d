@@ -2,6 +2,7 @@ import React from 'react';
 import { 
   X, User, Syringe, CalendarPlus, Bot, Loader2, Smartphone, Share 
 } from 'lucide-react';
+import { auth, googleProvider, signInWithPopup } from '../firebase';
 
 interface AppModalsProps {
   // PWA Modal
@@ -82,6 +83,33 @@ interface AppModalsProps {
 }
 
 export const AppModals: React.FC<AppModalsProps> = (props) => {
+
+  const handleGoogleLogin = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      const userEmail = user.email?.toLowerCase().trim();
+
+      if (!userEmail) {
+        alert("Não foi possível obter o e-mail da sua conta Google.");
+        return;
+      }
+
+      // Procura a gestante na lista de pacientes pelo e-mail
+      // (Se você tiver a lista de pacientes passada por props ou buscar direto)
+      props.setShowPatientLoginModal(false);
+      
+    } catch (err: any) {
+      console.error("Erro no login Google:", err);
+      if (err.code !== 'auth/popup-closed-by-user') {
+        alert("Erro ao autenticar com o Google. Tente novamente.");
+      }
+    }
+  };
+
+  return (
+    <>
+
   return (
     <>
       {/* MODAL GUIADO DE INSTALAÇÃO PWA */}
