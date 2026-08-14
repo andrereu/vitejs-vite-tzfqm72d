@@ -25,7 +25,7 @@
 }
 
 /* ===================================================
-   IMPRESSÃO A4 PAISAGEM: 2 PÁGINAS EXATAS (ZERO ERRO)
+   IMPRESSÃO A4 PAISAGEM: 2 PÁGINAS EXATAS
    =================================================== */
 @media print {
   @page {
@@ -38,20 +38,18 @@
     padding: 0 !important;
     background: #ffffff !important;
     width: 297mm !important;
-    height: 100% !important;
+    height: auto !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* Oculta completamente toda a aplicação web */
-  #root, header, nav, button, .min-h-screen {
+  /* Remove o layout da tela para não gerar a 1ª página em branco */
+  #root {
     display: none !important;
   }
 
-  /* Exibe exclusivamente o portal de impressão da carteirinha */
   #print-carteirinha-root {
     display: block !important;
-    position: relative !important;
     width: 297mm !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -60,14 +58,14 @@
   .print-page {
     width: 297mm !important;
     height: 210mm !important;
-    max-height: 210mm !important;
+    box-sizing: border-box !important;
+    padding: 12mm 14mm !important;
     page-break-after: always !important;
     break-after: page !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    box-sizing: border-box !important;
-    padding: 12mm 15mm !important;
-    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 16px !important;
+    background: #ffffff !important;
   }
 
   .print-page:last-child {
@@ -75,3 +73,4 @@
     break-after: auto !important;
   }
 }
+
