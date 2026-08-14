@@ -1,151 +1,59 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Calendar, Activity, Heart, Upload, Sparkles, User, 
-  Plus, Clock, Baby, Stethoscope, LogOut, Printer, X, 
-  Syringe, Scale, FileCheck, Check, ExternalLink, FileText,
-  TrendingUp, UserPlus, Info, Calculator, AlertCircle, Edit3, Bot, Loader2,
-  Bell, MapPin, CalendarPlus, Download, Smartphone, Wifi, WifiOff, Share
+  Calendar, Heart, Upload, 
+  Plus, LogOut, Printer,
+  Syringe, 
+  UserPlus, Calculator, AlertCircle, Edit3, Bot,
+  MapPin, CalendarPlus, Download, Smartphone, WifiOff
 } from 'lucide-react';
 
 import { db, auth } from './firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 
-// --- COMPONENTE TOOLTIP (DICA EXPLICATIVA DE SIGLAS) ---
-const Tooltip = ({ title, text }: { title: string; text: string }) => {
-  const [show, setShow] = useState(false);
-  return (
-    <span className="relative inline-block ml-1 align-middle print:hidden">
-      <button
-        type="button"
-        onMouseEnter={() => setShow(true)}
-        onMouseLeave={() => setShow(false)}
-        onClick={() => setShow(!show)}
-        className="text-gray-400 hover:text-[#2E482A] focus:outline-none transition-colors"
-      >
-        <Info className="w-3.5 h-3.5" />
-      </button>
-      {show && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2.5 bg-gray-900 text-white text-[11px] rounded-xl shadow-xl z-50 pointer-events-none leading-snug">
-          <strong className="block text-[#D4AF37] font-bold mb-0.5">{title}</strong>
-          {text}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-        </div>
-      )}
-    </span>
-  );
-};
+import { Patient, initialPatientsList } from './types/prenatal';
+import { formatDateDisplay, formatDateBR, calculateWeeksAndDays, fileToBase64 } from './utils/formatters';
+import { processExamWithGeminiIA } from './services/geminiService';
+import { Tooltip } from './components/Tooltip';
+import { PrintCardA4 } from './components/PrintCardA4';
+import { AppModals } from './components/AppModals';
 
-// HELPER PARA FORMATAR DATA YYYY-MM-DD EM DD/MM PARA EXIBIÇÃO LIMPA
-const formatDateDisplay = (dateStr: string) => {
-  if (!dateStr) return '';
-  if (dateStr.includes('-')) {
-    const parts = dateStr.split('-');
-    if (parts.length === 3) {
-      return `${parts[2]}/${parts[1]}`;
-    }
-  }
-  return dateStr;
-};
-
-// HELPER PARA FORMATAR DATA BR COMPLETA (DD/MM/YYYY)
-const formatDateBR = (dateStr: string) => {
-  if (!dateStr) return '';
-  if (dateStr.includes('-')) {
-    const parts = dateStr.split('-');
-    if (parts.length === 3) {
-      return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    }
-  }
-  return dateStr;
-};
-
-const initialPatientsList = [
-  {
-    id: "gestante-01",
-    cpf: "123.456.789-00",
-    senhaAcc: "1234",
-    nome: "Juliana Maria da Silva",
-    idade: "29",
-    pai: "Lucas Andrade Silva",
-    nomeBebe: "Arthur",
-    dum: "2026-01-15",
-    dpp: "2026-10-22",
-    g: "1", p: "0", c: "0", a: "0",
-    pesoInicial: "71.0",
-    altura: "1.65",
-    tipoSanguineo: "A+",
-    doencasPrevias: "Nenhuma (Alergia leve a Dipirona)",
-    vacinas: {
-      influenza: { realizada: true, data: "2026-03-10", lote: "INF2026-B" },
-      vsr: { realizada: true, data: "2026-07-28", lote: "VSR-884" },
-      dtpa: { realizada: true, data: "2026-05-20", lote: "DTP-9921" },
-      covid19: { realizada: true, data: "2026-02-15", lote: "COV-3" },
-      hepatiteB: { d1: "2026-01-20", d2: "2026-02-20", d3: "" }
-    },
-    examesTabela: {
-      hbVg: { d1: "2026-02-20", r1: "12.8 g/dL / 38%", d2: "", r2: "" },
-      plaquetas: { d1: "2026-02-20", r1: "245.000 /mm³", d2: "", r2: "" },
-      glicemiaTotg: { d1: "2026-02-20", r1: "82 mg/dL", d2: "", r2: "" },
-      htlv: { d1: "2026-02-20", r1: "Não Reagente", d2: "", r2: "" },
-      hiv: { d1: "2026-02-20", r1: "Não Reagente", d2: "", r2: "" },
-      sifilis: { d1: "2026-02-20", r1: "Não Reagente", d2: "", r2: "" },
-      hbsag: { d1: "2026-02-20", r1: "Não Reagente", d2: "", r2: "" },
-      tsh: { d1: "2026-02-20", r1: "1.8 mIU/L", d2: "", r2: "" },
-      antiHcv: { d1: "2026-02-20", r1: "Não Reagente", d2: "", r2: "" },
-      rubeola: { d1: "2026-02-20", r1: "IgG Imune", d2: "", r2: "" },
-      cmv: { d1: "2026-02-20", r1: "IgG Imune", d2: "", r2: "" },
-      toxo: { d1: "2026-02-20", r1: "IgG+ IgM-", d2: "", r2: "" },
-      vitD: { d1: "2026-02-20", r1: "34 ng/mL", d2: "", r2: "" },
-      ferritina: { d1: "2026-02-20", r1: "65 ng/mL", d2: "", r2: "" },
-      vitB12: { d1: "2026-02-20", r1: "420 pg/mL", d2: "", r2: "" },
-      urinaUrocultura: { d1: "2026-02-20", r1: "Normal / Ausente", d2: "", r2: "" },
-      gbs: { d1: "", r1: "", d2: "", r2: "" }
-    },
-    consultasEvolucao: [
-      { id: "c-1", data: "2026-02-20", igSem: 6, peso: 71.0, pa: "110/70", au: "NP", bcfMf: "Visível USG", edema: "Ausente", conduta: "Início do Ácido Fólico." },
-      { id: "c-2", data: "2026-04-15", igSem: 13, peso: 72.2, pa: "115/75", au: "12 cm", bcfMf: "152 bpm / MF-", edema: "Ausente", conduta: "Ecografia Morfológica solicitada." }
-    ],
-    agendaConsultas: [
-      {
-        id: "ag-1",
-        data: "2026-09-10",
-        horario: "14:30",
-        tipo: "Consulta Pré-Natal de Rotina",
-        local: "Consultório Dra. Priscila Gapski",
-        observacoes: "Trazer carteira de vacinas e exames de sangue do 3º trimestre.",
-        status: "agendada"
-      },
-      {
-        id: "ag-2",
-        data: "2026-10-01",
-        horario: "10:00",
-        tipo: "Avaliação Fetal / Retorno",
-        local: "Consultório Dra. Priscila Gapski",
-        observacoes: "Checar ultrassom de acompanhamento.",
-        status: "agendada"
-      }
-    ],
-    examesEnviados: []
-  }
+const LISTA_EXAMES_OFICIAIS = [
+  { id: 'hbVg', label: 'HB / VG', placeholder: 'Ex: 12.5 g/dL / 38%' },
+  { id: 'plaquetas', label: 'PLAQUETAS', placeholder: 'Ex: 240.000 /mm³' },
+  { id: 'glicemiaTotg', label: 'GLICEMIA / TOTG', placeholder: 'Ex: 85 mg/dL' },
+  { id: 'htlv', label: 'HTLV', placeholder: 'Ex: Não Reagente' },
+  { id: 'hiv', label: 'HIV', placeholder: 'Ex: Não Reagente' },
+  { id: 'sifilis', label: 'SÍFILIS', placeholder: 'Ex: Não Reagente (VDRL)' },
+  { id: 'hbsag', label: 'HBsAG / Anti-HBS', placeholder: 'Ex: Não Reagente' },
+  { id: 'tsh', label: 'TSH', placeholder: 'Ex: 1.8 mIU/L' },
+  { id: 'antiHcv', label: 'Anti-HCV', placeholder: 'Ex: Não Reagente' },
+  { id: 'rubeola', label: 'RUBÉOLA', placeholder: 'Ex: IgG Imune / IgM-' },
+  { id: 'cmv', label: 'CMV', placeholder: 'Ex: IgG Imune / IgM-' },
+  { id: 'toxo', label: 'TOXO', placeholder: 'Ex: IgG+ IgM-' },
+  { id: 'vitD', label: 'VITAMINA D', placeholder: 'Ex: 35 ng/mL' },
+  { id: 'ferritina', label: 'FERRITINA', placeholder: 'Ex: 60 ng/mL' },
+  { id: 'vitB12', label: 'VITAMINA B12', placeholder: 'Ex: 450 pg/mL' },
+  { id: 'urinaUrocultura', label: 'URINA / UROCULTURA', placeholder: 'Ex: Normal / Sem germes' },
+  { id: 'gbs', label: 'GBS (35-37 sem)', placeholder: 'Ex: Negativo / Positivo' }
 ];
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'landing' | 'patient_app' | 'admin_dashboard'>('landing');
   const [userRole, setUserRole] = useState<'paciente' | 'medica' | null>(null);
-  const [patients, setPatients] = useState(initialPatientsList);
+  const [patients, setPatients] = useState<Patient[]>(initialPatientsList);
   const [selectedPatientId, setSelectedPatientId] = useState("gestante-01");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState('resumo');
 
-  // PWA ESTADOS E EVENTOS
+  // PWA
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isInstallable, setIsInstallable] = useState(false);
+  const [, setIsInstallable] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
-  // MODAIS DA APLICAÇÃO
+  // Modais
   const [showPatientLoginModal, setShowPatientLoginModal] = useState(false);
   const [showDoctorLoginModal, setShowDoctorLoginModal] = useState(false);
   const [showAddConsultaModal, setShowAddConsultaModal] = useState(false);
@@ -156,25 +64,25 @@ export default function App() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showEditVacinasModal, setShowEditVacinasModal] = useState(false);
 
-  // CALCULADORA GESTACIONAL (USG)
+  // Calculadora
   const [calcUsgData, setCalcUsgData] = useState(new Date().toISOString().split('T')[0]);
   const [calcUsgSemanas, setCalcUsgSemanas] = useState("8");
   const [calcUsgDias, setCalcUsgDias] = useState("0");
   const [calcResultado, setCalcResultado] = useState<any>(null);
 
-  // LOGIN
+  // Login
   const [doctorEmail, setDoctorEmail] = useState("");
   const [doctorPassword, setDoctorPassword] = useState("");
   const [loginCpf, setLoginCpf] = useState("");
   const [loginError, setLoginError] = useState("");
 
-  // UPLOAD EXAMES & PROCESSAMENTO GEMINI IA
+  // Upload IA
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [examName, setExamName] = useState("");
   const [examCategory, setExamCategory] = useState("Ecografia");
   const [isUploading, setIsUploading] = useState(false);
 
-  // FORMULÁRIOS E EDIÇÕES
+  // Forms
   const [editExamesData, setEditExamesData] = useState<any>({});
   const [editProfileData, setEditProfileData] = useState<any>({});
   const [editVacinasData, setEditVacinasData] = useState<any>({});
@@ -199,7 +107,6 @@ export default function App() {
     igSem: '', peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente', conduta: ''
   });
 
-  // CONFIGURAÇÃO PWA & MANIFEST DINÂMICO
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
@@ -207,8 +114,7 @@ export default function App() {
     window.addEventListener('offline', handleOffline);
 
     const userAgent = window.navigator.userAgent.toLowerCase();
-    const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
-    setIsIOS(isIosDevice);
+    setIsIOS(/iphone|ipad|ipod/.test(userAgent));
 
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
@@ -216,32 +122,6 @@ export default function App() {
       setIsInstallable(true);
     };
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
-
-    const manifestObj = {
-      name: "Carteirinha Pré-Natal • Dra. Priscila Gapski",
-      short_name: "Pré-Natal Dra. Priscila",
-      description: "Carteirinha Digital de Acompanhamento Pré-Natal e Prontuário Gestacional",
-      start_url: "/",
-      display: "standalone",
-      background_color: "#2E482A",
-      theme_color: "#2E482A",
-      icons: [
-        {
-          src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232E482A'/><text x='50' y='65' font-size='50' text-anchor='middle'>👶</text></svg>",
-          sizes: "192x192 512x512",
-          type: "image/svg+xml"
-        }
-      ]
-    };
-    const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/json' });
-    const manifestUrl = URL.createObjectURL(manifestBlob);
-    let manifestLink = document.querySelector("link[rel='manifest']") as HTMLLinkElement;
-    if (!manifestLink) {
-      manifestLink = document.createElement('link');
-      manifestLink.rel = 'manifest';
-      document.head.appendChild(manifestLink);
-    }
-    manifestLink.href = manifestUrl;
 
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -289,7 +169,7 @@ export default function App() {
     }
   };
 
-  const saveToFirestore = async (updatedList: any[]) => {
+  const saveToFirestore = async (updatedList: Patient[]) => {
     setPatients(updatedList);
     try {
       const docRef = doc(db, "prenatal", "lista_pacientes");
@@ -303,21 +183,13 @@ export default function App() {
     return patients.find(p => p.id === selectedPatientId) || patients[0];
   }, [patients, selectedPatientId]);
 
-  const calculateWeeksAndDays = (dumStr: string) => {
-    if (!dumStr) return { weeks: 0, days: 0 };
-    const dum = new Date(dumStr);
-    const today = new Date();
-    const diffDays = Math.floor(Math.max(0, today.getTime() - dum.getTime()) / (1000 * 60 * 60 * 24));
-    return { weeks: Math.floor(diffDays / 7), days: diffDays % 7 };
-  };
-
   const currentGest = calculateWeeksAndDays(currentPatient.dum);
 
   const nextAppointment = useMemo(() => {
     if (!currentPatient.agendaConsultas || currentPatient.agendaConsultas.length === 0) return null;
     const sorted = [...currentPatient.agendaConsultas]
-      .filter((a: any) => a.status !== 'cancelada')
-      .sort((a: any, b: any) => new Date(`${a.data}T${a.horario}`).getTime() - new Date(`${b.data}T${b.horario}`).getTime());
+      .filter((a) => a.status !== 'cancelada')
+      .sort((a, b) => new Date(`${a.data}T${a.horario}`).getTime() - new Date(`${b.data}T${b.horario}`).getTime());
     return sorted[0] || null;
   }, [currentPatient.agendaConsultas]);
 
@@ -327,13 +199,13 @@ export default function App() {
     const bmi = p0 / (h * h);
 
     if (bmi < 18.5) {
-      return { cat: 'Baixo peso (IMC < 18,5)', recom: 'Ganho Recomendado: 12,5 a 18,0 kg', bg: 'bg-blue-600', minTotal: 12.5, maxTotal: 18.0 };
+      return { cat: 'Baixo peso (IMC < 18,5)', recom: 'Ganho Recomendado: 12,5 a 18,0 kg', bg: 'bg-blue-600' };
     } else if (bmi < 25.0) {
-      return { cat: 'Adequado / Normal (IMC 18,5 a 24,9)', recom: 'Ganho Recomendado: 11,5 a 16,0 kg', bg: 'bg-emerald-600', minTotal: 11.5, maxTotal: 16.0 };
+      return { cat: 'Adequado / Normal (IMC 18,5 a 24,9)', recom: 'Ganho Recomendado: 11,5 a 16,0 kg', bg: 'bg-emerald-600' };
     } else if (bmi < 30.0) {
-      return { cat: 'Sobrepeso (IMC 25,0 a 29,9)', recom: 'Ganho Recomendado até 40 sem: 7 a 9 kg', bg: 'bg-rose-600', minTotal: 7.0, maxTotal: 9.0 };
+      return { cat: 'Sobrepeso (IMC 25,0 a 29,9)', recom: 'Ganho Recomendado até 40 sem: 7 a 9 kg', bg: 'bg-rose-600' };
     } else {
-      return { cat: 'Obesidade (IMC ≥ 30,0)', recom: 'Ganho Recomendado: 5,0 a 9,0 kg', bg: 'bg-purple-600', minTotal: 5.0, maxTotal: 9.0 };
+      return { cat: 'Obesidade (IMC ≥ 30,0)', recom: 'Ganho Recomendado: 5,0 a 9,0 kg', bg: 'bg-purple-600' };
     }
   }, [currentPatient.pesoInicial, currentPatient.altura]);
 
@@ -383,7 +255,7 @@ export default function App() {
       setUserRole('medica');
       setCurrentScreen('admin_dashboard');
       setShowDoctorLoginModal(false);
-    } catch (err: any) {
+    } catch (err) {
       setLoginError("E-mail ou senha incorretos.");
     }
   };
@@ -405,104 +277,6 @@ export default function App() {
     } else {
       setLoginError("CPF não encontrado.");
     }
-  };
-
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = error => reject(error);
-    });
-  };
-
-  const processExamWithGeminiIA = async (base64Content: string, mimeType: string, category: string, title: string) => {
-    const apiKey = ""; 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-
-    const cleanBase64 = base64Content.replace(/^data:(image\/[a-zA-Z0-9]+|application\/pdf);base64,/, '');
-
-    const promptText = `Você é um assistente pré-natal e obstétrico especialista integrado ao aplicativo da Dra. Priscila Gapski (CRM 24734).
-Analise a imagem deste laudo/exame obstétrico ou laboratorial (Título fornecido: "${title}", Categoria estimada: "${category}").
-
-Instruções de Resposta:
-1. "resumoIA": Escreva um texto carinhoso, empático, acolhedor e didático em português direcionado para a MÃE GESTANTE. Explique os achados sem causar pânico, com tom tranquilizador de acompanhamento do pré-natal.
-2. "notaDra": Escreva uma anotação clínica técnica, objetiva e sucinta para a Dra. Priscila incluir no prontuário da paciente.
-3. "examesExtraidos": Se o exame for laboratorial/sangue e você identificar algum dos valores abaixo na imagem, retorne a string do valor no campo correspondente (ex: hbVg: "12.5 g/dL / 38%", glicemiaTotg: "84 mg/dL"). Deixe em branco se não encontrado.
-
-Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sifilis, hbsag, tsh, antiHcv, rubeola, cmv, toxo, vitD, ferritina, vitB12, urinaUrocultura, gbs.`;
-
-    const payload = {
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { text: promptText },
-            { inlineData: { mimeType: mimeType || "image/jpeg", data: cleanBase64 } }
-          ]
-        }
-      ],
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: "OBJECT",
-          properties: {
-            resumoIA: { type: "STRING" },
-            notaDra: { type: "STRING" },
-            examesExtraidos: {
-              type: "OBJECT",
-              properties: {
-                hbVg: { type: "STRING" },
-                plaquetas: { type: "STRING" },
-                glicemiaTotg: { type: "STRING" },
-                htlv: { type: "STRING" },
-                hiv: { type: "STRING" },
-                sifilis: { type: "STRING" },
-                hbsag: { type: "STRING" },
-                tsh: { type: "STRING" },
-                antiHcv: { type: "STRING" },
-                rubeola: { type: "STRING" },
-                cmv: { type: "STRING" },
-                toxo: { type: "STRING" },
-                vitD: { type: "STRING" },
-                ferritina: { type: "STRING" },
-                vitB12: { type: "STRING" },
-                urinaUrocultura: { type: "STRING" },
-                gbs: { type: "STRING" }
-              }
-            }
-          }
-        }
-      }
-    };
-
-    let delay = 1000;
-    for (let i = 0; i < 5; i++) {
-      try {
-        const response = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-        if (response.ok) {
-          const resData = await response.json();
-          const rawText = resData.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (rawText) {
-            return JSON.parse(rawText);
-          }
-        }
-      } catch (err) {
-        // Retry
-      }
-      await new Promise(r => setTimeout(r, delay));
-      delay *= 2;
-    }
-
-    return {
-      resumoIA: `🌸 **Acompanhamento para a Mamãe (IA)**:\nSeu exame "${title}" foi recebido e registrado em nuvem. A imagem está com excelente visibilidade e foi arquivada para a Dra. Priscila analisar na sua próxima consulta de rotina!`,
-      notaDra: `🩺 **Anotações Clínicas (Dra. Priscila)**:\n- Exame "${title}" armazenado e conferido no prontuário.\n- Paciente orientada sobre a manutenção da rotina de pré-natal.`,
-      examesExtraidos: {}
-    };
   };
 
   const handleFileUpload = async (e: React.FormEvent) => {
@@ -537,7 +311,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
         Object.entries(resultIA.examesExtraidos).forEach(([k, val]: any) => {
           if (val && typeof val === 'string' && val.trim() !== '') {
             currentExamesTab[k] = {
-              ...(currentExamesTab[k] || {}),
+              ...(currentExamesTab[k] || { d1: '', r1: '', d2: '', r2: '' }),
               d1: currentExamesTab[k]?.d1 || todayStr,
               r1: val.trim()
             };
@@ -545,7 +319,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
         });
       }
 
-      const updated = { 
+      const updated: Patient = { 
         ...currentPatient, 
         examesTabela: currentExamesTab,
         examesEnviados: [novoExame, ...(currentPatient.examesEnviados || [])] 
@@ -559,13 +333,13 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
       setExamName("");
     } catch (err) {
       console.error("Erro no processamento:", err);
-      alert("Erro ao processar arquivo. Tente um arquivo mais leve.");
+      alert("Erro ao processar arquivo.");
       setIsUploading(false);
     }
   };
 
   const handleSaveTabelaExames = () => {
-    const updated = { ...currentPatient, examesTabela: editExamesData };
+    const updated: Patient = { ...currentPatient, examesTabela: editExamesData };
     saveToFirestore(patients.map(p => p.id === updated.id ? updated : p));
     setShowEditExamesModal(false);
   };
@@ -575,7 +349,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
     const dumDate = new Date(editProfileData.dum);
     const dppDate = new Date(dumDate.getTime() + 280 * 24 * 60 * 60 * 1000);
 
-    const updated = {
+    const updated: Patient = {
       ...currentPatient,
       ...editProfileData,
       dpp: dppDate.toISOString().split('T')[0]
@@ -587,10 +361,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
 
   const handleSaveVacinas = (e: React.FormEvent) => {
     e.preventDefault();
-    const updated = {
-      ...currentPatient,
-      vacinas: editVacinasData
-    };
+    const updated: Patient = { ...currentPatient, vacinas: editVacinasData };
     saveToFirestore(patients.map(p => p.id === updated.id ? updated : p));
     setShowEditVacinasModal(false);
   };
@@ -604,11 +375,11 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
       tipo: newAgenda.tipo,
       local: newAgenda.local,
       observacoes: newAgenda.observacoes,
-      status: 'agendada'
+      status: 'agendada' as const
     };
 
     const updatedAgenda = [...(currentPatient.agendaConsultas || []), itemAgenda];
-    const updated = { ...currentPatient, agendaConsultas: updatedAgenda };
+    const updated: Patient = { ...currentPatient, agendaConsultas: updatedAgenda };
     saveToFirestore(patients.map(p => p.id === updated.id ? updated : p));
     setShowAddAgendaModal(false);
     setNewAgenda({
@@ -625,7 +396,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
     const dumDate = new Date(newPatient.dum);
     const dppDate = new Date(dumDate.getTime() + 280 * 24 * 60 * 60 * 1000);
 
-    const novoObjetoPaciente = {
+    const novoObjetoPaciente: Patient = {
       id: `gestante-${Date.now()}`,
       cpf: newPatient.cpf || "000.000.000-00",
       senhaAcc: "1234",
@@ -683,7 +454,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
       }
     ].sort((a, b) => a.igSem - b.igSem);
 
-    const updated = { ...currentPatient, consultasEvolucao: updatedConsultas };
+    const updated: Patient = { ...currentPatient, consultasEvolucao: updatedConsultas };
     saveToFirestore(patients.map(p => p.id === updated.id ? updated : p));
     setShowAddConsultaModal(false);
   };
@@ -693,26 +464,6 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
     const q = searchQuery.toLowerCase();
     return patients.filter(p => p.nome.toLowerCase().includes(q) || p.cpf.includes(q));
   }, [patients, searchQuery]);
-
-  const LISTA_EXAMES_OFICIAIS = [
-    { id: 'hbVg', label: 'HB / VG', placeholder: 'Ex: 12.5 g/dL / 38%' },
-    { id: 'plaquetas', label: 'PLAQUETAS', placeholder: 'Ex: 240.000 /mm³' },
-    { id: 'glicemiaTotg', label: 'GLICEMIA / TOTG', placeholder: 'Ex: 85 mg/dL' },
-    { id: 'htlv', label: 'HTLV', placeholder: 'Ex: Não Reagente' },
-    { id: 'hiv', label: 'HIV', placeholder: 'Ex: Não Reagente' },
-    { id: 'sifilis', label: 'SÍFILIS', placeholder: 'Ex: Não Reagente (VDRL)' },
-    { id: 'hbsag', label: 'HBsAG / Anti-HBS', placeholder: 'Ex: Não Reagente' },
-    { id: 'tsh', label: 'TSH', placeholder: 'Ex: 1.8 mIU/L' },
-    { id: 'antiHcv', label: 'Anti-HCV', placeholder: 'Ex: Não Reagente' },
-    { id: 'rubeola', label: 'RUBÉOLA', placeholder: 'Ex: IgG Imune / IgM-' },
-    { id: 'cmv', label: 'CMV', placeholder: 'Ex: IgG Imune / IgM-' },
-    { id: 'toxo', label: 'TOXO', placeholder: 'Ex: IgG+ IgM-' },
-    { id: 'vitD', label: 'VITAMINA D', placeholder: 'Ex: 35 ng/mL' },
-    { id: 'ferritina', label: 'FERRITINA', placeholder: 'Ex: 60 ng/mL' },
-    { id: 'vitB12', label: 'VITAMINA B12', placeholder: 'Ex: 450 pg/mL' },
-    { id: 'urinaUrocultura', label: 'URINA / UROCULTURA', placeholder: 'Ex: Normal / Sem germes' },
-    { id: 'gbs', label: 'GBS (35-37 sem)', placeholder: 'Ex: Negativo / Positivo' }
-  ];
 
   return (
     <div className="min-h-screen bg-[#F4F6F2] text-gray-800 font-sans pb-12 print:bg-white print:pb-0">
@@ -730,11 +481,10 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
         }
       `}</style>
 
-      {/* BANNER INDICADOR DE ESTADO OFFLINE */}
       {isOffline && (
         <div className="bg-amber-600 text-white text-xs font-bold px-4 py-2 text-center flex items-center justify-center gap-2 print:hidden">
           <WifiOff className="w-4 h-4" />
-          <span>Você está navegando em modo offline. O aplicativo mantém o acesso aos dados salvos no seu dispositivo.</span>
+          <span>Você está navegando em modo offline. O app mantém os dados salvos localmente.</span>
         </div>
       )}
 
@@ -757,8 +507,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
           <div className="flex items-center gap-2">
             <button
               onClick={handleInstallPWA}
-              className="bg-[#D4AF37] hover:bg-amber-400 text-gray-900 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all animate-pulse"
-              title="Instalar aplicativo na tela inicial do celular"
+              className="bg-[#D4AF37] hover:bg-amber-400 text-gray-900 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
             >
               <Smartphone className="w-4 h-4" />
               <span className="hidden sm:inline">Instalar App</span>
@@ -805,7 +554,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
               Sua gestação acompanhada com carinho, tecnologia e precisão
             </h2>
             <p className="text-xs md:text-sm text-[#A3B18A] max-w-xl mx-auto">
-              Carteirinha digital completa, leitura de laudos por Inteligência Artificial e acesso rápido offline direto na tela inicial do seu telemóvel.
+              Carteirinha digital completa, leitura de laudos por Inteligência Artificial e acesso rápido offline.
             </p>
 
             <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
@@ -940,7 +689,6 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
                 <p className="mt-3 text-xs font-bold text-[#E8ECD8]">Dra. Priscila Gapski • CRM 24734</p>
               </div>
 
-              {/* CARD PRÓXIMA CONSULTA AGENDADA */}
               {nextAppointment ? (
                 <div className="bg-[#2E482A]/10 border border-[#2E482A]/30 p-5 rounded-3xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div className="flex items-center gap-3">
@@ -1005,7 +753,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
             </div>
           )}
 
-          {/* TAB 2: DADOS CLÍNICOS & GPCA (COM BOTÃO DE EDIÇÃO ILIMITADA) */}
+          {/* TAB 2: DADOS CLÍNICOS & GPCA */}
           {activeTab === 'dados' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-6 print:hidden">
               <div className="flex justify-between items-center border-b pb-3">
@@ -1082,13 +830,13 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
               </div>
 
               <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-xs">
-                <span className="text-gray-400 font-bold block uppercase text-[10px] mb-1">Doenças Prévias, Alergias e Observações</span>
+                <span className="text-gray-400 font-bold block uppercase text-[10px] mb-1">Doenças Prévias / Alergias</span>
                 <p className="text-gray-800 text-sm font-medium whitespace-pre-line">{currentPatient.doencasPrevias || 'Nenhuma alteração registrada.'}</p>
               </div>
             </div>
           )}
 
-          {/* TAB 3: VACINAS (COM REGISTRO E EDIÇÃO DEDICADA) */}
+          {/* TAB 3: VACINAS */}
           {activeTab === 'vacinas' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4 print:hidden">
               <div className="flex justify-between items-center border-b pb-3">
@@ -1099,13 +847,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
                 {userRole === 'medica' && (
                   <button 
                     onClick={() => {
-                      setEditVacinasData(currentPatient.vacinas || {
-                        influenza: { realizada: false, data: "", lote: "" },
-                        vsr: { realizada: false, data: "", lote: "" },
-                        dtpa: { realizada: false, data: "", lote: "" },
-                        covid19: { realizada: false, data: "", lote: "" },
-                        hepatiteB: { d1: "", d2: "", d3: "" }
-                      });
+                      setEditVacinasData(currentPatient.vacinas || {});
                       setShowEditVacinasModal(true);
                     }} 
                     className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs"
@@ -1144,7 +886,6 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
                 })}
               </div>
 
-              {/* HEPATITE B ESQUEMA 3 DOSES */}
               <div className="p-4 bg-gray-50 rounded-2xl border space-y-2">
                 <strong className="text-sm font-bold text-gray-900 block">HEPATITE B (Esquema 3 Doses)</strong>
                 <div className="grid grid-cols-3 gap-2 text-xs">
@@ -1165,13 +906,13 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
             </div>
           )}
 
-          {/* TAB EXAMES LABORATORIAIS */}
+          {/* TAB EXAMES */}
           {activeTab === 'examesTabela' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4 print:hidden">
               <div className="flex justify-between items-center border-b pb-3">
                 <div>
                   <h3 className="font-bold text-gray-900 text-base">Tabela de Exames Laboratoriais</h3>
-                  <p className="text-xs text-gray-500">Resultados numéricos e sorologias do pré-natal (Sincronizado com a Impressão A4 e Leitura Gemini IA)</p>
+                  <p className="text-xs text-gray-500">Resultados numéricos e sorologias do pré-natal</p>
                 </div>
                 {userRole === 'medica' && (
                   <button 
@@ -1218,7 +959,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
             </div>
           )}
 
-          {/* TAB AGENDA & LEMBRETES */}
+          {/* TAB AGENDA */}
           {activeTab === 'agenda' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-6 print:hidden">
               <div className="flex justify-between items-center border-b pb-4">
@@ -1246,7 +987,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {currentPatient.agendaConsultas.map((item: any) => (
+                  {currentPatient.agendaConsultas.map((item) => (
                     <div key={item.id} className="p-5 bg-gray-50 rounded-2xl border border-gray-200 space-y-2 relative">
                       <div className="flex justify-between items-start">
                         <span className="bg-[#2E482A] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
@@ -1275,9 +1016,9 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 gap-3">
                 <div>
                   <h3 className="font-serif text-lg font-bold text-[#2E482A] uppercase tracking-wide">
-                    Gráfico de Acompanhamento do Ganho de Peso
+                    Gráfico de Ganho de Peso
                   </h3>
-                  <p className="text-xs text-gray-500">Padrão da Caderneta de Saúde da Gestante (Ministério da Saúde / Atalah)</p>
+                  <p className="text-xs text-gray-500">Padrão da Caderneta de Saúde da Gestante (MS / Atalah)</p>
                 </div>
                 {userRole === 'medica' && (
                   <button onClick={() => setShowAddConsultaModal(true)} className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs">
@@ -1345,7 +1086,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
             </div>
           )}
 
-          {/* TAB CALCULADORA GESTACIONAL */}
+          {/* TAB CALCULADORA */}
           {activeTab === 'calculadora' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-6 print:hidden">
               <div className="border-b pb-3">
@@ -1404,7 +1145,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
                       <Bot className="w-3 h-3 text-pink-600" /> Leitura Gemini IA Ativa
                     </span>
                   </h3>
-                  <p className="text-xs text-gray-500">Envie fotos de laudos ou exames: o Gemini lê a imagem, gera o resumo e preenche os dados automaticamente</p>
+                  <p className="text-xs text-gray-500">Envie laudos: o Gemini extrai os dados e resume tudo para a mãe</p>
                 </div>
                 <button onClick={() => setShowUploadExamModal(true)} className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5">
                   <Upload className="w-4 h-4" /> + Anexar Exame
@@ -1428,857 +1169,74 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
             </div>
           )}
 
-          {/* ========================================================================= */}
-          {/* REPRODUÇÃO IDÊNTICA DA CARTEIRINHA FÍSICA PDF (3 DOBRAS EM PAISAGEM) */}
-          {/* ========================================================================= */}
-          <div className="hidden print:block font-sans text-black w-full text-[8.5px] leading-tight">
-            <div className="grid grid-cols-3 gap-3 border-2 border-[#2E482A] p-2 bg-white rounded-sm">
-              
-              {/* DOBRA 1: CAPA + IDENTIFICAÇÃO + QUADRO VACINAL + POEMA */}
-              <div className="border-r border-gray-400 pr-2 space-y-2 flex flex-col justify-between">
-                <div>
-                  <div className="text-center border-b pb-1 mb-2">
-                    <h1 className="font-serif font-bold text-sm text-[#2E482A]">Dra. Priscila Gapski</h1>
-                    <p className="text-[7.5px] font-bold text-gray-700">CRM: 33439/PR • RQE 24734</p>
-                    <p className="text-[7.5px] text-[#2E482A] font-medium">@prigapski.obstetra • Obstetra</p>
-                  </div>
-
-                  <div className="space-y-1 bg-gray-50 p-1.5 border rounded-xs mb-2">
-                    <span className="font-bold text-[8px] uppercase block border-b text-[#2E482A]">DADOS DA GESTANTE</span>
-                    <p><strong>NOME:</strong> {currentPatient.nome}</p>
-                    <p><strong>IDADE:</strong> {currentPatient.idade} anos • <strong>ALTURA:</strong> {currentPatient.altura}m</p>
-                    <p><strong>PAI:</strong> {currentPatient.pai}</p>
-                    <p><strong>DOENÇAS PRÉVIAS:</strong> {currentPatient.doencasPrevias}</p>
-                  </div>
-
-                  <div className="bg-gray-50 p-1.5 border rounded-xs space-y-1 mb-2">
-                    <div className="grid grid-cols-2 gap-1">
-                      <p><strong>G:</strong> {currentPatient.g} <strong>P:</strong> {currentPatient.p} <strong>C:</strong> {currentPatient.c} <strong>A:</strong> {currentPatient.a}</p>
-                      <p><strong>DPP:</strong> {new Date(currentPatient.dpp).toLocaleDateString('pt-BR')}</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-1">
-                      <p><strong>PESO INICIAL:</strong> {currentPatient.pesoInicial}kg</p>
-                      <p><strong>TIPO SANGUÍNEO:</strong> {currentPatient.tipoSanguineo}</p>
-                    </div>
-                    <p><strong>NOME DO BEBÊ:</strong> {currentPatient.nomeBebe}</p>
-                  </div>
-
-                  {/* QUADRO VACINAL */}
-                  <div className="border p-1 space-y-1 bg-emerald-50/40">
-                    <span className="font-bold text-[8px] uppercase block border-b text-[#2E482A] text-center">QUADRO VACINAL</span>
-                    <div className="grid grid-cols-3 text-[7px] text-center gap-0.5">
-                      <div className="border bg-white p-0.5"><strong>INFLUENZA</strong><br />ANUAL<br />{currentPatient.vacinas?.influenza?.data || '____/____/____'}</div>
-                      <div className="border bg-white p-0.5"><strong>VSR</strong><br />32 SEMANAS<br />{currentPatient.vacinas?.vsr?.data || '____/____/____'}</div>
-                      <div className="border bg-white p-0.5"><strong>dTpa</strong><br />20 SEMANAS<br />{currentPatient.vacinas?.dtpa?.data || '____/____/____'}</div>
-                    </div>
-                    <div className="border bg-white p-0.5 text-[7px]">
-                      <strong>HEPATITE B:</strong> 1ª Dose: {currentPatient.vacinas?.hepatiteB?.d1 || '____/____'} | 2ª Dose: {currentPatient.vacinas?.hepatiteB?.d2 || '____/____'} | 3ª Dose: {currentPatient.vacinas?.hepatiteB?.d3 || '____/____'}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="italic text-[7.5px] text-center text-gray-700 bg-pink-50/50 p-1 border border-pink-200">
-                  "Antes de você existir eu já te queria, antes de você nascer eu já te amava, em menos de um minuto de nascido já daria minha vida por você."
-                </div>
-              </div>
-
-              {/* DOBRA 2: MATRIZ COMPLETA DE EXAMES LABORATORIAIS & USG */}
-              <div className="border-r border-gray-400 pr-2 space-y-2">
-                <div>
-                  <span className="font-bold text-[8px] uppercase block border-b text-[#2E482A] text-center mb-1">EXAMES LABORATORIAIS</span>
-                  <table className="w-full text-[6.8px] border-collapse text-left">
-                    <thead>
-                      <tr className="border-b bg-gray-100 font-bold">
-                        <th className="p-0.5">EXAME</th>
-                        <th className="p-0.5">DATA / RESULTADO</th>
-                        <th className="p-0.5">DATA / RESULTADO</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {LISTA_EXAMES_OFICIAIS.map((ex) => {
-                        const d = (currentPatient.examesTabela as any)?.[ex.id] || {};
-                        return (
-                          <tr key={ex.id}>
-                            <td className="p-0.5 font-semibold">{ex.label}</td>
-                            <td className="p-0.5">{d.d1 ? `${formatDateDisplay(d.d1)}: ${d.r1}` : '____/____ - __________'}</td>
-                            <td className="p-0.5">{d.d2 ? `${formatDateDisplay(d.d2)}: ${d.r2}` : '____/____ - __________'}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="pt-1 border-t">
-                  <span className="font-bold text-[8px] uppercase block text-[#2E482A] text-center mb-1">U.S. OBSTÉTRICO</span>
-                  <table className="w-full text-[7px] border-collapse text-center">
-                    <thead>
-                      <tr className="border-b bg-gray-100 font-bold">
-                        <th className="p-0.5">DATA</th>
-                        <th className="p-0.5">IG</th>
-                        <th className="p-0.5">PF</th>
-                        <th className="p-0.5">LA</th>
-                        <th className="p-0.5">PL</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[1, 2, 3, 4].map((_, i) => (
-                        <tr key={i} className="border-b">
-                          <td className="p-0.5 text-gray-400">____/____/____</td>
-                          <td className="p-0.5 text-gray-400">____w</td>
-                          <td className="p-0.5 text-gray-400">______g</td>
-                          <td className="p-0.5 text-gray-400">______</td>
-                          <td className="p-0.5 text-gray-400">______</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* DOBRA 3: CONSULTAS DE PRÉ-NATAL E CALENDÁRIO DE AGENDAMENTOS */}
-              <div className="space-y-2">
-                <div>
-                  <span className="font-bold text-[8px] uppercase block border-b text-[#2E482A] text-center mb-1">REGISTRO DE CONSULTAS (EVOLUÇÃO)</span>
-                  <table className="w-full text-[7px] border-collapse text-left">
-                    <thead>
-                      <tr className="border-b bg-gray-100 font-bold">
-                        <th className="p-0.5">DATA</th>
-                        <th className="p-0.5">IG</th>
-                        <th className="p-0.5">PESO</th>
-                        <th className="p-0.5">PA</th>
-                        <th className="p-0.5">AU</th>
-                        <th className="p-0.5">BCF/MF</th>
-                        <th className="p-0.5">CONDUTA</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {currentPatient.consultasEvolucao.map(c => (
-                        <tr key={c.id}>
-                          <td className="p-0.5 font-bold">{c.data}</td>
-                          <td className="p-0.5">{c.igSem}w</td>
-                          <td className="p-0.5">{c.peso}k</td>
-                          <td className="p-0.5">{c.pa}</td>
-                          <td className="p-0.5">{c.au}</td>
-                          <td className="p-0.5">{c.bcfMf}</td>
-                          <td className="p-0.5 text-[6.5px]">{c.conduta}</td>
-                        </tr>
-                      ))}
-                      {[1, 2, 3, 4, 5, 6].map((_, i) => (
-                        <tr key={`blank-${i}`}>
-                          <td className="p-0.5 text-gray-300">__/____</td>
-                          <td className="p-0.5 text-gray-300">__w</td>
-                          <td className="p-0.5 text-gray-300">__k</td>
-                          <td className="p-0.5 text-gray-300">____</td>
-                          <td className="p-0.5 text-gray-300">__</td>
-                          <td className="p-0.5 text-gray-300">____</td>
-                          <td className="p-0.5 text-gray-300">_________________</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="pt-1 border-t">
-                  <span className="font-bold text-[8px] uppercase block text-[#2E482A] text-center mb-1">CALENDÁRIO DE CONSULTAS (PRÓXIMAS)</span>
-                  <div className="grid grid-cols-2 gap-1 text-[7px] border p-1 bg-gray-50">
-                    {Array.from({ length: 4 }).map((_, idx) => {
-                      const item = currentPatient.agendaConsultas?.[idx];
-                      return (
-                        <div key={idx} className="truncate font-medium">
-                          {item ? (
-                            `DATA: ${formatDateDisplay(item.data)} - ${item.horario}`
-                          ) : (
-                            'DATA: ____/____/____ - ____:____'
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
+          {/* IMPRESSÃO A4 EM 3 DOBRAS */}
+          <PrintCardA4 
+            currentPatient={currentPatient} 
+            LISTA_EXAMES_OFICIAIS={LISTA_EXAMES_OFICIAIS} 
+          />
 
         </div>
       )}
 
-      {/* MODAL GUIADO DE INSTALAÇÃO PWA */}
-      {showInstallModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
-          <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-4">
-            <div className="flex justify-between items-center border-b pb-2">
-              <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
-                <Smartphone className="w-5 h-5 text-[#2E482A]" />
-                Instalar no Telemóvel
-              </h3>
-              <button onClick={() => setShowInstallModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {isIOS ? (
-              <div className="space-y-3 text-xs text-gray-700 leading-relaxed">
-                <p>Para instalar no seu iPhone ou iPad:</p>
-                <ol className="list-decimal pl-4 space-y-1.5 font-medium">
-                  <li>Toque no botão de <strong>Compartilhar</strong> <Share className="w-3.5 h-3.5 inline text-blue-600" /> no menu do Safari.</li>
-                  <li>Role a lista para baixo e selecione <strong>Adicionar à Tela Inicial</strong>.</li>
-                  <li>Confirme o nome e toque em <strong>Adicionar</strong>.</li>
-                </ol>
-              </div>
-            ) : (
-              <div className="space-y-3 text-xs text-gray-700 leading-relaxed">
-                <p>Para instalar no seu dispositivo Android ou computador:</p>
-                <ol className="list-decimal pl-4 space-y-1.5 font-medium">
-                  <li>Toque nos <strong>três pontos</strong> do menu do Chrome (canto superior direito).</li>
-                  <li>Selecione <strong>Instalar Aplicativo</strong> ou <strong>Adicionar à Tela Inicial</strong>.</li>
-                  <li>Siga as instruções na tela.</li>
-                </ol>
-              </div>
-            )}
-
-            <button
-              onClick={() => setShowInstallModal(false)}
-              className="w-full py-2.5 bg-[#2E482A] text-white font-bold text-xs rounded-xl"
-            >
-              Entendi
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL EDITAR PERFIL & ANAMNESE COMPLETA (NOVO!) */}
-      {showEditProfileModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
-          <div className="bg-white p-6 rounded-3xl max-w-lg w-full max-h-[85vh] overflow-y-auto space-y-4">
-            <h3 className="font-bold text-gray-900 text-base border-b pb-2 flex items-center gap-2">
-              <User className="w-5 h-5 text-[#2E482A]" />
-              Editar Dados da Gestante & Anamnese
-            </h3>
-            
-            <form onSubmit={handleSaveProfile} className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">Nome Completo</label>
-                  <input 
-                    type="text" 
-                    value={editProfileData.nome || ''} 
-                    onChange={(e) => setEditProfileData({ ...editProfileData, nome: e.target.value })} 
-                    className="w-full p-2.5 border rounded-xl" 
-                    required 
-                  />
-                </div>
-                <div>
-                  <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">CPF</label>
-                  <input 
-                    type="text" 
-                    value={editProfileData.cpf || ''} 
-                    onChange={(e) => setEditProfileData({ ...editProfileData, cpf: e.target.value })} 
-                    className="w-full p-2.5 border rounded-xl" 
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">Idade (anos)</label>
-                  <input 
-                    type="text" 
-                    value={editProfileData.idade || ''} 
-                    onChange={(e) => setEditProfileData({ ...editProfileData, idade: e.target.value })} 
-                    className="w-full p-2.5 border rounded-xl" 
-                  />
-                </div>
-                <div>
-                  <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">Altura (m)</label>
-                  <input 
-                    type="text" 
-                    placeholder="Ex: 1.65" 
-                    value={editProfileData.altura || ''} 
-                    onChange={(e) => setEditProfileData({ ...editProfileData, altura: e.target.value })} 
-                    className="w-full p-2.5 border rounded-xl" 
-                  />
-                </div>
-                <div>
-                  <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">Peso Inicial (kg)</label>
-                  <input 
-                    type="text" 
-                    placeholder="Ex: 65.0" 
-                    value={editProfileData.pesoInicial || ''} 
-                    onChange={(e) => setEditProfileData({ ...editProfileData, pesoInicial: e.target.value })} 
-                    className="w-full p-2.5 border rounded-xl" 
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">Pai / Acompanhante</label>
-                  <input 
-                    type="text" 
-                    value={editProfileData.pai || ''} 
-                    onChange={(e) => setEditProfileData({ ...editProfileData, pai: e.target.value })} 
-                    className="w-full p-2.5 border rounded-xl" 
-                  />
-                </div>
-                <div>
-                  <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">Nome do Bebê</label>
-                  <input 
-                    type="text" 
-                    value={editProfileData.nomeBebe || ''} 
-                    onChange={(e) => setEditProfileData({ ...editProfileData, nomeBebe: e.target.value })} 
-                    className="w-full p-2.5 border rounded-xl" 
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">DUM (Última Menstruação)</label>
-                  <input 
-                    type="date" 
-                    value={editProfileData.dum || ''} 
-                    onChange={(e) => setEditProfileData({ ...editProfileData, dum: e.target.value })} 
-                    className="w-full p-2.5 border rounded-xl bg-white" 
-                  />
-                </div>
-                <div>
-                  <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">Tipo Sanguíneo</label>
-                  <select 
-                    value={editProfileData.tipoSanguineo || 'A+'} 
-                    onChange={(e) => setEditProfileData({ ...editProfileData, tipoSanguineo: e.target.value })} 
-                    className="w-full p-2.5 border rounded-xl bg-white"
-                  >
-                    {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(ts => (
-                      <option key={ts} value={ts}>{ts}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* MÁSCARA GPCA DE OBSTETRÍCIA */}
-              <div className="bg-emerald-50/60 p-3 rounded-2xl border border-emerald-200">
-                <span className="font-bold text-emerald-900 block uppercase text-[10px] mb-1.5">Histórico Obstétrico (GPCA)</span>
-                <div className="grid grid-cols-4 gap-2 text-center">
-                  <div>
-                    <label className="font-bold text-[#2E482A] text-[10px] block">G (Gestas)</label>
-                    <input 
-                      type="number" 
-                      min="1" 
-                      value={editProfileData.g || '1'} 
-                      onChange={(e) => setEditProfileData({ ...editProfileData, g: e.target.value })} 
-                      className="w-full p-1.5 border rounded-lg text-center font-bold text-xs bg-white" 
-                    />
-                  </div>
-                  <div>
-                    <label className="font-bold text-[#2E482A] text-[10px] block">P (Partos)</label>
-                    <input 
-                      type="number" 
-                      min="0" 
-                      value={editProfileData.p || '0'} 
-                      onChange={(e) => setEditProfileData({ ...editProfileData, p: e.target.value })} 
-                      className="w-full p-1.5 border rounded-lg text-center font-bold text-xs bg-white" 
-                    />
-                  </div>
-                  <div>
-                    <label className="font-bold text-[#2E482A] text-[10px] block">C (Cesáreas)</label>
-                    <input 
-                      type="number" 
-                      min="0" 
-                      value={editProfileData.c || '0'} 
-                      onChange={(e) => setEditProfileData({ ...editProfileData, c: e.target.value })} 
-                      className="w-full p-1.5 border rounded-lg text-center font-bold text-xs bg-white" 
-                    />
-                  </div>
-                  <div>
-                    <label className="font-bold text-[#2E482A] text-[10px] block">A (Abortos)</label>
-                    <input 
-                      type="number" 
-                      min="0" 
-                      value={editProfileData.a || '0'} 
-                      onChange={(e) => setEditProfileData({ ...editProfileData, a: e.target.value })} 
-                      className="w-full p-1.5 border rounded-lg text-center font-bold text-xs bg-white" 
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">Doenças Prévias / Alergias / Observações</label>
-                <textarea 
-                  value={editProfileData.doencasPrevias || ''} 
-                  onChange={(e) => setEditProfileData({ ...editProfileData, doencasPrevias: e.target.value })} 
-                  className="w-full p-2.5 border rounded-xl h-20 text-xs" 
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t">
-                <button type="button" onClick={() => setShowEditProfileModal(false)} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
-                <button type="submit" className="px-5 py-2 bg-[#2E482A] text-white font-bold text-xs rounded-xl">Salvar Perfil</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL EDITAR CARTEIRA DE VACINAS (NOVO!) */}
-      {showEditVacinasModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
-          <div className="bg-white p-6 rounded-3xl max-w-lg w-full max-h-[85vh] overflow-y-auto space-y-4">
-            <h3 className="font-bold text-gray-900 text-base border-b pb-2 flex items-center gap-2">
-              <Syringe className="w-5 h-5 text-[#2E482A]" />
-              Registrar Vacinas da Gestante
-            </h3>
-
-            <form onSubmit={handleSaveVacinas} className="space-y-3 text-xs">
-              {[
-                { key: 'influenza', label: 'INFLUENZA (Gripe)' },
-                { key: 'vsr', label: 'VSR (Vírus Sincicial Respiratório)' },
-                { key: 'dtpa', label: 'dTpa (Coqueluche / Tétano)' },
-                { key: 'covid19', label: 'COVID-19' },
-              ].map(v => {
-                const currentVac = editVacinasData[v.key] || { realizada: false, data: '', lote: '' };
-                return (
-                  <div key={v.key} className="p-3 bg-gray-50 rounded-2xl border space-y-2">
-                    <div className="flex justify-between items-center">
-                      <strong className="text-xs text-[#2E482A] block uppercase font-bold">{v.label}</strong>
-                      <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          checked={currentVac.realizada || false} 
-                          onChange={(e) => setEditVacinasData({
-                            ...editVacinasData,
-                            [v.key]: { ...currentVac, realizada: e.target.checked }
-                          })}
-                          className="rounded text-[#2E482A]"
-                        />
-                        <span>Vacina Aplicada</span>
-                      </label>
-                    </div>
-
-                    {currentVac.realizada && (
-                      <div className="grid grid-cols-2 gap-2 pt-1">
-                        <div>
-                          <span className="text-[10px] text-gray-400 font-bold block">Data de Aplicação</span>
-                          <input 
-                            type="date" 
-                            value={currentVac.data || ''} 
-                            onChange={(e) => setEditVacinasData({
-                              ...editVacinasData,
-                              [v.key]: { ...currentVac, data: e.target.value }
-                            })} 
-                            className="w-full p-1.5 border rounded-lg text-xs bg-white" 
-                          />
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-gray-400 font-bold block">Número do Lote</span>
-                          <input 
-                            type="text" 
-                            placeholder="Ex: LOTE-882" 
-                            value={currentVac.lote || ''} 
-                            onChange={(e) => setEditVacinasData({
-                              ...editVacinasData,
-                              [v.key]: { ...currentVac, lote: e.target.value }
-                            })} 
-                            className="w-full p-1.5 border rounded-lg text-xs bg-white" 
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              {/* SEÇÃO HEPATITE B (3 DOSES) */}
-              <div className="p-3 bg-gray-50 rounded-2xl border space-y-2">
-                <strong className="text-xs text-[#2E482A] block uppercase font-bold">HEPATITE B (3 Doses)</strong>
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <span className="text-[10px] text-gray-400 font-bold block">1ª Dose</span>
-                    <input 
-                      type="date" 
-                      value={editVacinasData.hepatiteB?.d1 || ''} 
-                      onChange={(e) => setEditVacinasData({
-                        ...editVacinasData,
-                        hepatiteB: { ...(editVacinasData.hepatiteB || {}), d1: e.target.value }
-                      })} 
-                      className="w-full p-1.5 border rounded-lg text-xs bg-white" 
-                    />
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-gray-400 font-bold block">2ª Dose</span>
-                    <input 
-                      type="date" 
-                      value={editVacinasData.hepatiteB?.d2 || ''} 
-                      onChange={(e) => setEditVacinasData({
-                        ...editVacinasData,
-                        hepatiteB: { ...(editVacinasData.hepatiteB || {}), d2: e.target.value }
-                      })} 
-                      className="w-full p-1.5 border rounded-lg text-xs bg-white" 
-                    />
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-gray-400 font-bold block">3ª Dose</span>
-                    <input 
-                      type="date" 
-                      value={editVacinasData.hepatiteB?.d3 || ''} 
-                      onChange={(e) => setEditVacinasData({
-                        ...editVacinasData,
-                        hepatiteB: { ...(editVacinasData.hepatiteB || {}), d3: e.target.value }
-                      })} 
-                      className="w-full p-1.5 border rounded-lg text-xs bg-white" 
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t">
-                <button type="button" onClick={() => setShowEditVacinasModal(false)} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
-                <button type="submit" className="px-5 py-2 bg-[#2E482A] text-white font-bold text-xs rounded-xl">Salvar Vacinas</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL EDITAR EXAMES LABORATORIAIS */}
-      {showEditExamesModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
-          <div className="bg-white p-6 rounded-3xl max-w-xl w-full max-h-[85vh] overflow-y-auto space-y-4">
-            <h3 className="font-bold text-gray-900 text-base border-b pb-2">Preencher Tabela de Exames Laboratoriais</h3>
-            
-            <div className="space-y-3 text-xs">
-              {LISTA_EXAMES_OFICIAIS.map(ex => {
-                const currentVal = editExamesData[ex.id] || { d1: '', r1: '', d2: '', r2: '' };
-                return (
-                  <div key={ex.id} className="p-3 bg-gray-50 rounded-2xl border space-y-2">
-                    <strong className="text-xs text-[#2E482A] block uppercase">{ex.label}</strong>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <span className="text-[10px] text-gray-400 font-bold block mb-0.5">1º TRIMESTRE (Data / Resultado)</span>
-                        <div className="grid grid-cols-2 gap-1">
-                          <input 
-                            type="date" 
-                            value={currentVal.d1 || ''} 
-                            onChange={(e) => setEditExamesData({
-                              ...editExamesData,
-                              [ex.id]: { ...currentVal, d1: e.target.value }
-                            })} 
-                            className="p-1.5 border rounded-lg text-xs bg-white cursor-pointer" 
-                          />
-                          <input 
-                            type="text" 
-                            placeholder={ex.placeholder} 
-                            value={currentVal.r1 || ''} 
-                            onChange={(e) => setEditExamesData({
-                              ...editExamesData,
-                              [ex.id]: { ...currentVal, r1: e.target.value }
-                            })} 
-                            className="p-1.5 border rounded-lg text-xs bg-white font-medium" 
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <span className="text-[10px] text-gray-400 font-bold block mb-0.5">3º TRIMESTRE (Data / Resultado)</span>
-                        <div className="grid grid-cols-2 gap-1">
-                          <input 
-                            type="date" 
-                            value={currentVal.d2 || ''} 
-                            onChange={(e) => setEditExamesData({
-                              ...editExamesData,
-                              [ex.id]: { ...currentVal, d2: e.target.value }
-                            })} 
-                            className="p-1.5 border rounded-lg text-xs bg-white cursor-pointer" 
-                          />
-                          <input 
-                            type="text" 
-                            placeholder={ex.placeholder} 
-                            value={currentVal.r2 || ''} 
-                            onChange={(e) => setEditExamesData({
-                              ...editExamesData,
-                              [ex.id]: { ...currentVal, r2: e.target.value }
-                            })} 
-                            className="p-1.5 border rounded-lg text-xs bg-white font-medium" 
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2 border-t">
-              <button onClick={() => setShowEditExamesModal(false)} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
-              <button onClick={handleSaveTabelaExames} className="px-5 py-2 bg-[#2E482A] text-white font-bold text-xs rounded-xl">Salvar Tabela</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL AGENDAR CONSULTA / LEMBRETE */}
-      {showAddAgendaModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
-          <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-3">
-            <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
-              <CalendarPlus className="w-5 h-5 text-[#2E482A]" />
-              Agendar Próxima Consulta
-            </h3>
-            
-            <div>
-              <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Data e Horário</label>
-              <div className="grid grid-cols-2 gap-2">
-                <input 
-                  type="date" 
-                  value={newAgenda.data} 
-                  onChange={(e) => setNewAgenda({ ...newAgenda, data: e.target.value })} 
-                  className="w-full text-xs p-2.5 border rounded-xl bg-white" 
-                />
-                <input 
-                  type="time" 
-                  value={newAgenda.horario} 
-                  onChange={(e) => setNewAgenda({ ...newAgenda, horario: e.target.value })} 
-                  className="w-full text-xs p-2.5 border rounded-xl bg-white" 
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Tipo de Consulta / Procedimento</label>
-              <select 
-                value={newAgenda.tipo} 
-                onChange={(e) => setNewAgenda({ ...newAgenda, tipo: e.target.value })} 
-                className="w-full text-xs p-2.5 border rounded-xl bg-white"
-              >
-                <option value="Consulta Pré-Natal de Rotina">Consulta Pré-Natal de Rotina</option>
-                <option value="Retorno de Exames">Retorno de Exames</option>
-                <option value="Ecografia Obstétrica / Morfológica">Ecografia Obstétrica / Morfológica</option>
-                <option value="Consulta de Alto Risco">Consulta de Alto Risco</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Local da Consulta</label>
-              <input 
-                type="text" 
-                value={newAgenda.local} 
-                onChange={(e) => setNewAgenda({ ...newAgenda, local: e.target.value })} 
-                className="w-full text-xs p-2.5 border rounded-xl" 
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Orientações / Recomendações</label>
-              <textarea 
-                placeholder="Ex: Jejum de 8h para exame de glicemia, trazer ecografia..." 
-                value={newAgenda.observacoes} 
-                onChange={(e) => setNewAgenda({ ...newAgenda, observacoes: e.target.value })} 
-                className="w-full text-xs p-2.5 border rounded-xl h-16" 
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowAddAgendaModal(false)} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
-              <button onClick={handleAddAgenda} className="px-4 py-1.5 bg-[#2E482A] text-white font-bold text-xs rounded-xl">Salvar Agendamento</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL UPLOAD BASE64 & PROCESSAMENTO GEMINI IA */}
-      {showUploadExamModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
-          <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-3">
-            <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
-              <Bot className="w-5 h-5 text-[#2E482A]" />
-              Anexar Laudo / Ecografia com IA
-            </h3>
-            
-            <div>
-              <label className="text-[10px] text-gray-400 font-bold uppercase block mb-1">Título do Exame</label>
-              <input 
-                type="text" 
-                placeholder="Ex: Hemograma + Sorologias do 1º Trimestre" 
-                value={examName} 
-                onChange={(e) => setExamName(e.target.value)} 
-                className="w-full text-xs p-2.5 border rounded-xl" 
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] text-gray-400 font-bold uppercase block mb-1">Tipo de Exame</label>
-              <select 
-                value={examCategory} 
-                onChange={(e) => setExamCategory(e.target.value)} 
-                className="w-full text-xs p-2.5 border rounded-xl bg-white"
-              >
-                <option value="Ecografia">Ecografia / Ultrassom</option>
-                <option value="Laboratorial">Exame Laboratorial / Sangue</option>
-                <option value="Outro">Outro Documento</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-[10px] text-gray-400 font-bold uppercase block mb-1">Selecione o Arquivo (Foto do Laudo)</label>
-              <input 
-                type="file" 
-                accept="image/*"
-                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} 
-                className="w-full text-xs p-2 border bg-gray-50 rounded-xl" 
-              />
-            </div>
-
-            {isUploading && (
-              <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200 text-xs text-emerald-900 flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
-                <span>Gemini IA analisando foto do laudo e extraindo dados...</span>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowUploadExamModal(false)} className="px-3 py-1.5 text-xs text-gray-500" disabled={isUploading}>
-                Cancelar
-              </button>
-              <button 
-                onClick={handleFileUpload} 
-                disabled={isUploading} 
-                className="px-4 py-1.5 bg-[#2E482A] text-white font-bold text-xs rounded-xl flex items-center gap-1.5"
-              >
-                {isUploading ? "Processando..." : "Analisar com IA & Salvar"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL ADICIONAR CONSULTA DE EVOLUÇÃO */}
-      {showAddConsultaModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
-          <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-3">
-            <h3 className="font-bold text-gray-900 text-base">Registrar Nova Consulta</h3>
-            <input type="date" value={newConsulta.data} onChange={(e) => setNewConsulta({ ...newConsulta, data: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-            <div className="grid grid-cols-2 gap-2">
-              <input type="number" placeholder="Semanas (IG)" value={newConsulta.igSem} onChange={(e) => setNewConsulta({ ...newConsulta, igSem: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-              <input type="text" placeholder="Peso (kg)" value={newConsulta.peso} onChange={(e) => setNewConsulta({ ...newConsulta, peso: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <input type="text" placeholder="P.A." value={newConsulta.pa} onChange={(e) => setNewConsulta({ ...newConsulta, pa: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-              <input type="text" placeholder="A.U." value={newConsulta.au} onChange={(e) => setNewConsulta({ ...newConsulta, au: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-            </div>
-            <input type="text" placeholder="BCF / Mov. Fetal" value={newConsulta.bcfMf} onChange={(e) => setNewConsulta({ ...newConsulta, bcfMf: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-            <textarea placeholder="Conduta / Recomendações" value={newConsulta.conduta} onChange={(e) => setNewConsulta({ ...newConsulta, conduta: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl h-20" />
-            <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowAddConsultaModal(false)} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
-              <button onClick={handleAddConsulta} className="px-4 py-1.5 bg-[#2E482A] text-white font-bold text-xs rounded-xl">Salvar Registro</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL CADASTRAR NOVA PACIENTE (FICHA COMPLETA) */}
-      {showNewPatientModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
-          <div className="bg-white p-6 rounded-3xl max-w-lg w-full max-h-[85vh] overflow-y-auto space-y-3">
-            <h3 className="font-bold text-gray-900 text-base border-b pb-2">Cadastrar Gestante no Banco de Dados</h3>
-            
-            <form onSubmit={handleCreatePatient} className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-2">
-                <input type="text" placeholder="Nome Completo *" required value={newPatient.nome} onChange={(e) => setNewPatient({ ...newPatient, nome: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-                <input type="text" placeholder="CPF *" required value={newPatient.cpf} onChange={(e) => setNewPatient({ ...newPatient, cpf: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                <input type="text" placeholder="Idade (anos)" value={newPatient.idade} onChange={(e) => setNewPatient({ ...newPatient, idade: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-                <input type="text" placeholder="Altura (ex: 1.65)" value={newPatient.altura} onChange={(e) => setNewPatient({ ...newPatient, altura: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-                <input type="text" placeholder="Peso Inicial (kg)" value={newPatient.pesoInicial} onChange={(e) => setNewPatient({ ...newPatient, pesoInicial: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <input type="text" placeholder="Nome do Pai / Acompanhante" value={newPatient.pai} onChange={(e) => setNewPatient({ ...newPatient, pai: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-                <input type="text" placeholder="Nome do Bebê" value={newPatient.nomeBebe} onChange={(e) => setNewPatient({ ...newPatient, nomeBebe: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[10px] font-bold text-gray-400 block mb-0.5 uppercase">DUM (Última Menstruação)</label>
-                  <input type="date" value={newPatient.dum} onChange={(e) => setNewPatient({ ...newPatient, dum: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl bg-white" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-gray-400 block mb-0.5 uppercase">Tipo Sanguíneo</label>
-                  <select value={newPatient.tipoSanguineo} onChange={(e) => setNewPatient({ ...newPatient, tipoSanguineo: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl bg-white">
-                    {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(ts => (
-                      <option key={ts} value={ts}>{ts}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* MÁSCARA GPCA */}
-              <div className="bg-emerald-50/60 p-3 rounded-2xl border border-emerald-200">
-                <span className="font-bold text-emerald-900 block uppercase text-[10px] mb-1">Histórico Obstétrico (GPCA)</span>
-                <div className="grid grid-cols-4 gap-2 text-center">
-                  <div>
-                    <span className="font-bold text-[#2E482A] text-[10px] block">G</span>
-                    <input type="number" min="1" value={newPatient.g} onChange={(e) => setNewPatient({ ...newPatient, g: e.target.value })} className="w-full p-1.5 border rounded-lg text-center font-bold text-xs bg-white" />
-                  </div>
-                  <div>
-                    <span className="font-bold text-[#2E482A] text-[10px] block">P</span>
-                    <input type="number" min="0" value={newPatient.p} onChange={(e) => setNewPatient({ ...newPatient, p: e.target.value })} className="w-full p-1.5 border rounded-lg text-center font-bold text-xs bg-white" />
-                  </div>
-                  <div>
-                    <span className="font-bold text-[#2E482A] text-[10px] block">C</span>
-                    <input type="number" min="0" value={newPatient.c} onChange={(e) => setNewPatient({ ...newPatient, c: e.target.value })} className="w-full p-1.5 border rounded-lg text-center font-bold text-xs bg-white" />
-                  </div>
-                  <div>
-                    <span className="font-bold text-[#2E482A] text-[10px] block">A</span>
-                    <input type="number" min="0" value={newPatient.a} onChange={(e) => setNewPatient({ ...newPatient, a: e.target.value })} className="w-full p-1.5 border rounded-lg text-center font-bold text-xs bg-white" />
-                  </div>
-                </div>
-              </div>
-
-              <textarea placeholder="Doenças Prévias / Alergias" value={newPatient.doencasPrevias} onChange={(e) => setNewPatient({ ...newPatient, doencasPrevias: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl h-16" />
-
-              <div className="flex justify-end gap-2 pt-2 border-t">
-                <button type="button" onClick={() => setShowNewPatientModal(false)} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
-                <button type="submit" className="px-4 py-1.5 bg-[#2E482A] text-white font-bold text-xs rounded-xl">Salvar Paciente</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL LOGIN PACIENTE */}
-      {showPatientLoginModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 print:hidden">
-          <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-4">
-            <h3 className="font-bold text-gray-900">Área da Paciente</h3>
-            {loginError && <p className="text-red-500 text-xs">{loginError}</p>}
-            <input type="text" placeholder="Digite seu CPF" value={loginCpf} onChange={(e) => setLoginCpf(e.target.value)} className="w-full text-xs p-3 border rounded-xl" />
-            <button onClick={handlePatientLogin} className="w-full py-2.5 bg-[#2E482A] text-white rounded-xl text-xs font-bold">Entrar</button>
-            <button onClick={() => setShowPatientLoginModal(false)} className="w-full text-xs text-gray-500">Cancelar</button>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL LOGIN REAL MÉDICA */}
-      {showDoctorLoginModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 print:hidden">
-          <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-3">
-            <h3 className="font-bold text-gray-900">Acesso Médico Seguro</h3>
-            {loginError && <p className="text-red-500 text-xs font-semibold">{loginError}</p>}
-            <input type="email" placeholder="E-mail" value={doctorEmail} onChange={(e) => setDoctorEmail(e.target.value)} className="w-full text-xs p-3 border rounded-xl" />
-            <input type="password" placeholder="Senha" value={doctorPassword} onChange={(e) => setDoctorPassword(e.target.value)} className="w-full text-xs p-3 border rounded-xl" />
-            <button onClick={handleDoctorLogin} className="w-full py-2.5 bg-[#D4AF37] text-gray-900 rounded-xl text-xs font-bold shadow-md">
-              Entrar no Painel
-            </button>
-            <button onClick={() => setShowDoctorLoginModal(false)} className="w-full text-xs text-gray-500 pt-1">
-              Cancelar
-            </button>
-          </div>
-        </div>
-      )}
+      {/* TODOS OS MODAIS DO APP */}
+      <AppModals
+        showInstallModal={showInstallModal}
+        setShowInstallModal={setShowInstallModal}
+        isIOS={isIOS}
+        showEditProfileModal={showEditProfileModal}
+        setShowEditProfileModal={setShowEditProfileModal}
+        editProfileData={editProfileData}
+        setEditProfileData={setEditProfileData}
+        handleSaveProfile={handleSaveProfile}
+        showEditVacinasModal={showEditVacinasModal}
+        setShowEditVacinasModal={setShowEditVacinasModal}
+        editVacinasData={editVacinasData}
+        setEditVacinasData={setEditVacinasData}
+        handleSaveVacinas={handleSaveVacinas}
+        showEditExamesModal={showEditExamesModal}
+        setShowEditExamesModal={setShowEditExamesModal}
+        editExamesData={editExamesData}
+        setEditExamesData={setEditExamesData}
+        handleSaveTabelaExames={handleSaveTabelaExames}
+        LISTA_EXAMES_OFICIAIS={LISTA_EXAMES_OFICIAIS}
+        showAddAgendaModal={showAddAgendaModal}
+        setShowAddAgendaModal={setShowAddAgendaModal}
+        newAgenda={newAgenda}
+        setNewAgenda={setNewAgenda}
+        handleAddAgenda={handleAddAgenda}
+        showUploadExamModal={showUploadExamModal}
+        setShowUploadExamModal={setShowUploadExamModal}
+        examName={examName}
+        setExamName={setExamName}
+        examCategory={examCategory}
+        setExamCategory={setExamCategory}
+        setSelectedFile={setSelectedFile}
+        isUploading={isUploading}
+        handleFileUpload={handleFileUpload}
+        showAddConsultaModal={showAddConsultaModal}
+        setShowAddConsultaModal={setShowAddConsultaModal}
+        newConsulta={newConsulta}
+        setNewConsulta={setNewConsulta}
+        handleAddConsulta={handleAddConsulta}
+        showNewPatientModal={showNewPatientModal}
+        setShowNewPatientModal={setShowNewPatientModal}
+        newPatient={newPatient}
+        setNewPatient={setNewPatient}
+        handleCreatePatient={handleCreatePatient}
+        showPatientLoginModal={showPatientLoginModal}
+        setShowPatientLoginModal={setShowPatientLoginModal}
+        loginCpf={loginCpf}
+        setLoginCpf={setLoginCpf}
+        handlePatientLogin={handlePatientLogin}
+        showDoctorLoginModal={showDoctorLoginModal}
+        setShowDoctorLoginModal={setShowDoctorLoginModal}
+        doctorEmail={doctorEmail}
+        setDoctorEmail={setDoctorEmail}
+        doctorPassword={doctorPassword}
+        setDoctorPassword={setDoctorPassword}
+        handleDoctorLogin={handleDoctorLogin}
+        loginError={loginError}
+      />
 
     </div>
   );
