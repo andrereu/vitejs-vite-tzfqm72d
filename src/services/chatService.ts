@@ -20,17 +20,15 @@ export const sendPrenatalChatMessage = async (
   }
 
   const promptText = `Você é a Assistente Virtual Pré-Natal da Dra. Priscila Gapski (CRM 24734).
-Gestante: ${patient.nome}, 30 semanas de gestação do bebê ${patient.nomeBebe || 'Bebê'}.
-
+Paciente: ${patient.nome}, Gestação: ${weeks} semanas, Bebê: ${patient.nomeBebe || 'Bebê'}.
 Dúvida da gestante: "${userMessage}"
 
 Diretrizes:
-- Responda em português com muito carinho, acolhimento e emojis delicados (🌸, 👶, ✨).
-- Dê orientações práticas e seguras para a gestação.
-- NUNCA prescreva remédios nem altere condutas médicas.
-- Em caso de sangramentos, perda de líquido, dores fortes ou ausência de movimentos fetais, oriente atendimento médico de urgência com calma e firmeza.`;
+- Responda em português com carinho, acolhimento e emojis delicados (🌸, 👶, ✨).
+- Explique de forma simples os sintomas e cuidados para ${weeks} semanas.
+- NUNCA prescreva remédios. Se houver dores fortes, perda de líquido ou sangramento, recomende ir ao pronto-atendimento com urgência.`;
 
-  // Endpoint oficial da nova Interactions API
+  // Endpoint oficial Interactions API
   const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`;
 
   const payload = {
@@ -50,7 +48,7 @@ Diretrizes:
     const data = await response.json();
 
     if (response.ok) {
-      // Extrai a resposta gerada da Interactions API
+      // Extrai o retorno da Interactions API
       const reply =
         data.output?.text ||
         data.output ||
@@ -65,6 +63,6 @@ Diretrizes:
       return `❌ Erro da API (${response.status}): ${data?.error?.message || JSON.stringify(data)}`;
     }
   } catch (error: any) {
-    return `❌ Erro de requisição: ${error?.message || error}`;
+    return `❌ Erro de conexão: ${error?.message || error}`;
   }
 };
