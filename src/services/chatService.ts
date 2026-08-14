@@ -16,26 +16,31 @@ export const sendPrenatalChatMessage = async (
   const apiKey = (import.meta.env.VITE_GEMINI_API_KEY || "").trim();
 
   if (!apiKey) {
-    console.error("VITE_GEMINI_API_KEY não foi encontrada.");
-    return "🌸 Mamãe, o serviço de IA está sendo inicializado. Se persistir, consulte a Dra. Priscila diretamente!";
+    console.error("VITE_GEMINI_API_KEY vazia na Vercel.");
+    return "🌸 Mamãe, o serviço de IA está sendo inicializado. Qualquer dúvida urgente, fale com a Dra. Priscila!";
   }
 
-  // Endpoint oficial Google Generative Language
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  // Endpoint nativo com suporte total ao novo formato AQ.
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
-  const promptText = `Você é a Assistente Pré-Natal da Dra. Priscila Gapski (CRM 24734).
-Paciente: ${patient.nome}, Gestação: ${weeks} semanas, Bebê: ${patient.nomeBebe || 'Bebê'}.
-Mensagem da Gestante: "${userMessage}"
+  const promptText = `Você é a Assistente Virtual Pré-Natal integrada à carteirinha digital da gestante acompanhada pela Dra. Priscila Gapski (CRM 24734).
+Informações da gestante:
+- Nome: ${patient.nome}
+- Idade Gestacional: ${weeks} semanas
+- Nome do Bebê: ${patient.nomeBebe || 'Bebê'}
+- DUM: ${patient.dum} | DPP: ${patient.dpp}
 
-Diretrizes:
-- Responda em português com carinho, acolhimento e emojis (🌸, 👶).
-- Explique de forma simples para a fase de ${weeks} semanas.
-- NUNCA prescreva remédios. Em caso de dor forte, sangramento ou perda de líquido, oriente ir ao pronto-atendimento com urgência.`;
+Pergunta da gestante: "${userMessage}"
+
+Diretrizes obrigatórias:
+1. Responda em português com muito carinho, acolhimento e emojis delicados (🌸, 👶, ✨).
+2. Explique de forma simples e direta o que é esperado para a ${weeks}ª semana de gestação.
+3. NUNCA prescreva remédios nem altere dosagens.
+4. Em caso de sangramento, perda de líquido, dor intensa ou ausência de movimentos do bebê, oriente atendimento médico de urgência com firmeza e carinho.`;
 
   const payload = {
     contents: [
       {
-        role: "user",
         parts: [{ text: promptText }]
       }
     ]
@@ -44,26 +49,23 @@ Diretrizes:
   try {
     const response = await fetch(url, {
       method: "POST",
-      headers: { 
+      headers: {
         "Content-Type": "application/json",
-        "x-goog-api-key": apiKey 
+        "x-goog-api-key": apiKey
       },
       body: JSON.stringify(payload)
     });
 
     if (response.ok) {
       const data = await response.json();
-      const answer = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (answer) return answer;
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text) return text;
     } else {
       const errorJson = await response.json().catch(() => null);
-      console.error("Erro da API Gemini:", response.status, errorJson);
-      if (response.status === 400 || response.status === 403) {
-        return "🌸 Mamãe, a chave de autenticação do assistente precisa de uma validação no painel. Qualquer dúvida urgente, fale com a Dra. Priscila!";
-      }
+      console.error("Status de erro da API Gemini:", response.status, errorJson);
     }
   } catch (error) {
-    console.error("Erro de conexão fetch:", error);
+    console.error("Erro de conexão no chat:", error);
   }
 
   return "🌸 Desculpe, mamãe! Tive uma oscilação temporária de conexão. Qualquer dúvida urgente sobre sua gestação, fale com a Dra. Priscila!";
