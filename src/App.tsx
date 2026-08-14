@@ -35,6 +35,18 @@ const Tooltip = ({ title, text }: { title: string; text: string }) => {
   );
 };
 
+// HELPER PARA FORMATAR DATA YYYY-MM-DD EM DD/MM PARA EXIBIÇÃO LIMPA
+const formatDateDisplay = (dateStr: string) => {
+  if (!dateStr) return '';
+  if (dateStr.includes('-')) {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}`;
+    }
+  }
+  return dateStr;
+};
+
 const initialPatientsList = [
   {
     id: "gestante-01",
@@ -57,24 +69,23 @@ const initialPatientsList = [
       dtpa: { realizada: true, data: "2026-05-20", lote: "DTP-9921" },
       covid19: { realizada: true, data: "2026-02-15", lote: "COV-3" }
     },
-    // ESTRUTURA DOS EXAMES LABORATORIAIS OFICIAIS
     examesTabela: {
-      hbVg: { d1: "20/02/26", r1: "12.8 / 38%", d2: "", r2: "" },
-      plaquetas: { d1: "20/02/26", r1: "245.000", d2: "", r2: "" },
-      glicemiaTotg: { d1: "20/02/26", r1: "82 mg/dL", d2: "", r2: "" },
-      htlv: { d1: "20/02/26", r1: "Não Reagente", d2: "", r2: "" },
-      hiv: { d1: "20/02/26", r1: "Não Reagente", d2: "", r2: "" },
-      sifilis: { d1: "20/02/26", r1: "Não Reagente", d2: "", r2: "" },
-      hbsag: { d1: "20/02/26", r1: "Não Reagente", d2: "", r2: "" },
-      tsh: { d1: "20/02/26", r1: "1.8 mIU/L", d2: "", r2: "" },
-      antiHcv: { d1: "20/02/26", r1: "Não Reagente", d2: "", r2: "" },
-      rubeola: { d1: "20/02/26", r1: "IgG Imune", d2: "", r2: "" },
-      cmv: { d1: "20/02/26", r1: "IgG Imune", d2: "", r2: "" },
-      toxo: { d1: "20/02/26", r1: "IgG+ IgM-", d2: "", r2: "" },
-      vitD: { d1: "20/02/26", r1: "34 ng/mL", d2: "", r2: "" },
-      ferritina: { d1: "20/02/26", r1: "65 ng/mL", d2: "", r2: "" },
-      vitB12: { d1: "20/02/26", r1: "420 pg/mL", d2: "", r2: "" },
-      urinaUrocultura: { d1: "20/02/26", r1: "Sem bacteriúria", d2: "", r2: "" },
+      hbVg: { d1: "2026-02-20", r1: "12.8 / 38%", d2: "", r2: "" },
+      plaquetas: { d1: "2026-02-20", r1: "245.000", d2: "", r2: "" },
+      glicemiaTotg: { d1: "2026-02-20", r1: "82 mg/dL", d2: "", r2: "" },
+      htlv: { d1: "2026-02-20", r1: "Não Reagente", d2: "", r2: "" },
+      hiv: { d1: "2026-02-20", r1: "Não Reagente", d2: "", r2: "" },
+      sifilis: { d1: "2026-02-20", r1: "Não Reagente", d2: "", r2: "" },
+      hbsag: { d1: "2026-02-20", r1: "Não Reagente", d2: "", r2: "" },
+      tsh: { d1: "2026-02-20", r1: "1.8 mIU/L", d2: "", r2: "" },
+      antiHcv: { d1: "2026-02-20", r1: "Não Reagente", d2: "", r2: "" },
+      rubeola: { d1: "2026-02-20", r1: "IgG Imune", d2: "", r2: "" },
+      cmv: { d1: "2026-02-20", r1: "IgG Imune", d2: "", r2: "" },
+      toxo: { d1: "2026-02-20", r1: "IgG+ IgM-", d2: "", r2: "" },
+      vitD: { d1: "2026-02-20", r1: "34 ng/mL", d2: "", r2: "" },
+      ferritina: { d1: "2026-02-20", r1: "65 ng/mL", d2: "", r2: "" },
+      vitB12: { d1: "2026-02-20", r1: "420 pg/mL", d2: "", r2: "" },
+      urinaUrocultura: { d1: "2026-02-20", r1: "Sem bacteriúria", d2: "", r2: "" },
       gbs: { d1: "", r1: "", d2: "", r2: "" }
     },
     consultasEvolucao: [
@@ -131,7 +142,6 @@ export default function App() {
     igSem: '', peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente', conduta: ''
   });
 
-  // ESTADO TEMPORÁRIO PARA EDIÇÃO DA TABELA DE EXAMES
   const [editExamesData, setEditExamesData] = useState<any>({});
 
   useEffect(() => {
@@ -292,7 +302,7 @@ export default function App() {
       };
     } else {
       return {
-        resumoIA: `🌸 **Acompanhamento para a Mamãe (IA)**:\nDocumento anexado e organizado com segurança em seu prontuário digital.`,
+        resumoIA: `🌸 **Acompanhamento para a Mamãe (IA)**:\nDocumento anexado e organized com segurança em seu prontuário digital.`,
         notaDra: `🩺 **Anotações Clínicas (Dra. Priscila)**:\n- Documento conferido e arquivado no prontuário da gestante.`
       };
     }
@@ -411,7 +421,6 @@ export default function App() {
     return patients.filter(p => p.nome.toLowerCase().includes(q) || p.cpf.includes(q));
   }, [patients, searchQuery]);
 
-  // DICIONÁRIO DOS EXAMES DA TABELA FÍSICA DA DRA PRISCILA
   const LISTA_EXAMES_OFICIAIS = [
     { id: 'hbVg', label: 'HB / VG' },
     { id: 'plaquetas', label: 'PLAQUETAS' },
@@ -664,7 +673,7 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB EXAMES LABORATORIAIS (MATRIZ FÍSICA E INTERATIVA) */}
+          {/* TAB EXAMES LABORATORIAIS */}
           {activeTab === 'examesTabela' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4 print:hidden">
               <div className="flex justify-between items-center border-b pb-3">
@@ -701,11 +710,11 @@ export default function App() {
                         <tr key={ex.id} className="hover:bg-gray-50">
                           <td className="p-3 font-bold text-gray-900">{ex.label}</td>
                           <td className="p-3 text-gray-700">
-                            {dados.d1 ? <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md mr-2">{dados.d1}</span> : null}
+                            {dados.d1 ? <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md mr-2">{formatDateDisplay(dados.d1)}</span> : null}
                             {dados.r1 || <span className="text-gray-300 italic">Pendente</span>}
                           </td>
                           <td className="p-3 text-gray-700">
-                            {dados.d2 ? <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md mr-2">{dados.d2}</span> : null}
+                            {dados.d2 ? <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md mr-2">{formatDateDisplay(dados.d2)}</span> : null}
                             {dados.r2 || <span className="text-gray-300 italic">Pendente</span>}
                           </td>
                         </tr>
@@ -874,7 +883,7 @@ export default function App() {
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4 print:hidden">
               <div className="flex justify-between items-center border-b pb-3">
                 <h3 className="font-bold text-gray-900 text-base">Central de Laudos e Ecografias</h3>
-                <button onClick={() => setShowUploadExamModal(true)} className="bg-[#2E482A] text-[#ffffff] px-3.5 py-2 rounded-xl text-xs font-bold">+ Anexar Exame</button>
+                <button onClick={() => setShowUploadExamModal(true)} className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold">+ Anexar Exame</button>
               </div>
               <div className="space-y-4">
                 {currentPatient.examesEnviados?.map((ex: any) => (
@@ -961,8 +970,8 @@ export default function App() {
                         return (
                           <tr key={ex.id}>
                             <td className="p-0.5 font-semibold">{ex.label}</td>
-                            <td className="p-0.5">{d.d1 ? `${d.d1}: ${d.r1}` : '____/____ - __________'}</td>
-                            <td className="p-0.5">{d.d2 ? `${d.d2}: ${d.r2}` : '____/____ - __________'}</td>
+                            <td className="p-0.5">{d.d1 ? `${formatDateDisplay(d.d1)}: ${d.r1}` : '____/____ - __________'}</td>
+                            <td className="p-0.5">{d.d2 ? `${formatDateDisplay(d.d2)}: ${d.r2}` : '____/____ - __________'}</td>
                           </tr>
                         );
                       })}
@@ -1057,7 +1066,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL EDITAR EXAMES LABORATORIAIS */}
+      {/* MODAL EDITAR EXAMES LABORATORIAIS (AGORA COM SELETOR DE CALENDÁRIO NATIVO <input type="date">) */}
       {showEditExamesModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
           <div className="bg-white p-6 rounded-3xl max-w-xl w-full max-h-[85vh] overflow-y-auto space-y-4">
@@ -1074,14 +1083,13 @@ export default function App() {
                         <span className="text-[10px] text-gray-400 font-bold block mb-0.5">1º TRIMESTRE (Data / Resultado)</span>
                         <div className="grid grid-cols-2 gap-1">
                           <input 
-                            type="text" 
-                            placeholder="Data (Ex: 20/02)" 
+                            type="date" 
                             value={currentVal.d1 || ''} 
                             onChange={(e) => setEditExamesData({
                               ...editExamesData,
                               [ex.id]: { ...currentVal, d1: e.target.value }
                             })} 
-                            className="p-1.5 border rounded-lg text-xs bg-white" 
+                            className="p-1.5 border rounded-lg text-xs bg-white cursor-pointer" 
                           />
                           <input 
                             type="text" 
@@ -1100,14 +1108,13 @@ export default function App() {
                         <span className="text-[10px] text-gray-400 font-bold block mb-0.5">3º TRIMESTRE (Data / Resultado)</span>
                         <div className="grid grid-cols-2 gap-1">
                           <input 
-                            type="text" 
-                            placeholder="Data (Ex: 10/08)" 
+                            type="date" 
                             value={currentVal.d2 || ''} 
                             onChange={(e) => setEditExamesData({
                               ...editExamesData,
                               [ex.id]: { ...currentVal, d2: e.target.value }
                             })} 
-                            className="p-1.5 border rounded-lg text-xs bg-white" 
+                            className="p-1.5 border rounded-lg text-xs bg-white cursor-pointer" 
                           />
                           <input 
                             type="text" 
