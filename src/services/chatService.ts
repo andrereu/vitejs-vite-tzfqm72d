@@ -16,7 +16,7 @@ export const sendPrenatalChatMessage = async (
   const apiKey = (import.meta.env.VITE_GEMINI_API_KEY || "").trim();
 
   if (!apiKey) {
-    return "❌ Erro: VITE_GEMINI_API_KEY não foi configurada na Vercel.";
+    return "🌸 Mamãe, o serviço de IA está sendo inicializado. Qualquer dúvida urgente, fale com a Dra. Priscila!";
   }
 
   const promptText = `Você é a Assistente Virtual Pré-Natal da Dra. Priscila Gapski (CRM 24734).
@@ -27,57 +27,47 @@ Informações da gestante:
 
 Dúvida da gestante: "${userMessage}"
 
-Diretrizes:
+Diretrizes obrigatórias:
 - Responda em português com muito carinho, acolhimento e emojis delicados (🌸, 👶, ✨).
 - Dê orientações práticas e seguras para a gestação na ${weeks}ª semana.
-- NUNCA prescreva medicamentos. Em caso de sangramentos, dor intensa ou perda de líquido, oriente atendimento de urgência com calma e firmeza.`;
+- NUNCA prescreva medicamentos nem altere condutas médicas.
+- Em caso de sangramentos, perda de líquido, dor intensa ou ausência de movimentos fetais, oriente atendimento médico de urgência com calma e firmeza.`;
 
   const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`;
 
-  // Modelos para a Interactions API
-  const candidateModels = [
-    "gemini-3.5-flash",
-    "gemini-2.0-flash",
-    "gemini-1.5-flash"
-  ];
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "gemini-3.5-flash",
+        input: promptText
+      })
+    });
 
-  const errorLogs: string[] = [];
-
-  for (const modelName of candidateModels) {
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: modelName,
-          input: promptText
-        })
-      });
-
+    if (response.ok) {
       const data = await response.json();
 
-      if (response.ok) {
-        // Tenta capturar a resposta em diferentes formatos possíveis
-        const reply =
-          data.output?.text ||
-          data.output ||
-          (Array.isArray(data.outputs) ? data.outputs.map((o: any) => o.text || o.content || JSON.stringify(o)).join("\n") : null) ||
-          data.text ||
-          data.candidates?.[0]?.content?.parts?.[0]?.text;
+      // 1. Extração da nova Interactions API (steps -> model_output)
+      const modelOutputStep = data.steps?.find((s: any) => s.type === "model_output");
+      const textFromSteps = modelOutputStep?.content?.find((c: any) => c.type === "text")?.text;
 
-        if (reply && typeof reply === "string") return reply;
-        if (typeof reply === "object") return JSON.stringify(reply);
-        return JSON.stringify(data);
-      } else {
-        errorLogs.push(`[${modelName}]: ${response.status} - ${data?.error?.message || JSON.stringify(data)}`);
-      }
-    } catch (err: any) {
-      errorLogs.push(`[${modelName} Fetch]: ${err?.message || err}`);
+      if (textFromSteps) return textFromSteps;
+
+      // 2. Extrações de fallback para compatibilidade
+      const directText =
+        data.output?.text ||
+        data.output ||
+        data.text ||
+        data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (directText && typeof directText === "string") return directText;
     }
+  } catch (error) {
+    console.error("Erro ao processar resposta do chat:", error);
   }
 
-  // Se nenhum responder com sucesso, exibe o diagnóstico real
-  return `❌ Falha ao conectar. Detalhes:\n${errorLogs.join("\n\n")}`;
+  return "🌸 Desculpe, mamãe! Tive uma oscilação temporária de conexão. Qualquer dúvida urgente sobre sua gestação, fale com a Dra. Priscila!";
 };
