@@ -7,7 +7,6 @@ import {
   MapPin, CalendarPlus, Calendar, Download, Smartphone, WifiOff, Share2, Send
 } from 'lucide-react';
 
-import { db, auth } from './firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 
