@@ -4,7 +4,7 @@ import {
   Plus, LogOut, Printer,
   Syringe, 
   UserPlus, Calculator, AlertCircle, Edit3, Bot,
-  MapPin, CalendarPlus, Download, Smartphone, WifiOff
+  MapPin, CalendarPlus, Download, Smartphone, WifiOff, Share2, Send
 } from 'lucide-react';
 
 import { db, auth } from './firebase';
@@ -13,6 +13,11 @@ import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebas
 
 import { Patient, initialPatientsList } from './types/prenatal';
 import { formatDateDisplay, formatDateBR, calculateWeeksAndDays, fileToBase64 } from './utils/formatters';
+import { 
+  generateAppointmentReminderLink, 
+  generateConsultationSummaryLink, 
+  sharePatientCard 
+} from './utils/whatsapp';
 import { processExamWithGeminiIA } from './services/geminiService';
 import { Tooltip } from './components/Tooltip';
 import { PrintCardA4 } from './components/PrintCardA4';
@@ -96,7 +101,7 @@ export default function App() {
   });
 
   const [newPatient, setNewPatient] = useState({
-    nome: '', cpf: '', idade: '28', pai: '', nomeBebe: '',
+    nome: '', cpf: '', telefone: '', idade: '28', pai: '', nomeBebe: '',
     dum: new Date().toISOString().split('T')[0],
     pesoInicial: '60.0', altura: '1.65', tipoSanguineo: 'O+', doencasPrevias: '',
     g: '1', p: '0', c: '0', a: '0'
@@ -399,6 +404,7 @@ export default function App() {
     const novoObjetoPaciente: Patient = {
       id: `gestante-${Date.now()}`,
       cpf: newPatient.cpf || "000.000.000-00",
+      telefone: newPatient.telefone || "",
       senhaAcc: "1234",
       nome: newPatient.nome || "Nova Gestante",
       idade: newPatient.idade || "25",
@@ -609,7 +615,7 @@ export default function App() {
                     </span>
                   </p>
                   <p className="text-[11px] text-gray-500 mt-0.5">
-                    G{pat.g} P{pat.p} C{pat.c} A{pat.a} • Pai: {pat.pai || 'Não informado'}
+                    G{pat.g} P{pat.p} C{pat.c} A{pat.a} • WhatsApp: {pat.telefone || 'Não informado'}
                   </p>
                 </div>
                 <button onClick={() => { setSelectedPatientId(pat.id); setCurrentScreen('patient_app'); }} className="px-4 py-2.5 bg-[#2E482A] text-white rounded-xl text-xs font-bold shrink-0">
@@ -624,7 +630,7 @@ export default function App() {
       {/* ÁREA DA PACIENTE */}
       {currentScreen === 'patient_app' && (
         <div className="max-w-5xl mx-auto px-4 pt-4 space-y-6 print:p-0 print:m-0 print:max-w-none">
-          <div className="bg-[#2E482A] text-white p-6 rounded-3xl shadow-md flex justify-between items-center print:hidden">
+          <div className="bg-[#2E482A] text-white p-6 rounded-3xl shadow-md flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
             <div>
               <span className="text-[10px] text-[#A3B18A] uppercase font-bold">Carteirinha Pré-Natal Digital</span>
               <h2 className="text-2xl font-bold text-white mt-0.5">{currentPatient.nome}</h2>
@@ -636,19 +642,29 @@ export default function App() {
                 </span>
               </p>
             </div>
-            <div className="flex items-center gap-3">
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              {/* BOTÃO COMPARTILHAR CARTEIRINHA */}
+              <button 
+                onClick={() => sharePatientCard(currentPatient)}
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all"
+                title="Compartilhar carteirinha via WhatsApp ou redes"
+              >
+                <Share2 className="w-4 h-4" /> Compartilhar
+              </button>
+
               <button 
                 onClick={() => window.print()}
-                className="px-4 py-2 bg-[#D4AF37] text-gray-900 rounded-xl font-bold text-xs flex items-center gap-2 shadow-sm hover:bg-amber-400"
+                className="px-3.5 py-2 bg-[#D4AF37] text-gray-900 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm hover:bg-amber-400"
               >
-                <Printer className="w-4 h-4" /> Imprimir Cartão / PDF (A4)
+                <Printer className="w-4 h-4" /> Imprimir A4
               </button>
-              <div className="bg-white/10 p-3 rounded-2xl flex items-center gap-3">
-                <div className="text-3xl">👶</div>
+
+              <div className="bg-white/10 px-3 py-1.5 rounded-2xl flex items-center gap-2">
+                <span className="text-2xl">👶</span>
                 <div>
-                  <div className="text-xl font-bold">
-                    {currentGest.weeks} 
-                    <span className="text-xs font-normal ml-1">Semanas</span>
+                  <div className="text-base font-bold leading-none">
+                    {currentGest.weeks} <span className="text-[10px] font-normal">sem</span>
                   </div>
                 </div>
               </div>
@@ -703,12 +719,25 @@ export default function App() {
                       </p>
                     </div>
                   </div>
-                  <button 
-                    onClick={() => setActiveTab('agenda')}
-                    className="px-4 py-2 bg-[#2E482A] text-white rounded-xl text-xs font-bold shrink-0"
-                  >
-                    Ver Agenda Completa
-                  </button>
+
+                  <div className="flex items-center gap-2">
+                    {userRole === 'medica' && (
+                      <a
+                        href={generateAppointmentReminderLink(currentPatient, nextAppointment)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs"
+                      >
+                        <Send className="w-3.5 h-3.5" /> Enviar Lembrete Zap
+                      </a>
+                    )}
+                    <button 
+                      onClick={() => setActiveTab('agenda')}
+                      className="px-3.5 py-2 bg-[#2E482A] text-white rounded-xl text-xs font-bold shrink-0"
+                    >
+                      Ver Agenda
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="bg-gray-50 border p-4 rounded-2xl flex justify-between items-center text-xs text-gray-500">
@@ -753,7 +782,7 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 2: DADOS CLÍNICOS & GPCA */}
+          {/* TAB 2: DADOS CLÍNICOS */}
           {activeTab === 'dados' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-6 print:hidden">
               <div className="flex justify-between items-center border-b pb-3">
@@ -767,6 +796,7 @@ export default function App() {
                       setEditProfileData({
                         nome: currentPatient.nome || '',
                         cpf: currentPatient.cpf || '',
+                        telefone: currentPatient.telefone || '',
                         idade: currentPatient.idade || '',
                         pai: currentPatient.pai || '',
                         nomeBebe: currentPatient.nomeBebe || '',
@@ -791,9 +821,10 @@ export default function App() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
                 <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                  <span className="text-gray-400 font-bold block uppercase text-[10px]">Nome Completo</span>
+                  <span className="text-gray-400 font-bold block uppercase text-[10px]">Nome & Contato</span>
                   <strong className="text-sm text-gray-900 mt-0.5 block">{currentPatient.nome}</strong>
                   <span className="text-gray-500 mt-1 block">CPF: {currentPatient.cpf}</span>
+                  <span className="text-emerald-700 font-bold mt-0.5 block">📱 {currentPatient.telefone || 'Sem WhatsApp'}</span>
                 </div>
 
                 <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
@@ -959,7 +990,7 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB AGENDA */}
+          {/* TAB AGENDA & LEMBRETES */}
           {activeTab === 'agenda' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-6 print:hidden">
               <div className="flex justify-between items-center border-b pb-4">
@@ -993,6 +1024,18 @@ export default function App() {
                         <span className="bg-[#2E482A] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
                           {formatDateBR(item.data)} às {item.horario}
                         </span>
+
+                        {/* BOTÃO LEMBRETE WHATSAPP */}
+                        {userRole === 'medica' && (
+                          <a
+                            href={generateAppointmentReminderLink(currentPatient, item)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1"
+                          >
+                            <Send className="w-3 h-3" /> Lembrar Zap
+                          </a>
+                        )}
                       </div>
                       <h4 className="font-bold text-gray-900 text-sm pt-1">{item.tipo}</h4>
                       <p className="text-xs text-gray-600 flex items-center gap-1">
@@ -1115,18 +1158,48 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB CONSULTAS */}
+          {/* TAB CONSULTAS (COM ENVIO DE RESUMO ZAP) */}
           {activeTab === 'consultas' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4 print:hidden">
               <h3 className="font-bold text-gray-900 text-base border-b pb-3">Evolução das Consultas</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-gray-50 border-b">
-                    <tr><th className="p-2.5">Data</th><th className="p-2.5">IG</th><th className="p-2.5">Peso</th><th className="p-2.5">PA</th><th className="p-2.5">AU</th><th className="p-2.5">BCF/MF</th><th className="p-2.5">Conduta</th></tr>
+                    <tr>
+                      <th className="p-2.5">Data</th>
+                      <th className="p-2.5">IG</th>
+                      <th className="p-2.5">Peso</th>
+                      <th className="p-2.5">PA</th>
+                      <th className="p-2.5">AU</th>
+                      <th className="p-2.5">BCF/MF</th>
+                      <th className="p-2.5">Conduta</th>
+                      {userRole === 'medica' && <th className="p-2.5 text-center">Ações</th>}
+                    </tr>
                   </thead>
                   <tbody>
                     {currentPatient.consultasEvolucao.map(c => (
-                      <tr key={c.id} className="border-b"><td className="p-2.5 font-bold">{c.data}</td><td className="p-2.5">{c.igSem} Sem</td><td className="p-2.5">{c.peso}kg</td><td className="p-2.5">{c.pa}</td><td className="p-2.5">{c.au}</td><td className="p-2.5">{c.bcfMf}</td><td className="p-2.5 text-gray-600">{c.conduta}</td></tr>
+                      <tr key={c.id} className="border-b">
+                        <td className="p-2.5 font-bold">{c.data}</td>
+                        <td className="p-2.5">{c.igSem} Sem</td>
+                        <td className="p-2.5">{c.peso}kg</td>
+                        <td className="p-2.5">{c.pa}</td>
+                        <td className="p-2.5">{c.au}</td>
+                        <td className="p-2.5">{c.bcfMf}</td>
+                        <td className="p-2.5 text-gray-600">{c.conduta}</td>
+                        {userRole === 'medica' && (
+                          <td className="p-2.5 text-center">
+                            <a
+                              href={generateConsultationSummaryLink(currentPatient, c)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-bold"
+                              title="Enviar resumo desta consulta para o WhatsApp da gestante"
+                            >
+                              <Send className="w-3 h-3" /> Zap
+                            </a>
+                          </td>
+                        )}
+                      </tr>
                     ))}
                   </tbody>
                 </table>
@@ -1169,7 +1242,7 @@ export default function App() {
             </div>
           )}
 
-          {/* IMPRESSÃO A4 EM 3 DOBRAS */}
+          {/* IMPRESSÃO A4 */}
           <PrintCardA4 
             currentPatient={currentPatient} 
             LISTA_EXAMES_OFICIAIS={LISTA_EXAMES_OFICIAIS} 
@@ -1178,7 +1251,7 @@ export default function App() {
         </div>
       )}
 
-      {/* TODOS OS MODAIS DO APP */}
+      {/* MODAIS DO SISTEMA */}
       <AppModals
         showInstallModal={showInstallModal}
         setShowInstallModal={setShowInstallModal}
