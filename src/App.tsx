@@ -1344,7 +1344,7 @@ export default function App() {
         />
       )}
 
-    </div> // 👈 Última tag de fechamento do App.tsx
+    </div>
   );
 }
 
