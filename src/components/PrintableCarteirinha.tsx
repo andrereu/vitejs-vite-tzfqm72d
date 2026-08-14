@@ -13,6 +13,9 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
 }) => {
   if (!patient || typeof document === 'undefined') return null;
 
+  const consultas = patient.consultasEvolucao || [];
+  const vacinas = (patient.vacinas as any) || {};
+
   const content = (
     <div id="print-carteirinha-root" className="hidden print:block text-gray-800 text-[11px] leading-tight font-sans">
       
@@ -158,38 +161,22 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                <tr>
-                  <td className="p-1">12/03</td>
-                  <td className="p-1">08s</td>
-                  <td className="p-1">63.5</td>
-                  <td className="p-1">110x70</td>
-                  <td className="p-1">—</td>
-                  <td className="p-1">—</td>
-                </tr>
-                <tr>
-                  <td className="p-1">10/04</td>
-                  <td className="p-1">12s</td>
-                  <td className="p-1">64.1</td>
-                  <td className="p-1">110x70</td>
-                  <td className="p-1">12cm</td>
-                  <td className="p-1">152bpm</td>
-                </tr>
-                <tr>
-                  <td className="p-1">15/05</td>
-                  <td className="p-1">17s</td>
-                  <td className="p-1">65.2</td>
-                  <td className="p-1">120x70</td>
-                  <td className="p-1">16cm</td>
-                  <td className="p-1">148bpm</td>
-                </tr>
-                <tr className="bg-emerald-50 font-semibold">
-                  <td className="p-1">14/08</td>
-                  <td className="p-1">{weeks}s</td>
-                  <td className="p-1">71.2</td>
-                  <td className="p-1">110x70</td>
-                  <td className="p-1">29cm</td>
-                  <td className="p-1">138bpm</td>
-                </tr>
+                {consultas.length > 0 ? (
+                  consultas.map((c: any) => (
+                    <tr key={c.id || Math.random()}>
+                      <td className="p-1">{c.data}</td>
+                      <td className="p-1">{c.igSem}s</td>
+                      <td className="p-1">{c.peso}</td>
+                      <td className="p-1">{c.pa}</td>
+                      <td className="p-1">{c.au || '—'}</td>
+                      <td className="p-1">{c.bcfMf || '—'}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="p-2 text-center text-gray-400">Nenhuma consulta registrada</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
