@@ -14,30 +14,27 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
   if (!patient || typeof document === 'undefined') return null;
 
   const consultas = patient.consultasEvolucao || [];
-  const vacinas = (patient.vacinas as any) || {};
 
   const content = (
     <div id="print-carteirinha-root" className="hidden print:block text-gray-800 text-[11px] leading-tight font-sans">
       
-      {/* PÁGINA 1: CAPA OFICIAL + GRÁFICO GPG */}
-      <div className="print-page w-full h-full flex gap-6 bg-white border-2 border-gray-200 rounded-2xl">
+      {/* ================= PÁGINA 1: CAPA + GRÁFICO GPG ================= */}
+      <div className="print-page">
         
-        {/* COLUNA ESQUERDA: CAPA */}
-        <div className="w-1/2 flex flex-col justify-between border-r-2 border-dashed border-[#2E482A]/30 pr-6">
-          <div>
-            <div className="bg-[#2E482A] text-white p-4 rounded-xl flex items-center justify-between">
+        {/* COLUNA ESQUERDA: CAPA & DADOS */}
+        <div className="w-1/2 flex flex-col justify-between border-r-2 border-dashed border-[#2E482A]/30 pr-5">
+          <div className="space-y-3">
+            <div className="bg-[#2E482A] text-white p-3.5 rounded-xl flex items-center justify-between shadow-xs">
               <div>
                 <h1 className="text-base font-black tracking-wider uppercase">Dra. Priscila Gapski</h1>
                 <p className="text-[10px] text-[#E8ECD8] font-medium">Médica Obstetra • CRM 24734</p>
               </div>
-              <div className="text-right">
-                <span className="bg-white/20 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">
-                  Carteirinha Oficial
-                </span>
-              </div>
+              <span className="bg-white/20 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">
+                Carteirinha Oficial
+              </span>
             </div>
 
-            <div className="mt-4 bg-[#F8FAF6] border border-[#2E482A]/20 p-3 rounded-xl space-y-2">
+            <div className="bg-[#F8FAF6] border border-[#2E482A]/20 p-3 rounded-xl space-y-2">
               <h2 className="text-xs font-bold text-[#2E482A] uppercase border-b border-[#2E482A]/10 pb-1">
                 Identificação da Gestante
               </h2>
@@ -45,11 +42,11 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
                 <div><span className="font-bold text-gray-600">Nome:</span> <span className="font-semibold text-gray-900">{patient?.nome || 'Gestante'}</span></div>
                 <div><span className="font-bold text-gray-600">Idade:</span> {patient?.idade || '—'} anos</div>
                 <div><span className="font-bold text-gray-600">Bebê:</span> <span className="font-semibold text-emerald-800">{patient?.nomeBebe || 'Bebê'}</span></div>
-                <div><span className="font-bold text-gray-600">Tipo Sanguíneo:</span> <span className="bg-rose-100 text-rose-800 font-bold px-1 rounded">{patient?.tipoSanguineo || 'A+'}</span></div>
+                <div><span className="font-bold text-gray-600">Tipo Sanguíneo:</span> <span className="bg-rose-100 text-rose-800 font-bold px-1.5 py-0.5 rounded">{patient?.tipoSanguineo || 'A+'}</span></div>
               </div>
             </div>
 
-            <div className="mt-3 bg-white border border-gray-200 p-3 rounded-xl space-y-2">
+            <div className="bg-white border border-gray-200 p-3 rounded-xl space-y-2">
               <h2 className="text-xs font-bold text-[#2E482A] uppercase border-b border-gray-100 pb-1">
                 Parâmetros Gestacionais
               </h2>
@@ -77,16 +74,16 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
         </div>
 
         {/* COLUNA DIREITA: GPG */}
-        <div className="w-1/2 flex flex-col justify-between pl-2">
-          <div>
-            <div className="bg-[#2E482A]/10 p-2.5 rounded-xl border border-[#2E482A]/20 mb-3">
+        <div className="w-1/2 flex flex-col justify-between pl-1">
+          <div className="space-y-3">
+            <div className="bg-[#2E482A]/10 p-2.5 rounded-xl border border-[#2E482A]/20">
               <h2 className="text-xs font-bold text-[#2E482A] uppercase">
                 Curva de Ganho Ponderal Gestacional (MS)
               </h2>
               <p className="text-[9px] text-gray-600">Acompanhamento do IMC e peso ao longo das semanas</p>
             </div>
 
-            <div className="border border-gray-200 rounded-xl overflow-hidden mb-3">
+            <div className="border border-gray-200 rounded-xl overflow-hidden">
               <table className="w-full text-left text-[9px]">
                 <thead className="bg-gray-100 text-gray-700 font-bold">
                   <tr>
@@ -137,11 +134,11 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
         </div>
       </div>
 
-      {/* PÁGINA 2: CONSULTAS + EXAMES */}
-      <div className="print-page w-full h-full flex gap-6 bg-white border-2 border-gray-200 rounded-2xl">
+      {/* ================= PÁGINA 2: CONSULTAS + EXAMES ================= */}
+      <div className="print-page">
         
         {/* COLUNA ESQUERDA: CONSULTAS */}
-        <div className="w-1/2 flex flex-col justify-between border-r-2 border-dashed border-[#2E482A]/30 pr-6">
+        <div className="w-1/2 flex flex-col justify-between border-r-2 border-dashed border-[#2E482A]/30 pr-5">
           <div>
             <div className="bg-[#2E482A] text-white p-2.5 rounded-xl mb-3">
               <h2 className="text-xs font-bold uppercase tracking-wider">
@@ -152,24 +149,24 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
             <table className="w-full text-left text-[9px] border border-gray-200 rounded-lg overflow-hidden">
               <thead className="bg-gray-100 font-bold text-gray-700">
                 <tr>
-                  <th className="p-1 border-b">Data</th>
-                  <th className="p-1 border-b">IG</th>
-                  <th className="p-1 border-b">Peso</th>
-                  <th className="p-1 border-b">PA</th>
-                  <th className="p-1 border-b">AU</th>
-                  <th className="p-1 border-b">BCF</th>
+                  <th className="p-1.5 border-b">Data</th>
+                  <th className="p-1.5 border-b">IG</th>
+                  <th className="p-1.5 border-b">Peso</th>
+                  <th className="p-1.5 border-b">PA</th>
+                  <th className="p-1.5 border-b">AU</th>
+                  <th className="p-1.5 border-b">BCF</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {consultas.length > 0 ? (
-                  consultas.map((c: any) => (
-                    <tr key={c.id || Math.random()}>
-                      <td className="p-1">{c.data}</td>
-                      <td className="p-1">{c.igSem}s</td>
-                      <td className="p-1">{c.peso}</td>
-                      <td className="p-1">{c.pa}</td>
-                      <td className="p-1">{c.au || '—'}</td>
-                      <td className="p-1">{c.bcfMf || '—'}</td>
+                  consultas.map((c: any, i: number) => (
+                    <tr key={c.id || i} className={i % 2 === 1 ? 'bg-gray-50' : ''}>
+                      <td className="p-1.5">{c.data}</td>
+                      <td className="p-1.5">{c.igSem}s</td>
+                      <td className="p-1.5">{c.peso}</td>
+                      <td className="p-1.5">{c.pa}</td>
+                      <td className="p-1.5">{c.au || '—'}</td>
+                      <td className="p-1.5">{c.bcfMf || '—'}</td>
                     </tr>
                   ))
                 ) : (
@@ -187,7 +184,7 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
         </div>
 
         {/* COLUNA DIREITA: EXAMES */}
-        <div className="w-1/2 flex flex-col justify-between pl-2">
+        <div className="w-1/2 flex flex-col justify-between pl-1">
           <div>
             <div className="bg-[#2E482A] text-white p-2.5 rounded-xl mb-3">
               <h2 className="text-xs font-bold uppercase tracking-wider">
@@ -198,36 +195,36 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
             <table className="w-full text-left text-[9px] border border-gray-200 rounded-lg overflow-hidden">
               <thead className="bg-gray-100 font-bold text-gray-700">
                 <tr>
-                  <th className="p-1 border-b">Exame</th>
-                  <th className="p-1 border-b">1º Trim.</th>
-                  <th className="p-1 border-b">2º Trim.</th>
-                  <th className="p-1 border-b">3º Trim.</th>
+                  <th className="p-1.5 border-b">Exame</th>
+                  <th className="p-1.5 border-b">1º Trim.</th>
+                  <th className="p-1.5 border-b">2º Trim.</th>
+                  <th className="p-1.5 border-b">3º Trim.</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 <tr>
-                  <td className="p-1 font-semibold">Hemoglobina / Ht</td>
-                  <td className="p-1 text-emerald-800">12.8 / 38%</td>
-                  <td className="p-1 text-emerald-800">12.2 / 36%</td>
-                  <td className="p-1 text-gray-400">Pendente</td>
+                  <td className="p-1.5 font-semibold">Hemoglobina / Ht</td>
+                  <td className="p-1.5 text-emerald-800 font-medium">12.8 / 38%</td>
+                  <td className="p-1.5 text-emerald-800 font-medium">12.2 / 36%</td>
+                  <td className="p-1.5 text-gray-400">Pendente</td>
                 </tr>
                 <tr>
-                  <td className="p-1 font-semibold">Glicemia Jejum</td>
-                  <td className="p-1 text-emerald-800">82 mg/dL</td>
-                  <td className="p-1 text-emerald-800">TOTG: 84/120</td>
-                  <td className="p-1 text-gray-400">—</td>
+                  <td className="p-1.5 font-semibold">Glicemia Jejum</td>
+                  <td className="p-1.5 text-emerald-800 font-medium">82 mg/dL</td>
+                  <td className="p-1.5 text-emerald-800 font-medium">TOTG: 84/120</td>
+                  <td className="p-1.5 text-gray-400">—</td>
                 </tr>
                 <tr>
-                  <td className="p-1 font-semibold">HIV / VDRL</td>
-                  <td className="p-1 text-emerald-800">Não Reag.</td>
-                  <td className="p-1 text-emerald-800">Não Reag.</td>
-                  <td className="p-1 text-gray-400">Pendente</td>
+                  <td className="p-1.5 font-semibold">HIV / VDRL</td>
+                  <td className="p-1.5 text-emerald-800 font-medium">Não Reag.</td>
+                  <td className="p-1.5 text-emerald-800 font-medium">Não Reag.</td>
+                  <td className="p-1.5 text-gray-400">Pendente</td>
                 </tr>
                 <tr>
-                  <td className="p-1 font-semibold">Strepto B (Swab)</td>
-                  <td className="p-1 text-gray-400">—</td>
-                  <td className="p-1 text-gray-400">—</td>
-                  <td className="p-1 text-amber-700 font-bold">35-37 sem</td>
+                  <td className="p-1.5 font-semibold">Strepto B (Swab)</td>
+                  <td className="p-1.5 text-gray-400">—</td>
+                  <td className="p-1.5 text-gray-400">—</td>
+                  <td className="p-1.5 text-amber-700 font-bold">35-37 sem</td>
                 </tr>
               </tbody>
             </table>
