@@ -389,6 +389,21 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F4F6F2] text-gray-800 font-sans pb-12 print:bg-white print:pb-0">
+      
+      {/* REGRA CSS PARA FORÇAR PAISAGEM EM A4 NO MODO DE IMPRESSÃO */}
+      <style>{`
+        @media print {
+          @page {
+            size: A4 landscape;
+            margin: 5mm;
+          }
+          body {
+            background: white !important;
+            -webkit-print-color-adjust: exact;
+          }
+        }
+      `}</style>
+
       <header className="bg-[#2E482A] text-white shadow-md sticky top-0 z-40 border-b border-[#3D5C38] print:hidden">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div onClick={() => setCurrentScreen('landing')} className="flex items-center gap-3 cursor-pointer">
@@ -524,7 +539,7 @@ export default function App() {
                 onClick={() => window.print()}
                 className="px-4 py-2 bg-[#D4AF37] text-gray-900 rounded-xl font-bold text-xs flex items-center gap-2 shadow-sm hover:bg-amber-400"
               >
-                <Printer className="w-4 h-4" /> Imprimir Cartão / PDF
+                <Printer className="w-4 h-4" /> Imprimir Cartão / PDF (A4)
               </button>
               <div className="bg-white/10 p-3 rounded-2xl flex items-center gap-3">
                 <div className="text-3xl">👶</div>
@@ -565,7 +580,7 @@ export default function App() {
             <div className="space-y-4 print:hidden">
               <div className="bg-gradient-to-br from-[#2E482A] to-[#1E311B] text-white p-6 rounded-3xl shadow-md">
                 <blockquote className="font-serif italic text-lg leading-relaxed text-[#F4F6F0]">
-                  "Antes de você existir eu já te queria, antes de você existir eu já te amava, em menos de um minuto de nascido já daria minha vida por você."
+                  "Antes de você existir eu já te queria, antes de você nascer eu já te amava, em menos de um minuto de nascido já daria minha vida por você."
                 </blockquote>
                 <p className="mt-3 text-xs font-bold text-[#E8ECD8]">Dra. Priscila Gapski • CRM 24734</p>
               </div>
@@ -777,77 +792,162 @@ export default function App() {
           )}
 
           {/* ========================================================================= */}
-          {/* LAYOUT EXCLUSIVO PARA IMPRESSÃO EM FOLHA A4 TRÍPTICA (3 DOBRAS) */}
+          {/* REPRODUÇÃO IDÊNTICA DA CARTEIRINHA FÍSICA PDF (3 DOBRAS EM PAISAGEM) */}
           {/* ========================================================================= */}
-          <div className="hidden print:block font-sans text-black w-full p-2">
-            <div className="text-center border-b-2 border-[#2E482A] pb-2 mb-4 flex justify-between items-center">
-              <div>
-                <h1 className="text-xl font-serif font-bold text-[#2E482A]">Dra. Priscila Gapski</h1>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600">Ginecologia e Obstetrícia • CRM 24734</p>
-              </div>
-              <div className="text-right text-[10px] text-gray-500">
-                <strong>CARTEIRA OFICIAL DE PRÉ-NATAL</strong><br />
-                Emissão: {new Date().toLocaleDateString('pt-BR')}
-              </div>
-            </div>
-
-            {/* GRID DE 3 COLUNAS (3 DOBRAS A4) */}
-            <div className="grid grid-cols-3 gap-4 text-[10px] leading-snug">
+          <div className="hidden print:block font-sans text-black w-full text-[8.5px] leading-tight">
+            <div className="grid grid-cols-3 gap-3 border-2 border-[#2E482A] p-2 bg-white rounded-sm">
               
-              {/* DOBRA 1: DADOS DA GESTANTE */}
-              <div className="border border-gray-300 p-3 rounded-lg space-y-2">
-                <h2 className="font-bold text-xs bg-gray-100 p-1 border-b uppercase text-[#2E482A]">1. Identificação da Gestante</h2>
-                <p><strong>Nome:</strong> {currentPatient.nome}</p>
-                <p><strong>CPF:</strong> {currentPatient.cpf} • <strong>Idade:</strong> {currentPatient.idade} anos</p>
-                <p><strong>Pai / Acompanhante:</strong> {currentPatient.pai}</p>
-                <p><strong>Nome do Bebê:</strong> {currentPatient.nomeBebe}</p>
-                <hr />
-                <p><strong>DUM:</strong> {new Date(currentPatient.dum).toLocaleDateString('pt-BR')}</p>
-                <p><strong>DPP:</strong> {new Date(currentPatient.dpp).toLocaleDateString('pt-BR')}</p>
-                <p><strong>Tipo Sanguíneo:</strong> {currentPatient.tipoSanguineo}</p>
-                <p><strong>GPCA:</strong> G{currentPatient.g} P{currentPatient.p} C{currentPatient.c} A{currentPatient.a}</p>
-                <p><strong>Doenças/Alergias:</strong> {currentPatient.doencasPrevias}</p>
-              </div>
+              {/* DOBRA 1: CAPA + IDENTIFICAÇÃO + QUADRO VACINAL + POEMA */}
+              <div className="border-r border-gray-400 pr-2 space-y-2 flex flex-col justify-between">
+                <div>
+                  <div className="text-center border-b pb-1 mb-2">
+                    <h1 className="font-serif font-bold text-sm text-[#2E482A]">Dra. Priscila Gapski</h1>
+                    <p className="text-[7.5px] font-bold text-gray-700">CRM: 33439/PR • RQE 24734</p>
+                    <p className="text-[7.5px] text-[#2E482A] font-medium">@prigapski.obstetra • Obstetra</p>
+                  </div>
 
-              {/* DOBRA 2: CONSULTAS & EVOLUÇÃO */}
-              <div className="border border-gray-300 p-3 rounded-lg space-y-2">
-                <h2 className="font-bold text-xs bg-gray-100 p-1 border-b uppercase text-[#2E482A]">2. Registro de Consultas</h2>
-                <table className="w-full text-[9px] border-collapse">
-                  <thead>
-                    <tr className="border-b font-bold bg-gray-50">
-                      <th className="p-1">Data</th>
-                      <th className="p-1">IG</th>
-                      <th className="p-1">Peso</th>
-                      <th className="p-1">PA</th>
-                      <th className="p-1">AU</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentPatient.consultasEvolucao.map(c => (
-                      <tr key={c.id} className="border-b">
-                        <td className="p-1">{c.data}</td>
-                        <td className="p-1">{c.igSem}w</td>
-                        <td className="p-1">{c.peso}k</td>
-                        <td className="p-1">{c.pa}</td>
-                        <td className="p-1">{c.au}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  <div className="space-y-1 bg-gray-50 p-1.5 border rounded-xs mb-2">
+                    <span className="font-bold text-[8px] uppercase block border-b text-[#2E482A]">DADOS DA GESTANTE</span>
+                    <p><strong>NOME:</strong> {currentPatient.nome}</p>
+                    <p><strong>IDADE:</strong> {currentPatient.idade} anos • <strong>ALTURA:</strong> {currentPatient.altura}m</p>
+                    <p><strong>PAI:</strong> {currentPatient.pai}</p>
+                    <p><strong>DOENÇAS PRÉVIAS:</strong> {currentPatient.doencasPrevias}</p>
+                  </div>
 
-              {/* DOBRA 3: VACINAS E ORIENTAÇÕES */}
-              <div className="border border-gray-300 p-3 rounded-lg space-y-2">
-                <h2 className="font-bold text-xs bg-gray-100 p-1 border-b uppercase text-[#2E482A]">3. Vacinação & Avisos</h2>
-                <div className="space-y-1">
-                  <p><strong>Influenza:</strong> {currentPatient.vacinas?.influenza?.realizada ? `OK (${currentPatient.vacinas.influenza.data})` : 'Pendente'}</p>
-                  <p><strong>VSR:</strong> {currentPatient.vacinas?.vsr?.realizada ? `OK (${currentPatient.vacinas.vsr.data})` : 'Pendente'}</p>
-                  <p><strong>dTPa:</strong> {currentPatient.vacinas?.dtpa?.realizada ? `OK (${currentPatient.vacinas.dtpa.data})` : 'Pendente'}</p>
-                  <p><strong>Covid-19:</strong> {currentPatient.vacinas?.covid19?.realizada ? `OK (${currentPatient.vacinas.covid19.data})` : 'Pendente'}</p>
+                  <div className="bg-gray-50 p-1.5 border rounded-xs space-y-1 mb-2">
+                    <div className="grid grid-cols-2 gap-1">
+                      <p><strong>G:</strong> {currentPatient.g} <strong>P:</strong> {currentPatient.p} <strong>C:</strong> {currentPatient.c} <strong>A:</strong> {currentPatient.a}</p>
+                      <p><strong>DPP:</strong> {new Date(currentPatient.dpp).toLocaleDateString('pt-BR')}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1">
+                      <p><strong>PESO INICIAL:</strong> {currentPatient.pesoInicial}kg</p>
+                      <p><strong>TIPO SANGUÍNEO:</strong> {currentPatient.tipoSanguineo}</p>
+                    </div>
+                    <p><strong>NOME DO BEBÊ:</strong> {currentPatient.nomeBebe}</p>
+                  </div>
+
+                  {/* QUADRO VACINAL */}
+                  <div className="border p-1 space-y-1 bg-emerald-50/40">
+                    <span className="font-bold text-[8px] uppercase block border-b text-[#2E482A] text-center">QUADRO VACINAL</span>
+                    <div className="grid grid-cols-3 text-[7px] text-center gap-0.5">
+                      <div className="border bg-white p-0.5"><strong>INFLUENZA</strong><br />ANUAL<br />{currentPatient.vacinas?.influenza?.data || '____/____/____'}</div>
+                      <div className="border bg-white p-0.5"><strong>VSR</strong><br />32 SEMANAS<br />{currentPatient.vacinas?.vsr?.data || '____/____/____'}</div>
+                      <div className="border bg-white p-0.5"><strong>dTpa</strong><br />20 SEMANAS<br />{currentPatient.vacinas?.dtpa?.data || '____/____/____'}</div>
+                    </div>
+                    <div className="border bg-white p-0.5 text-[7px]">
+                      <strong>HEPATITE B:</strong> 1ª Dose: ____/____ | 2ª Dose: ____/____ | 3ª Dose: ____/____
+                    </div>
+                  </div>
                 </div>
-                <hr />
-                <div className="italic text-[9px] text-gray-600 pt-2">
-                  "Em caso de febre, sangramento vaginal, perda de líquido ou diminuição dos movimentos fetais, entre em contato imediatamente com a equipe médica."
+
+                <div className="italic text-[7.5px] text-center text-gray-700 bg-pink-50/50 p-1 border border-pink-200">
+                  "Antes de você existir eu já te queria, antes de você nascer eu já te amava, em menos de um minuto de nascido já daria minha vida por você."
+                </div>
+              </div>
+
+              {/* DOBRA 2: MATRIZ COMPLETA DE EXAMES LABORATORIAIS & USG */}
+              <div className="border-r border-gray-400 pr-2 space-y-2">
+                <div>
+                  <span className="font-bold text-[8px] uppercase block border-b text-[#2E482A] text-center mb-1">EXAMES LABORATORIAIS</span>
+                  <table className="w-full text-[7px] border-collapse text-left">
+                    <thead>
+                      <tr className="border-b bg-gray-100 font-bold">
+                        <th className="p-0.5">EXAME</th>
+                        <th className="p-0.5">DATA / RESULTADO</th>
+                        <th className="p-0.5">DATA / RESULTADO</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {['HB/VG', 'PLAQUETAS', 'GLICEMIA / TOTG', 'HTLV', 'HIV', 'SÍFILIS', 'HBsAG / Anti-HBS', 'TSH', 'Anti-HCV', 'RUBÉOLA', 'CMV', 'TOXO', 'VITAMINA D', 'FERRITINA', 'VITAMINA B12', 'URINA / UROCULTURA', 'GBS (35-37 sem)'].map((ex, idx) => (
+                        <tr key={idx}>
+                          <td className="p-0.5 font-semibold">{ex}</td>
+                          <td className="p-0.5 text-gray-400">____/____ - __________</td>
+                          <td className="p-0.5 text-gray-400">____/____ - __________</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="pt-1">
+                  <span className="font-bold text-[8px] uppercase block border-b text-[#2E482A] text-center mb-1">U.S. OBSTÉTRICO</span>
+                  <table className="w-full text-[7px] border-collapse text-center">
+                    <thead>
+                      <tr className="border-b bg-gray-100 font-bold">
+                        <th className="p-0.5">DATA</th>
+                        <th className="p-0.5">IG</th>
+                        <th className="p-0.5">PF</th>
+                        <th className="p-0.5">LA</th>
+                        <th className="p-0.5">PL</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[1, 2, 3, 4, 5].map((_, i) => (
+                        <tr key={i} className="border-b">
+                          <td className="p-0.5 text-gray-400">____/____/____</td>
+                          <td className="p-0.5 text-gray-400">____w</td>
+                          <td className="p-0.5 text-gray-400">______g</td>
+                          <td className="p-0.5 text-gray-400">______</td>
+                          <td className="p-0.5 text-gray-400">______</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* DOBRA 3: CONSULTAS DE PRÉ-NATAL E CALENDÁRIO DE AGENDAMENTOS */}
+              <div className="space-y-2">
+                <div>
+                  <span className="font-bold text-[8px] uppercase block border-b text-[#2E482A] text-center mb-1">REGISTRO DE CONSULTAS (EVOLUÇÃO)</span>
+                  <table className="w-full text-[7px] border-collapse text-left">
+                    <thead>
+                      <tr className="border-b bg-gray-100 font-bold">
+                        <th className="p-0.5">DATA</th>
+                        <th className="p-0.5">IG</th>
+                        <th className="p-0.5">PESO</th>
+                        <th className="p-0.5">PA</th>
+                        <th className="p-0.5">AU</th>
+                        <th className="p-0.5">BCF/MF</th>
+                        <th className="p-0.5">CONDUTA</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {currentPatient.consultasEvolucao.map(c => (
+                        <tr key={c.id}>
+                          <td className="p-0.5 font-bold">{c.data}</td>
+                          <td className="p-0.5">{c.igSem}w</td>
+                          <td className="p-0.5">{c.peso}k</td>
+                          <td className="p-0.5">{c.pa}</td>
+                          <td className="p-0.5">{c.au}</td>
+                          <td className="p-0.5">{c.bcfMf}</td>
+                          <td className="p-0.5 text-[6.5px]">{c.conduta}</td>
+                        </tr>
+                      ))}
+                      {/* LINHAS EM BRANCO PARA PREENCHIMENTO MANUAL POSTERIOR */}
+                      {[1, 2, 3, 4, 5, 6, 7].map((_, i) => (
+                        <tr key={`blank-${i}`}>
+                          <td className="p-0.5 text-gray-300">__/____</td>
+                          <td className="p-0.5 text-gray-300">__w</td>
+                          <td className="p-0.5 text-gray-300">__k</td>
+                          <td className="p-0.5 text-gray-300">____</td>
+                          <td className="p-0.5 text-gray-300">__</td>
+                          <td className="p-0.5 text-gray-300">____</td>
+                          <td className="p-0.5 text-gray-300">_________________</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="pt-1 border-t">
+                  <span className="font-bold text-[8px] uppercase block text-[#2E482A] text-center mb-1">CALENDÁRIO DE CONSULTAS (PRÓXIMAS)</span>
+                  <div className="grid grid-cols-2 gap-1 text-[7px] border p-1 bg-gray-50">
+                    <div>DATA: ____/____/____ - ____:____</div>
+                    <div>DATA: ____/____/____ - ____:____</div>
+                    <div>DATA: ____/____/____ - ____:____</div>
+                    <div>DATA: ____/____/____ - ____:____</div>
+                  </div>
                 </div>
               </div>
 
