@@ -1,9 +1,9 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBubHK6iBjyddEDd8mgfMcVFOsbzVIFlhI", // <--- Cole a chave criada no Google Cloud aqui
+  apiKey: "AIzaSyBubHK6iBjyddEDd8mgfMcVFOsbzVIFlhI",
   authDomain: "prenatal-dra-priscila.firebaseapp.com",
   projectId: "prenatal-dra-priscila",
   storageBucket: "prenatal-dra-priscila.firebasestorage.app",
@@ -14,6 +14,10 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// Exportações necessárias para o App.tsx
+// Exportações do Firestore e Auth
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+
+// Exportações para Login com Google
+export const googleProvider = new GoogleAuthProvider();
+export { signInWithPopup };
