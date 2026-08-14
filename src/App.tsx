@@ -3,7 +3,7 @@ import {
   Calendar, Activity, Heart, Upload, Sparkles, User, 
   Plus, Clock, Baby, Stethoscope, LogOut, Printer, X, 
   Syringe, Scale, FileCheck, Check, ExternalLink, FileText,
-  TrendingUp, UserPlus, Info, Calculator, AlertCircle
+  TrendingUp, UserPlus, Info, Calculator, AlertCircle, Edit3
 } from 'lucide-react';
 
 import { db, auth } from './firebase';
@@ -57,14 +57,30 @@ const initialPatientsList = [
       dtpa: { realizada: true, data: "2026-05-20", lote: "DTP-9921" },
       covid19: { realizada: true, data: "2026-02-15", lote: "COV-3" }
     },
-    examesLab: [],
-    ultrassons: [],
+    // ESTRUTURA DOS EXAMES LABORATORIAIS OFICIAIS
+    examesTabela: {
+      hbVg: { d1: "20/02/26", r1: "12.8 / 38%", d2: "", r2: "" },
+      plaquetas: { d1: "20/02/26", r1: "245.000", d2: "", r2: "" },
+      glicemiaTotg: { d1: "20/02/26", r1: "82 mg/dL", d2: "", r2: "" },
+      htlv: { d1: "20/02/26", r1: "Não Reagente", d2: "", r2: "" },
+      hiv: { d1: "20/02/26", r1: "Não Reagente", d2: "", r2: "" },
+      sifilis: { d1: "20/02/26", r1: "Não Reagente", d2: "", r2: "" },
+      hbsag: { d1: "20/02/26", r1: "Não Reagente", d2: "", r2: "" },
+      tsh: { d1: "20/02/26", r1: "1.8 mIU/L", d2: "", r2: "" },
+      antiHcv: { d1: "20/02/26", r1: "Não Reagente", d2: "", r2: "" },
+      rubeola: { d1: "20/02/26", r1: "IgG Imune", d2: "", r2: "" },
+      cmv: { d1: "20/02/26", r1: "IgG Imune", d2: "", r2: "" },
+      toxo: { d1: "20/02/26", r1: "IgG+ IgM-", d2: "", r2: "" },
+      vitD: { d1: "20/02/26", r1: "34 ng/mL", d2: "", r2: "" },
+      ferritina: { d1: "20/02/26", r1: "65 ng/mL", d2: "", r2: "" },
+      vitB12: { d1: "20/02/26", r1: "420 pg/mL", d2: "", r2: "" },
+      urinaUrocultura: { d1: "20/02/26", r1: "Sem bacteriúria", d2: "", r2: "" },
+      gbs: { d1: "", r1: "", d2: "", r2: "" }
+    },
     consultasEvolucao: [
       { id: "c-1", data: "2026-02-20", igSem: 6, peso: 71.0, pa: "110/70", au: "NP", bcfMf: "Visível USG", edema: "Ausente", conduta: "Início do Ácido Fólico." },
-      { id: "c-2", data: "2026-04-15", igSem: 13, peso: 72.2, pa: "115/75", au: "12 cm", bcfMf: "152 bpm / MF-", edema: "Ausente", conduta: "Ecografia Morfológica solicitada." },
-      { id: "c-3", data: "2026-06-10", igSem: 21, peso: 74.8, pa: "120/80", au: "20 cm", bcfMf: "144 bpm / MF+", edema: "Ausente", conduta: "Curva Glicêmica ok." }
+      { id: "c-2", data: "2026-04-15", igSem: 13, peso: 72.2, pa: "115/75", au: "12 cm", bcfMf: "152 bpm / MF-", edema: "Ausente", conduta: "Ecografia Morfológica solicitada." }
     ],
-    agendaConsultas: [],
     examesEnviados: []
   }
 ];
@@ -83,6 +99,7 @@ export default function App() {
   const [showAddConsultaModal, setShowAddConsultaModal] = useState(false);
   const [showUploadExamModal, setShowUploadExamModal] = useState(false);
   const [showNewPatientModal, setShowNewPatientModal] = useState(false);
+  const [showEditExamesModal, setShowEditExamesModal] = useState(false);
 
   // CALCULADORA GESTACIONAL (USG)
   const [calcUsgData, setCalcUsgData] = useState(new Date().toISOString().split('T')[0]);
@@ -113,6 +130,9 @@ export default function App() {
     data: new Date().toISOString().split('T')[0],
     igSem: '', peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente', conduta: ''
   });
+
+  // ESTADO TEMPORÁRIO PARA EDIÇÃO DA TABELA DE EXAMES
+  const [editExamesData, setEditExamesData] = useState<any>({});
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
@@ -316,6 +336,12 @@ export default function App() {
     }
   };
 
+  const handleSaveTabelaExames = () => {
+    const updated = { ...currentPatient, examesTabela: editExamesData };
+    saveToFirestore(patients.map(p => p.id === updated.id ? updated : p));
+    setShowEditExamesModal(false);
+  };
+
   const handleCreatePatient = (e: React.FormEvent) => {
     e.preventDefault();
     const dumDate = new Date(newPatient.dum);
@@ -342,12 +368,10 @@ export default function App() {
         dtpa: { realizada: false, data: "", lote: "" },
         covid19: { realizada: false, data: "", lote: "" }
       },
-      examesLab: [],
-      ultrassons: [],
+      examesTabela: {},
       consultasEvolucao: [
         { id: `c-init`, data: newPatient.dum, igSem: 0, peso: parseFloat(newPatient.pesoInicial), pa: "120/80", au: "NP", bcfMf: "Aguardando", edema: "Ausente", conduta: "Consulta Inicial de Pré-Natal." }
       ],
-      agendaConsultas: [],
       examesEnviados: []
     };
 
@@ -387,10 +411,30 @@ export default function App() {
     return patients.filter(p => p.nome.toLowerCase().includes(q) || p.cpf.includes(q));
   }, [patients, searchQuery]);
 
+  // DICIONÁRIO DOS EXAMES DA TABELA FÍSICA DA DRA PRISCILA
+  const LISTA_EXAMES_OFICIAIS = [
+    { id: 'hbVg', label: 'HB / VG' },
+    { id: 'plaquetas', label: 'PLAQUETAS' },
+    { id: 'glicemiaTotg', label: 'GLICEMIA / TOTG' },
+    { id: 'htlv', label: 'HTLV' },
+    { id: 'hiv', label: 'HIV' },
+    { id: 'sifilis', label: 'SÍFILIS' },
+    { id: 'hbsag', label: 'HBsAG / Anti-HBS' },
+    { id: 'tsh', label: 'TSH' },
+    { id: 'antiHcv', label: 'Anti-HCV' },
+    { id: 'rubeola', label: 'RUBÉOLA' },
+    { id: 'cmv', label: 'CMV' },
+    { id: 'toxo', label: 'TOXO' },
+    { id: 'vitD', label: 'VITAMINA D' },
+    { id: 'ferritina', label: 'FERRITINA' },
+    { id: 'vitB12', label: 'VITAMINA B12' },
+    { id: 'urinaUrocultura', label: 'URINA / UROCULTURA' },
+    { id: 'gbs', label: 'GBS (35-37 sem)' }
+  ];
+
   return (
     <div className="min-h-screen bg-[#F4F6F2] text-gray-800 font-sans pb-12 print:bg-white print:pb-0">
       
-      {/* REGRA CSS PARA FORÇAR PAISAGEM EM A4 NO MODO DE IMPRESSÃO */}
       <style>{`
         @media print {
           @page {
@@ -556,6 +600,7 @@ export default function App() {
           <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-gray-200 flex overflow-x-auto gap-1 print:hidden">
             {[
               { id: 'resumo', label: 'Resumo' },
+              { id: 'examesTabela', label: 'Exames Laboratoriais' },
               { id: 'graficos', label: 'Gráfico GPG (MS)' },
               { id: 'calculadora', label: 'Calculadora Gestacional' },
               { id: 'dados', label: 'Dados Clínicos' },
@@ -575,7 +620,7 @@ export default function App() {
             ))}
           </div>
 
-          {/* TAB 1: RESUMO (MODO TELA NORMAL) */}
+          {/* TAB 1: RESUMO */}
           {activeTab === 'resumo' && (
             <div className="space-y-4 print:hidden">
               <div className="bg-gradient-to-br from-[#2E482A] to-[#1E311B] text-white p-6 rounded-3xl shadow-md">
@@ -615,6 +660,59 @@ export default function App() {
                   <div className="flex items-center text-[10px] text-gray-400 font-bold uppercase">Tipo Sanguíneo & Fator Rh</div>
                   <div className="text-2xl font-bold text-gray-900 mt-1">{currentPatient.tipoSanguineo}</div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB EXAMES LABORATORIAIS (MATRIZ FÍSICA E INTERATIVA) */}
+          {activeTab === 'examesTabela' && (
+            <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4 print:hidden">
+              <div className="flex justify-between items-center border-b pb-3">
+                <div>
+                  <h3 className="font-bold text-gray-900 text-base">Tabela de Exames Laboratoriais</h3>
+                  <p className="text-xs text-gray-500">Resultados numéricos e sorologias do pré-natal (Sincronizado com a Impressão A4)</p>
+                </div>
+                {userRole === 'medica' && (
+                  <button 
+                    onClick={() => {
+                      setEditExamesData(currentPatient.examesTabela || {});
+                      setShowEditExamesModal(true);
+                    }} 
+                    className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5"
+                  >
+                    <Edit3 className="w-4 h-4" /> Preencher / Editar Exames
+                  </button>
+                )}
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-gray-50 border-b">
+                    <tr>
+                      <th className="p-3 font-bold text-gray-700">EXAME</th>
+                      <th className="p-3 font-bold text-gray-700">1º TRIMESTRE (Data / Resultado)</th>
+                      <th className="p-3 font-bold text-gray-700">3º TRIMESTRE (Data / Resultado)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {LISTA_EXAMES_OFICIAIS.map(ex => {
+                      const dados = (currentPatient.examesTabela as any)?.[ex.id] || {};
+                      return (
+                        <tr key={ex.id} className="hover:bg-gray-50">
+                          <td className="p-3 font-bold text-gray-900">{ex.label}</td>
+                          <td className="p-3 text-gray-700">
+                            {dados.d1 ? <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md mr-2">{dados.d1}</span> : null}
+                            {dados.r1 || <span className="text-gray-300 italic">Pendente</span>}
+                          </td>
+                          <td className="p-3 text-gray-700">
+                            {dados.d2 ? <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md mr-2">{dados.d2}</span> : null}
+                            {dados.r2 || <span className="text-gray-300 italic">Pendente</span>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
@@ -776,7 +874,7 @@ export default function App() {
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4 print:hidden">
               <div className="flex justify-between items-center border-b pb-3">
                 <h3 className="font-bold text-gray-900 text-base">Central de Laudos e Ecografias</h3>
-                <button onClick={() => setShowUploadExamModal(true)} className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold">+ Anexar Exame</button>
+                <button onClick={() => setShowUploadExamModal(true)} className="bg-[#2E482A] text-[#ffffff] px-3.5 py-2 rounded-xl text-xs font-bold">+ Anexar Exame</button>
               </div>
               <div className="space-y-4">
                 {currentPatient.examesEnviados?.map((ex: any) => (
@@ -849,7 +947,7 @@ export default function App() {
               <div className="border-r border-gray-400 pr-2 space-y-2">
                 <div>
                   <span className="font-bold text-[8px] uppercase block border-b text-[#2E482A] text-center mb-1">EXAMES LABORATORIAIS</span>
-                  <table className="w-full text-[7px] border-collapse text-left">
+                  <table className="w-full text-[6.8px] border-collapse text-left">
                     <thead>
                       <tr className="border-b bg-gray-100 font-bold">
                         <th className="p-0.5">EXAME</th>
@@ -858,19 +956,22 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                      {['HB/VG', 'PLAQUETAS', 'GLICEMIA / TOTG', 'HTLV', 'HIV', 'SÍFILIS', 'HBsAG / Anti-HBS', 'TSH', 'Anti-HCV', 'RUBÉOLA', 'CMV', 'TOXO', 'VITAMINA D', 'FERRITINA', 'VITAMINA B12', 'URINA / UROCULTURA', 'GBS (35-37 sem)'].map((ex, idx) => (
-                        <tr key={idx}>
-                          <td className="p-0.5 font-semibold">{ex}</td>
-                          <td className="p-0.5 text-gray-400">____/____ - __________</td>
-                          <td className="p-0.5 text-gray-400">____/____ - __________</td>
-                        </tr>
-                      ))}
+                      {LISTA_EXAMES_OFICIAIS.map((ex) => {
+                        const d = (currentPatient.examesTabela as any)?.[ex.id] || {};
+                        return (
+                          <tr key={ex.id}>
+                            <td className="p-0.5 font-semibold">{ex.label}</td>
+                            <td className="p-0.5">{d.d1 ? `${d.d1}: ${d.r1}` : '____/____ - __________'}</td>
+                            <td className="p-0.5">{d.d2 ? `${d.d2}: ${d.r2}` : '____/____ - __________'}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
 
-                <div className="pt-1">
-                  <span className="font-bold text-[8px] uppercase block border-b text-[#2E482A] text-center mb-1">U.S. OBSTÉTRICO</span>
+                <div className="pt-1 border-t">
+                  <span className="font-bold text-[8px] uppercase block text-[#2E482A] text-center mb-1">U.S. OBSTÉTRICO</span>
                   <table className="w-full text-[7px] border-collapse text-center">
                     <thead>
                       <tr className="border-b bg-gray-100 font-bold">
@@ -882,7 +983,7 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      {[1, 2, 3, 4, 5].map((_, i) => (
+                      {[1, 2, 3, 4].map((_, i) => (
                         <tr key={i} className="border-b">
                           <td className="p-0.5 text-gray-400">____/____/____</td>
                           <td className="p-0.5 text-gray-400">____w</td>
@@ -924,8 +1025,7 @@ export default function App() {
                           <td className="p-0.5 text-[6.5px]">{c.conduta}</td>
                         </tr>
                       ))}
-                      {/* LINHAS EM BRANCO PARA PREENCHIMENTO MANUAL POSTERIOR */}
-                      {[1, 2, 3, 4, 5, 6, 7].map((_, i) => (
+                      {[1, 2, 3, 4, 5, 6].map((_, i) => (
                         <tr key={`blank-${i}`}>
                           <td className="p-0.5 text-gray-300">__/____</td>
                           <td className="p-0.5 text-gray-300">__w</td>
@@ -954,6 +1054,84 @@ export default function App() {
             </div>
           </div>
 
+        </div>
+      )}
+
+      {/* MODAL EDITAR EXAMES LABORATORIAIS */}
+      {showEditExamesModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
+          <div className="bg-white p-6 rounded-3xl max-w-xl w-full max-h-[85vh] overflow-y-auto space-y-4">
+            <h3 className="font-bold text-gray-900 text-base border-b pb-2">Preencher Tabela de Exames Laboratoriais</h3>
+            
+            <div className="space-y-3 text-xs">
+              {LISTA_EXAMES_OFICIAIS.map(ex => {
+                const currentVal = editExamesData[ex.id] || { d1: '', r1: '', d2: '', r2: '' };
+                return (
+                  <div key={ex.id} className="p-3 bg-gray-50 rounded-2xl border space-y-2">
+                    <strong className="text-xs text-[#2E482A] block uppercase">{ex.label}</strong>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="text-[10px] text-gray-400 font-bold block mb-0.5">1º TRIMESTRE (Data / Resultado)</span>
+                        <div className="grid grid-cols-2 gap-1">
+                          <input 
+                            type="text" 
+                            placeholder="Data (Ex: 20/02)" 
+                            value={currentVal.d1 || ''} 
+                            onChange={(e) => setEditExamesData({
+                              ...editExamesData,
+                              [ex.id]: { ...currentVal, d1: e.target.value }
+                            })} 
+                            className="p-1.5 border rounded-lg text-xs bg-white" 
+                          />
+                          <input 
+                            type="text" 
+                            placeholder="Resultado" 
+                            value={currentVal.r1 || ''} 
+                            onChange={(e) => setEditExamesData({
+                              ...editExamesData,
+                              [ex.id]: { ...currentVal, r1: e.target.value }
+                            })} 
+                            className="p-1.5 border rounded-lg text-xs bg-white" 
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] text-gray-400 font-bold block mb-0.5">3º TRIMESTRE (Data / Resultado)</span>
+                        <div className="grid grid-cols-2 gap-1">
+                          <input 
+                            type="text" 
+                            placeholder="Data (Ex: 10/08)" 
+                            value={currentVal.d2 || ''} 
+                            onChange={(e) => setEditExamesData({
+                              ...editExamesData,
+                              [ex.id]: { ...currentVal, d2: e.target.value }
+                            })} 
+                            className="p-1.5 border rounded-lg text-xs bg-white" 
+                          />
+                          <input 
+                            type="text" 
+                            placeholder="Resultado" 
+                            value={currentVal.r2 || ''} 
+                            onChange={(e) => setEditExamesData({
+                              ...editExamesData,
+                              [ex.id]: { ...currentVal, r2: e.target.value }
+                            })} 
+                            className="p-1.5 border rounded-lg text-xs bg-white" 
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <button onClick={() => setShowEditExamesModal(false)} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
+              <button onClick={handleSaveTabelaExames} className="px-5 py-2 bg-[#2E482A] text-white font-bold text-xs rounded-xl">Salvar Tabela</button>
+            </div>
+          </div>
         </div>
       )}
 
