@@ -4,7 +4,7 @@ import {
   Plus, Clock, Baby, Stethoscope, LogOut, Printer, X, 
   Syringe, Scale, FileCheck, Check, ExternalLink, FileText,
   TrendingUp, UserPlus, Info, Calculator, AlertCircle, Edit3, Bot, Loader2,
-  Bell, MapPin, CalendarPlus
+  Bell, MapPin, CalendarPlus, Download, Smartphone, Wifi, WifiOff, Share
 } from 'lucide-react';
 
 import { db, auth } from './firebase';
@@ -137,7 +137,14 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState('resumo');
 
-  // MODAIS
+  // PWA ESTADOS E EVENTOS
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  // MODAIS DA APLICAÇÃO
   const [showPatientLoginModal, setShowPatientLoginModal] = useState(false);
   const [showDoctorLoginModal, setShowDoctorLoginModal] = useState(false);
   const [showAddConsultaModal, setShowAddConsultaModal] = useState(false);
@@ -164,7 +171,7 @@ export default function App() {
   const [examCategory, setExamCategory] = useState("Ecografia");
   const [isUploading, setIsUploading] = useState(false);
 
-  // FORMULÁRIOS DE EDIÇÃO / CRIAÇÃO
+  // FORMULÁRIOS
   const [editExamesData, setEditExamesData] = useState<any>({});
   const [newAgenda, setNewAgenda] = useState({
     data: new Date().toISOString().split('T')[0],
@@ -184,6 +191,58 @@ export default function App() {
     data: new Date().toISOString().split('T')[0],
     igSem: '', peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente', conduta: ''
   });
+
+  // CONFIGURAÇÃO PWA & MANIFEST DINÂMICO
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
+    setIsIOS(isIosDevice);
+
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+
+    // Injeção do Web App Manifest
+    const manifestObj = {
+      name: "Carteirinha Pré-Natal • Dra. Priscila Gapski",
+      short_name: "Pré-Natal Dra. Priscila",
+      description: "Carteirinha Digital de Acompanhamento Pré-Natal e Prontuário Gestacional",
+      start_url: "/",
+      display: "standalone",
+      background_color: "#2E482A",
+      theme_color: "#2E482A",
+      icons: [
+        {
+          src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232E482A'/><text x='50' y='65' font-size='50' text-anchor='middle'>👶</text></svg>",
+          sizes: "192x192 512x512",
+          type: "image/svg+xml"
+        }
+      ]
+    };
+    const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/json' });
+    const manifestUrl = URL.createObjectURL(manifestBlob);
+    let manifestLink = document.querySelector("link[rel='manifest']") as HTMLLinkElement;
+    if (!manifestLink) {
+      manifestLink = document.createElement('link');
+      manifestLink.rel = 'manifest';
+      document.head.appendChild(manifestLink);
+    }
+    manifestLink.href = manifestUrl;
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+    };
+  }, []);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
@@ -211,6 +270,19 @@ export default function App() {
     }
   }, []);
 
+  const handleInstallPWA = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setIsInstallable(false);
+        setDeferredPrompt(null);
+      }
+    } else {
+      setShowInstallModal(true);
+    }
+  };
+
   const saveToFirestore = async (updatedList: any[]) => {
     setPatients(updatedList);
     try {
@@ -235,7 +307,6 @@ export default function App() {
 
   const currentGest = calculateWeeksAndDays(currentPatient.dum);
 
-  // PRÓXIMA CONSULTA AGENDADA
   const nextAppointment = useMemo(() => {
     if (!currentPatient.agendaConsultas || currentPatient.agendaConsultas.length === 0) return null;
     const sorted = [...currentPatient.agendaConsultas]
@@ -340,7 +411,7 @@ export default function App() {
   };
 
   const processExamWithGeminiIA = async (base64Content: string, mimeType: string, category: string, title: string) => {
-    const apiKey = ""; // A chave é fornecida em tempo de execução
+    const apiKey = ""; 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
     const cleanBase64 = base64Content.replace(/^data:(image\/[a-zA-Z0-9]+|application\/pdf);base64,/, '');
@@ -415,7 +486,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
           }
         }
       } catch (err) {
-        // Retry exponential
+        // Retry
       }
       await new Promise(r => setTimeout(r, delay));
       delay *= 2;
@@ -624,6 +695,14 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
         }
       `}</style>
 
+      {/* BANNER INDICADOR DE ESTADO OFFLINE */}
+      {isOffline && (
+        <div className="bg-amber-600 text-white text-xs font-bold px-4 py-2 text-center flex items-center justify-center gap-2 print:hidden">
+          <WifiOff className="w-4 h-4" />
+          <span>Você está navegando em modo offline. O aplicativo mantém o acesso aos dados salvos no seu dispositivo.</span>
+        </div>
+      )}
+
       <header className="bg-[#2E482A] text-white shadow-md sticky top-0 z-40 border-b border-[#3D5C38] print:hidden">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div onClick={() => setCurrentScreen('landing')} className="flex items-center gap-3 cursor-pointer">
@@ -641,12 +720,22 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
           </div>
 
           <div className="flex items-center gap-2">
+            {/* BOTÃO INSTALAR PWA NO TELEMÓVEL */}
+            <button
+              onClick={handleInstallPWA}
+              className="bg-[#D4AF37] hover:bg-amber-400 text-gray-900 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all animate-pulse"
+              title="Instalar aplicativo na tela inicial do celular"
+            >
+              <Smartphone className="w-4 h-4" />
+              <span className="hidden sm:inline">Instalar App</span>
+            </button>
+
             {currentScreen !== 'landing' && (
               <>
                 {userRole === 'medica' && (
                   <button
                     onClick={() => setCurrentScreen('admin_dashboard')}
-                    className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#D4AF37] text-gray-900"
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 text-white hover:bg-white/20"
                   >
                     Lista de Pacientes
                   </button>
@@ -674,20 +763,27 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
       {/* LANDING PAGE */}
       {currentScreen === 'landing' && (
         <div className="space-y-8 pt-8 px-4 max-w-4xl mx-auto text-center print:hidden">
-          <div className="bg-gradient-to-b from-[#2E482A] to-[#1E311B] text-white p-8 rounded-3xl shadow-xl">
-            <span className="bg-white/10 text-[#E8ECD8] text-[10px] font-bold px-3 py-1 rounded-full uppercase border border-white/20">
-              Acompanhamento Pré-Natal Digital
+          <div className="bg-gradient-to-b from-[#2E482A] to-[#1E311B] text-white p-8 rounded-3xl shadow-xl space-y-4">
+            <span className="bg-white/10 text-[#E8ECD8] text-[10px] font-bold px-3 py-1 rounded-full uppercase border border-white/20 inline-block">
+              Acompanhamento Pré-Natal Digital PWA
             </span>
-            <h2 className="text-2xl md:text-4xl font-serif font-bold text-[#F4F6F0] mt-3 leading-tight">
+            <h2 className="text-2xl md:text-4xl font-serif font-bold text-[#F4F6F0] leading-tight">
               Sua gestação acompanhada com carinho, tecnologia e precisão
             </h2>
+            <p className="text-xs md:text-sm text-[#A3B18A] max-w-xl mx-auto">
+              Carteirinha digital completa, leitura de laudos por Inteligência Artificial e acesso rápido offline direto na tela inicial do seu telemóvel.
+            </p>
 
-            <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-              <button onClick={() => setShowPatientLoginModal(true)} className="px-6 py-3.5 bg-[#8A9A86] hover:bg-[#788874] text-white rounded-2xl font-bold text-xs shadow-md">
+            <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
+              <button onClick={() => setShowPatientLoginModal(true)} className="w-full sm:w-auto px-6 py-3.5 bg-[#8A9A86] hover:bg-[#788874] text-white rounded-2xl font-bold text-xs shadow-md">
                 Área da Paciente
               </button>
-              <button onClick={() => setShowDoctorLoginModal(true)} className="px-6 py-3.5 bg-[#D4AF37] hover:bg-amber-400 text-gray-900 rounded-2xl font-bold text-xs shadow-md">
+              <button onClick={() => setShowDoctorLoginModal(true)} className="w-full sm:w-auto px-6 py-3.5 bg-[#D4AF37] hover:bg-amber-400 text-gray-900 rounded-2xl font-bold text-xs shadow-md">
                 Acesso Dra. Priscila
+              </button>
+              <button onClick={handleInstallPWA} className="w-full sm:w-auto px-6 py-3.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-bold text-xs border border-white/20 flex items-center justify-center gap-2">
+                <Download className="w-4 h-4 text-pink-300" />
+                Instalar no Celular
               </button>
             </div>
           </div>
@@ -1337,6 +1433,50 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
             </div>
           </div>
 
+        </div>
+      )}
+
+      {/* MODAL GUIADO DE INSTALAÇÃO PWA */}
+      {showInstallModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
+          <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-4">
+            <div className="flex justify-between items-center border-b pb-2">
+              <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
+                <Smartphone className="w-5 h-5 text-[#2E482A]" />
+                Instalar no Telemóvel
+              </h3>
+              <button onClick={() => setShowInstallModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {isIOS ? (
+              <div className="space-y-3 text-xs text-gray-700 leading-relaxed">
+                <p>Para instalar no seu iPhone ou iPad:</p>
+                <ol className="list-decimal pl-4 space-y-1.5 font-medium">
+                  <li>Toque no botão de <strong>Compartilhar</strong> <Share className="w-3.5 h-3.5 inline text-blue-600" /> no menu do Safari.</li>
+                  <li>Role a lista para baixo e selecione <strong>Adicionar à Tela Inicial</strong>.</li>
+                  <li>Confirme o nome e toque em <strong>Adicionar</strong>.</li>
+                </ol>
+              </div>
+            ) : (
+              <div className="space-y-3 text-xs text-gray-700 leading-relaxed">
+                <p>Para instalar no seu dispositivo Android ou computador:</p>
+                <ol className="list-decimal pl-4 space-y-1.5 font-medium">
+                  <li>Toque nos <strong>três pontos</strong> do menu do Chrome (canto superior direito).</li>
+                  <li>Selecione <strong>Instalar Aplicativo</strong> ou <strong>Adicionar à Tela Inicial</strong>.</li>
+                  <li>Siga as instruções na tela.</li>
+                </ol>
+              </div>
+            )}
+
+            <button
+              onClick={() => setShowInstallModal(false)}
+              className="w-full py-2.5 bg-[#2E482A] text-white font-bold text-xs rounded-xl"
+            >
+              Entendi
+            </button>
+          </div>
         </div>
       )}
 
