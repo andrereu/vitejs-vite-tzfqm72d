@@ -3,12 +3,37 @@ import {
   Calendar, Activity, Heart, Upload, Sparkles, User, 
   Plus, Clock, Baby, Stethoscope, LogOut, Printer, X, 
   Syringe, Scale, FileCheck, Check, ExternalLink, FileText,
-  TrendingUp, UserPlus
+  TrendingUp, UserPlus, Info
 } from 'lucide-react';
 
 import { db, auth } from './firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
+
+// --- COMPONENTE TOOLTIP (DICA EXPLICATIVA DE SIGLAS) ---
+const Tooltip = ({ title, text }: { title: string; text: string }) => {
+  const [show, setShow] = useState(false);
+  return (
+    <span className="relative inline-block ml-1 align-middle">
+      <button
+        type="button"
+        onMouseEnter={() => setShow(true)}
+        onMouseLeave={() => setShow(false)}
+        onClick={() => setShow(!show)}
+        className="text-gray-400 hover:text-[#2E482A] focus:outline-none transition-colors"
+      >
+        <Info className="w-3.5 h-3.5" />
+      </button>
+      {show && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2.5 bg-gray-900 text-white text-[11px] rounded-xl shadow-xl z-50 pointer-events-none leading-snug">
+          <strong className="block text-[#D4AF37] font-bold mb-0.5">{title}</strong>
+          {text}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+        </div>
+      )}
+    </span>
+  );
+};
 
 const initialPatientsList = [
   {
@@ -412,7 +437,13 @@ export default function App() {
                 <div>
                   <span className="text-[10px] text-gray-400 font-bold uppercase">CPF: {pat.cpf}</span>
                   <h3 className="font-bold text-gray-900 text-base">{pat.nome}</h3>
-                  <p className="text-xs text-gray-600 mt-1">Bebê: <strong>{pat.nomeBebe}</strong> • DPP: {new Date(pat.dpp).toLocaleDateString('pt-BR')}</p>
+                  <p className="text-xs text-gray-600 mt-1">
+                    Bebê: <strong>{pat.nomeBebe}</strong> • 
+                    <span className="inline-flex items-center ml-1">
+                      DPP: {new Date(pat.dpp).toLocaleDateString('pt-BR')}
+                      <Tooltip title="DPP" text="Data Provável do Parto calculada a partir da DUM (40 semanas de gestação)." />
+                    </span>
+                  </p>
                 </div>
                 <button onClick={() => { setSelectedPatientId(pat.id); setCurrentScreen('patient_app'); }} className="px-4 py-2.5 bg-[#2E482A] text-white rounded-xl text-xs font-bold shrink-0">
                   Abrir Cartão
@@ -431,13 +462,23 @@ export default function App() {
               <span className="text-[10px] text-[#A3B18A] uppercase font-bold">Carteirinha Pré-Natal Digital</span>
               <h2 className="text-2xl font-bold text-white mt-0.5">{currentPatient.nome}</h2>
               <p className="text-xs text-gray-200 mt-1">
-                Bebê: <strong>{currentPatient.nomeBebe}</strong> • DPP: <strong>{new Date(currentPatient.dpp).toLocaleDateString('pt-BR')}</strong>
+                Bebê: <strong>{currentPatient.nomeBebe}</strong> • 
+                <span className="inline-flex items-center ml-1">
+                  DPP: <strong>{new Date(currentPatient.dpp).toLocaleDateString('pt-BR')}</strong>
+                  <Tooltip title="DPP" text="Data Provável do Parto calculada pela regra obstétrica (40 semanas)." />
+                </span>
               </p>
             </div>
             <div className="bg-white/10 p-3 rounded-2xl flex items-center gap-3">
               <div className="text-3xl">👶</div>
               <div>
-                <div className="text-xl font-bold">{currentGest.weeks} <span className="text-xs font-normal">Semanas</span></div>
+                <div className="text-xl font-bold">
+                  {currentGest.weeks} 
+                  <span className="text-xs font-normal ml-1">
+                    Semanas
+                    <Tooltip title="IG (Idade Gestacional)" text="Tempo exato da gestação em semanas e dias contados a partir do primeiro dia da última menstruação." />
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -475,15 +516,24 @@ export default function App() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs">
-                  <span className="text-[10px] text-gray-400 font-bold uppercase block">Idade Gestacional</span>
+                  <div className="flex items-center text-[10px] text-gray-400 font-bold uppercase">
+                    Idade Gestacional (IG)
+                    <Tooltip title="IG (Idade Gestacional)" text="Calculada em semanas e dias desde a DUM (Data da Última Menstruação)." />
+                  </div>
                   <div className="text-2xl font-bold text-gray-900 mt-1">{currentGest.weeks} Semanas e {currentGest.days} dias</div>
                 </div>
                 <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs">
-                  <span className="text-[10px] text-gray-400 font-bold uppercase block">Data Provável do Parto (DPP)</span>
+                  <div className="flex items-center text-[10px] text-gray-400 font-bold uppercase">
+                    Data Provável do Parto (DPP)
+                    <Tooltip title="DPP" text="Estimativa de quando a gestação completará 40 semanas." />
+                  </div>
                   <div className="text-2xl font-bold text-gray-900 mt-1">{new Date(currentPatient.dpp).toLocaleDateString('pt-BR')}</div>
                 </div>
                 <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs">
-                  <span className="text-[10px] text-gray-400 font-bold uppercase block">Tipo Sanguíneo</span>
+                  <div className="flex items-center text-[10px] text-gray-400 font-bold uppercase">
+                    Tipo Sanguíneo & Fator Rh
+                    <Tooltip title="Tipo Sanguíneo" text="Importante para verificar a compatibilidade e necessidade de imunoglobulina Rh durante o pré-natal." />
+                  </div>
                   <div className="text-2xl font-bold text-gray-900 mt-1">{currentPatient.tipoSanguineo}</div>
                 </div>
               </div>
@@ -495,7 +545,10 @@ export default function App() {
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4">
               <div className="flex justify-between items-center border-b pb-3">
                 <div>
-                  <h3 className="font-bold text-gray-900 text-base">Curva de Ganho de Peso Materno (Atalah / MS)</h3>
+                  <h3 className="font-bold text-gray-900 text-base flex items-center">
+                    Curva de Ganho de Peso Materno
+                    <Tooltip title="Curva Atalah / MS" text="Gráfico oficial do Ministério da Saúde que avalia o ganho de peso ideal segundo o IMC pré-gestacional." />
+                  </h3>
                   <p className="text-xs text-gray-500">Acompanhamento do peso ideal ao longo das semanas de gestação</p>
                 </div>
                 {userRole === 'medica' && (
@@ -533,7 +586,7 @@ export default function App() {
           {/* TAB 3: DADOS CLÍNICOS DA GESTANTE */}
           {activeTab === 'dados' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4">
-              <h3 className="font-bold text-gray-900 text-base border-b pb-3">Dados Cadastrais e Obstétricos</h3>
+              <h3 className="font-bold text-gray-900 text-base border-b pb-3">Dados Cadastrais e Histórico Obstétrico</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                 <div className="p-4 bg-gray-50 rounded-2xl space-y-1">
                   <span className="text-gray-400 uppercase font-bold block">Nome da Paciente</span>
@@ -548,8 +601,13 @@ export default function App() {
                   <strong className="text-sm text-gray-900">{currentPatient.idade} anos • {currentPatient.cpf}</strong>
                 </div>
                 <div className="p-4 bg-gray-50 rounded-2xl space-y-1">
-                  <span className="text-gray-400 uppercase font-bold block">Histórico Obstétrico (G / P / C / A)</span>
-                  <strong className="text-sm text-gray-900">G{currentPatient.g} P{currentPatient.p} C{currentPatient.c} A{currentPatient.a}</strong>
+                  <span className="text-gray-400 uppercase font-bold flex items-center">
+                    Histórico Obstétrico (G / P / C / A)
+                    <Tooltip title="Histórico GPCA" text="G: Número de Gestações | P: Partos Normais | C: Partos Cesáreas | A: Abortos prévios." />
+                  </span>
+                  <strong className="text-sm text-gray-900">
+                    G{currentPatient.g} • P{currentPatient.p} • C{currentPatient.c} • A{currentPatient.a}
+                  </strong>
                 </div>
                 <div className="p-4 bg-gray-50 rounded-2xl space-y-1 col-span-1 md:col-span-2">
                   <span className="text-gray-400 uppercase font-bold block">Doenças Prévias / Alergias</span>
@@ -565,10 +623,10 @@ export default function App() {
               <h3 className="font-bold text-gray-900 text-base border-b pb-3">Carteira de Vacinação Gestacional</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
-                  { key: 'influenza', label: 'Influenza (Gripe)', obs: 'Dose única na gestação' },
-                  { key: 'vsr', label: 'VSR (Vírus Sincicial Respiratório)', obs: 'Proteção para bronquiolite' },
-                  { key: 'dtpa', label: 'dTPa (Tétano, Difteria e Coqueluche)', obs: 'A partir da 20ª semana' },
-                  { key: 'covid19', label: 'Covid-19', obs: 'Dose de reforço' }
+                  { key: 'influenza', label: 'Influenza (Gripe)', obs: 'Dose única recomendada em qualquer trimestre' },
+                  { key: 'vsr', label: 'VSR (Vírus Sincicial Respiratório)', obs: 'Previne bronquiolite no recém-nascido' },
+                  { key: 'dtpa', label: 'dTPa (Tétano, Difteria e Coqueluche)', obs: 'Recomendada a partir da 20ª semana' },
+                  { key: 'covid19', label: 'Covid-19', obs: 'Dose de reforço atualizada' }
                 ].map(vac => {
                   const info = (currentPatient.vacinas as any)?.[vac.key];
                   return (
@@ -590,7 +648,7 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 5: CONSULTAS E EVOLUÇÃO */}
+          {/* TAB 5: CONSULTAS E EVOLUÇÃO (COM TOOLTIPS NAS COLUNAS) */}
           {activeTab === 'consultas' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4">
               <div className="flex justify-between items-center border-b pb-3">
@@ -604,11 +662,23 @@ export default function App() {
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       <th className="p-3 font-bold text-gray-600">Data</th>
-                      <th className="p-3 font-bold text-gray-600">IG</th>
+                      <th className="p-3 font-bold text-gray-600">
+                        IG
+                        <Tooltip title="IG" text="Idade Gestacional na data da consulta." />
+                      </th>
                       <th className="p-3 font-bold text-gray-600">Peso</th>
-                      <th className="p-3 font-bold text-gray-600">P.A.</th>
-                      <th className="p-3 font-bold text-gray-600">A.U.</th>
-                      <th className="p-3 font-bold text-gray-600">BCF / MF</th>
+                      <th className="p-3 font-bold text-gray-600">
+                        P.A.
+                        <Tooltip title="P.A. (Pressão Arterial)" text="Pressão arterial medida em mmHg. Importante para rastreio de pré-eclâmpsia." />
+                      </th>
+                      <th className="p-3 font-bold text-gray-600">
+                        A.U.
+                        <Tooltip title="A.U. (Altura Uterina)" text="Medida da sínfise púbica ao fundo do útero em cm para avaliar o crescimento do bebê." />
+                      </th>
+                      <th className="p-3 font-bold text-gray-600">
+                        BCF / MF
+                        <Tooltip title="BCF / MF" text="BCF: Batimentos Cardíacos Fetais (normal: 120-160 bpm) | MF: Movimentos Fetais sentidos." />
+                      </th>
                       <th className="p-3 font-bold text-gray-600">Conduta</th>
                     </tr>
                   </thead>
