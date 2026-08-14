@@ -14,7 +14,15 @@ export const sendPrenatalChatMessage = async (
   chatHistory: ChatMessage[]
 ): Promise<string> => {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+  // Log para conferir se a chave está carregando (visível no F12 -> Console)
+  if (!apiKey) {
+    console.error("ERRO: Variável VITE_GEMINI_API_KEY está vazia ou indefinida!");
+  } else {
+    console.log("API Key carregada com sucesso (início):", apiKey.substring(0, 6) + "...");
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
   const systemInstruction = `Você é a "Assistente Virtual Pré-Natal" integrada à carteirinha digital da gestante acompanhada pela Dra. Priscila Gapski (CRM 24734).
 Informações da paciente:
@@ -59,9 +67,12 @@ Diretrizes obrigatórias de resposta:
     if (response.ok) {
       const data = await response.json();
       return data.candidates?.[0]?.content?.parts?.[0]?.text || "Desculpe, mamãe, não consegui processar a resposta agora. Pode repetir?";
+    } else {
+      const errBody = await response.text();
+      console.error(`Erro da API Gemini (Status ${response.status}):`, errBody);
     }
   } catch (error) {
-    console.error("Erro no chat IA:", error);
+    console.error("Erro de requisição fetch no chat IA:", error);
   }
 
   return "🌸 Desculpe, mamãe! Tive uma oscilação temporária de conexão. Qualquer dúvida urgente sobre sua gestação, fale com a Dra. Priscila!";
