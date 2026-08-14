@@ -1340,11 +1340,13 @@ export default function App() {
                   {/* Printable Carteirinha Segura */}
       <div className="hidden print:block">
         {currentPatient ? (
-                      <PrintableCarteirinha 
+                            <PrintableCarteirinha 
         patient={currentPatient} 
         weeks={gestationalWeeks} 
       />
-  ):
+    </div>
+  );
 }
 
 export default App;
+
