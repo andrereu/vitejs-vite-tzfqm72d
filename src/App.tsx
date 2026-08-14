@@ -1342,8 +1342,7 @@ export default function App() {
           patient={currentPatient} 
           weeks={gestationalWeeks} 
         />
-      )}
-
+      )
     </div>
   );
 }
