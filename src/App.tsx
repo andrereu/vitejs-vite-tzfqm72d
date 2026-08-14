@@ -20,7 +20,6 @@ import {
 } from './utils/whatsapp';
 import { processExamWithGeminiIA } from './services/geminiService';
 import { Tooltip } from './components/Tooltip';
-import { PrintCardA4 } from './components/PrintCardA4';
 import { AppModals } from './components/AppModals';
 import { PrenatalChatTab } from './components/PrenatalChatTab';
 import { PrintableCarteirinha } from './components/PrintableCarteirinha';
