@@ -19,37 +19,30 @@ export const sendPrenatalChatMessage = async (
     return "❌ Erro: VITE_GEMINI_API_KEY não foi configurada na Vercel.";
   }
 
-  const systemInstruction = `Você é a Assistente Virtual Pré-Natal da Dra. Priscila Gapski (CRM 24734).
-Informações da gestante:
-- Nome: ${patient.nome}
-- Idade Gestacional: ${weeks} semanas
-- Nome do Bebê: ${patient.nomeBebe || 'Bebê'}
+  const promptText = `Você é a Assistente Virtual Pré-Natal da Dra. Priscila Gapski (CRM 24734).
+Gestante: ${patient.nome}, 30 semanas de gestação do bebê ${patient.nomeBebe || 'Bebê'}.
 
-Diretrizes de atendimento:
-- Responda em português com muito carinho, empatia e acolhimento usando emojis delicados (🌸, 👶, ✨).
-- Explique de forma simples e didática o que é esperado e dicas seguras para ${weeks} semanas.
-- NUNCA prescreva medicamentos. Em caso de sangramentos, perda de líquido, dor intensa ou ausência de movimentos fetais, oriente atendimento de urgência com firmeza e calma.`;
+Dúvida da gestante: "${userMessage}"
 
-  // Endpoint oficial Interactions API
+Diretrizes:
+- Responda em português com muito carinho, acolhimento e emojis delicados (🌸, 👶, ✨).
+- Dê orientações práticas e seguras para a gestação.
+- NUNCA prescreva remédios nem altere condutas médicas.
+- Em caso de sangramentos, perda de líquido, dores fortes ou ausência de movimentos fetais, oriente atendimento médico de urgência com calma e firmeza.`;
+
+  // Endpoint oficial da nova Interactions API
   const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`;
 
   const payload = {
     model: "gemini-2.5-flash",
-    input: [
-      {
-        role: "user",
-        content: userMessage
-      }
-    ],
-    system_instruction: systemInstruction
+    input: promptText
   };
 
   try {
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey
+        "Content-Type": "application/json"
       },
       body: JSON.stringify(payload)
     });
@@ -57,20 +50,21 @@ Diretrizes de atendimento:
     const data = await response.json();
 
     if (response.ok) {
-      // Extrai o texto da resposta da Interactions API
-      const textOutput =
-        data.output?.map?.((o: any) => o.content || o.text).join('\n') ||
-        data.output?.[0]?.content ||
+      // Extrai a resposta gerada da Interactions API
+      const reply =
         data.output?.text ||
+        data.output ||
+        (Array.isArray(data.outputs) ? data.outputs.map((o: any) => o.text || o.content).join("\n") : null) ||
         data.text ||
         data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-      if (textOutput) return textOutput;
-      return typeof data === 'string' ? data : JSON.stringify(data);
+      if (reply && typeof reply === 'string') return reply;
+      if (typeof reply === 'object') return JSON.stringify(reply);
+      return JSON.stringify(data);
     } else {
       return `❌ Erro da API (${response.status}): ${data?.error?.message || JSON.stringify(data)}`;
     }
   } catch (error: any) {
-    return `❌ Erro de conexão: ${error?.message || error}`;
+    return `❌ Erro de requisição: ${error?.message || error}`;
   }
 };
