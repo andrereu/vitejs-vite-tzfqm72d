@@ -23,6 +23,8 @@ import { Tooltip } from './components/Tooltip';
 import { PrintCardA4 } from './components/PrintCardA4';
 import { AppModals } from './components/AppModals';
 import { PrenatalChatTab } from './components/PrenatalChatTab';
+import { PrintableCarteirinha } from './components/PrintableCarteirinha';
+
 
 const LISTA_EXAMES_OFICIAIS = [
   { id: 'hbVg', label: 'HB / VG', placeholder: 'Ex: 12.5 g/dL / 38%' },
@@ -1319,6 +1321,34 @@ export default function App() {
         handleDoctorLogin={handleDoctorLogin}
         loginError={loginError}
       />
+  return (
+    <div className="min-h-screen bg-[#F4F6F0] ...">
+      {/* Header, botões, abas normais do app... */}
+      
+      {/* Botão de Imprimir (certifique-se de que ele chama window.print()) */}
+      <button 
+        onClick={() => window.print()} 
+        className="flex items-center gap-2 bg-[#E8ECD8] text-[#2E482A] px-4 py-2 rounded-xl text-xs font-bold hover:bg-[#d5dcc0] transition-colors"
+      >
+        Imprimir A4
+      </button>
+
+      {/* Conteúdo das abas (Consultas, IA, Calculadora, etc.) */}
+      {/* ... */}
+
+      {/* 👇 ADICIONE AQUI NO FINAL (invisível na tela, só surge na impressão) */}
+      {currentPatient && (
+        <PrintableCarteirinha 
+          patient={currentPatient} 
+          weeks={gestationalWeeks} 
+        />
+      )}
+
+    </div> // 👈 Última tag de fechamento do App.tsx
+  );
+}
+
+export default App;
 
     </div>
   );
