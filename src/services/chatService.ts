@@ -16,32 +16,31 @@ export const sendPrenatalChatMessage = async (
   const apiKey = (import.meta.env.VITE_GEMINI_API_KEY || "").trim();
 
   if (!apiKey) {
-    return "❌ Erro: VITE_GEMINI_API_KEY não encontrada na Vercel.";
+    return "🌸 Mamãe, o serviço de IA está sendo inicializado. Qualquer dúvida urgente, fale com a Dra. Priscila!";
   }
 
-  const promptText = `Você é a Assistente Virtual Pré-Natal da Dra. Priscila Gapski (CRM 24734).
+  const promptText = `Você é a Assistente Virtual Pré-Natal integrada à carteirinha digital da Dra. Priscila Gapski (CRM 24734).
 Informações da gestante:
 - Nome: ${patient.nome}
-- Gestação: ${weeks} semanas
+- Idade Gestacional: ${weeks} semanas
 - Nome do Bebê: ${patient.nomeBebe || 'Bebê'}
 
 Dúvida da gestante: "${userMessage}"
 
-Diretrizes:
+Diretrizes obrigatórias:
 - Responda em português com muito carinho, acolhimento e emojis delicados (🌸, 👶, ✨).
 - Dê orientações práticas e seguras para a gestação na ${weeks}ª semana.
-- NUNCA prescreva medicamentos. Em caso de sangramento, dor intensa ou perda de líquido, oriente atendimento médico de urgência com calma e firmeza.`;
+- NUNCA prescreva remédios nem altere condutas médicas.
+- Em caso de sangramentos, perda de líquido, dor intensa ou ausência de movimentos fetais, oriente atendimento médico de urgência com calma e firmeza.`;
 
   const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`;
 
-  // Modelos suportados na Interactions API em ordem de preferência
+  // Modelos suportados pela Interactions API
   const candidateModels = [
-    "gemini-2.0-flash",
-    "gemini-1.5-pro",
-    "gemini-1.5-flash-8b"
+    "gemini-3.5-flash",
+    "gemini-3-flash",
+    "gemini-2.5-flash"
   ];
-
-  let lastErrorDetail = "";
 
   for (const modelName of candidateModels) {
     try {
@@ -57,9 +56,8 @@ Diretrizes:
         })
       });
 
-      const data = await response.json();
-
       if (response.ok) {
+        const data = await response.json();
         const reply =
           data.output?.text ||
           data.output ||
@@ -69,14 +67,11 @@ Diretrizes:
 
         if (reply && typeof reply === "string") return reply;
         if (typeof reply === "object") return JSON.stringify(reply);
-        return JSON.stringify(data);
-      } else {
-        lastErrorDetail = `[${modelName} - ${response.status}]: ${data?.error?.message || JSON.stringify(data)}`;
       }
-    } catch (err: any) {
-      lastErrorDetail = `[Fetch Error]: ${err?.message || err}`;
+    } catch (err) {
+      console.warn(`Tentativa com ${modelName} falhou:`, err);
     }
   }
 
-  return `❌ Erro da API (${lastErrorDetail})`;
+  return "🌸 Desculpe, mamãe! Tive uma oscilação temporária de conexão. Qualquer dúvida urgente sobre sua gestação, fale com a Dra. Priscila!";
 };
