@@ -23,6 +23,8 @@ import { Tooltip } from './components/Tooltip';
 import { AppModals } from './components/AppModals';
 import { PrenatalChatTab } from './components/PrenatalChatTab';
 import { PrintableCarteirinha } from './components/PrintableCarteirinha';
+import { db, auth, googleProvider, signInWithPopup } from './firebase';
+
 
 
 const LISTA_EXAMES_OFICIAIS = [
@@ -88,6 +90,43 @@ export default function App() {
   const [examName, setExamName] = useState("");
   const [examCategory, setExamCategory] = useState("Ecografia");
   const [isUploading, setIsUploading] = useState(false);
+
+  // Google
+    const handleGooglePatientLogin = async () => {
+    setLoginError("");
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      const userEmail = user.email?.toLowerCase().trim();
+
+      if (!userEmail) {
+        setLoginError("Não foi possível obter o e-mail da sua conta Google.");
+        return;
+      }
+
+      // Procura a gestante pelo e-mail cadastrado
+      const matched = patients.find(
+        (p) => p.email && p.email.toLowerCase().trim() === userEmail
+      );
+
+      if (matched) {
+        setSelectedPatientId(matched.id);
+        setUserRole('paciente');
+        setCurrentScreen('patient_app');
+        setShowPatientLoginModal(false);
+      } else {
+        setLoginError(
+          `O e-mail ${userEmail} ainda não está vinculado a nenhum pré-natal cadastrado. Peça à sua médica para incluir seu e-mail no cadastro.`
+        );
+      }
+    } catch (err: any) {
+      console.error("Erro no login Google:", err);
+      if (err.code !== 'auth/popup-closed-by-user') {
+        setLoginError("Erro ao autenticar com o Google. Tente novamente.");
+      }
+    }
+  };
+
 
   // Forms
   const [editExamesData, setEditExamesData] = useState<any>({});
