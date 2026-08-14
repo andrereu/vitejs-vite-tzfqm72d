@@ -9,7 +9,7 @@ interface AppModalsProps {
   showInstallModal: boolean;
   setShowInstallModal: (v: boolean) => void;
   isIOS: boolean;
-  handleGooglePatientLogin: () => void;
+  
   // Profile Modal
   showEditProfileModal: boolean;
   setShowEditProfileModal: (v: boolean) => void;
@@ -83,33 +83,6 @@ interface AppModalsProps {
 }
 
 export const AppModals: React.FC<AppModalsProps> = (props) => {
-
-  const handleGoogleLogin = async () => {
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      const userEmail = user.email?.toLowerCase().trim();
-
-      if (!userEmail) {
-        alert("Não foi possível obter o e-mail da sua conta Google.");
-        return;
-      }
-
-      // Procura a gestante na lista de pacientes pelo e-mail
-      // (Se você tiver a lista de pacientes passada por props ou buscar direto)
-      props.setShowPatientLoginModal(false);
-      
-    } catch (err: any) {
-      console.error("Erro no login Google:", err);
-      if (err.code !== 'auth/popup-closed-by-user') {
-        alert("Erro ao autenticar com o Google. Tente novamente.");
-      }
-    }
-  };
-
-  return (
-    <>
-
   return (
     <>
       {/* MODAL GUIADO DE INSTALAÇÃO PWA */}
@@ -769,20 +742,20 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
         </div>
       )}
 
-       {/* MODAL LOGIN DA PACIENTE COM GOOGLE */}
+      {/* MODAL LOGIN DA PACIENTE (GOOGLE + CPF) */}
       {props.showPatientLoginModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4 border border-gray-100 animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
+          <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-4 shadow-2xl border border-gray-100 animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center border-b pb-2">
               <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
                 👶 Área da Gestante
               </h3>
-              <button
+              <button 
                 type="button"
-                onClick={() => props.setShowPatientLoginModal(false)}
-                className="text-gray-400 hover:text-gray-600 cursor-pointer font-bold text-lg"
+                onClick={() => props.setShowPatientLoginModal(false)} 
+                className="text-gray-400 hover:text-gray-600 cursor-pointer"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -792,25 +765,11 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
               </div>
             )}
 
-            {/* BOTÃO PRINCIPAL: LOGIN COM GOOGLE */}
+            {/* BOTÃO PRINCIPAL: LOGIN COM CONTA GOOGLE */}
             <button
+              onClick={props.handleGooglePatientLogin}
               type="button"
-              onClick={async () => {
-                try {
-                  const result = await signInWithPopup(auth, googleProvider);
-                  const userEmail = result.user.email;
-                  if (userEmail) {
-                    alert(`Login realizado com sucesso: ${userEmail}`);
-                    props.setShowPatientLoginModal(false);
-                  }
-                } catch (err: any) {
-                  console.error(err);
-                  if (err.code !== 'auth/popup-closed-by-user') {
-                    alert("Erro ao autenticar com Google.");
-                  }
-                }
-              }}
-              className="w-full py-3 px-4 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-2xl font-bold text-xs flex items-center justify-center gap-3 shadow-xs transition-all cursor-pointer"
+              className="w-full py-3 px-4 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400 text-gray-700 rounded-2xl font-bold text-xs flex items-center justify-center gap-3 shadow-xs transition-all cursor-pointer active:scale-98"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -823,11 +782,11 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
 
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-gray-200" />
-              <span className="text-[10px] text-gray-400 font-bold uppercase">ou com CPF</span>
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">ou com CPF</span>
               <div className="flex-1 h-px bg-gray-200" />
             </div>
 
-            {/* FORMULÁRIO DE CPF */}
+            {/* ENTRADA POR CPF */}
             <form onSubmit={props.handlePatientLogin} className="space-y-3">
               <div>
                 <label className="text-[10px] font-bold text-gray-600 block mb-1 uppercase">Seu CPF</label>
@@ -843,7 +802,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
 
               <button
                 type="submit"
-                className="w-full py-2.5 bg-[#2E482A] hover:bg-[#233820] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+                className="w-full py-2.5 bg-[#2E482A] hover:bg-[#233820] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-98"
               >
                 Entrar com CPF
               </button>
@@ -852,20 +811,37 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
         </div>
       )}
 
-
-
-      {/* LOGIN MÉDICA */}
+      {/* MODAL LOGIN MÉDICA */}
       {props.showDoctorLoginModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 print:hidden">
           <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-3">
             <h3 className="font-bold text-gray-900">Acesso Médico Seguro</h3>
             {props.loginError && <p className="text-red-500 text-xs font-semibold">{props.loginError}</p>}
-            <input type="email" placeholder="E-mail" value={props.doctorEmail} onChange={(e) => props.setDoctorEmail(e.target.value)} className="w-full text-xs p-3 border rounded-xl" />
-            <input type="password" placeholder="Senha" value={props.doctorPassword} onChange={(e) => props.setDoctorPassword(e.target.value)} className="w-full text-xs p-3 border rounded-xl" />
-            <button onClick={props.handleDoctorLogin} className="w-full py-2.5 bg-[#D4AF37] text-gray-900 rounded-xl text-xs font-bold shadow-md">
+            <input 
+              type="email" 
+              placeholder="E-mail" 
+              value={props.doctorEmail} 
+              onChange={(e) => props.setDoctorEmail(e.target.value)} 
+              className="w-full text-xs p-3 border rounded-xl" 
+            />
+            <input 
+              type="password" 
+              placeholder="Senha" 
+              value={props.doctorPassword} 
+              onChange={(e) => props.setDoctorPassword(e.target.value)} 
+              className="w-full text-xs p-3 border rounded-xl" 
+            />
+            <button 
+              onClick={props.handleDoctorLogin} 
+              className="w-full py-2.5 bg-[#D4AF37] text-gray-900 rounded-xl text-xs font-bold shadow-md cursor-pointer"
+            >
               Entrar no Painel
             </button>
-            <button onClick={() => setShowDoctorLoginModal(false)} className="w-full text-xs text-gray-500 pt-1">
+            <button 
+              type="button"
+              onClick={() => props.setShowDoctorLoginModal(false)} 
+              className="w-full text-xs text-gray-500 pt-1 cursor-pointer"
+            >
               Cancelar
             </button>
           </div>
