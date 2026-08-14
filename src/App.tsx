@@ -47,7 +47,7 @@ const initialPatientsList = [
     dum: "2026-01-15",
     dpp: "2026-10-22",
     g: "1", p: "0", c: "0", a: "0",
-    pesoInicial: "62.5",
+    pesoInicial: "71.0",
     altura: "1.65",
     tipoSanguineo: "A+",
     doencasPrevias: "Nenhuma (Alergia leve a Dipirona)",
@@ -60,8 +60,9 @@ const initialPatientsList = [
     examesLab: [],
     ultrassons: [],
     consultasEvolucao: [
-      { id: "c-1", data: "2026-02-20", igSem: 6, peso: 62.5, pa: "110/70", au: "NP", bcfMf: "Visível USG", edema: "Ausente", conduta: "Início do Ácido Fólico." },
-      { id: "c-2", data: "2026-04-15", igSem: 13, peso: 64.0, pa: "115/75", au: "12 cm", bcfMf: "152 bpm / MF-", edema: "Ausente", conduta: "Ecografia Morfológica solicitada." }
+      { id: "c-1", data: "2026-02-20", igSem: 6, peso: 71.0, pa: "110/70", au: "NP", bcfMf: "Visível USG", edema: "Ausente", conduta: "Início do Ácido Fólico." },
+      { id: "c-2", data: "2026-04-15", igSem: 13, peso: 72.2, pa: "115/75", au: "12 cm", bcfMf: "152 bpm / MF-", edema: "Ausente", conduta: "Ecografia Morfológica solicitada." },
+      { id: "c-3", data: "2026-06-10", igSem: 21, peso: 74.8, pa: "120/80", au: "20 cm", bcfMf: "144 bpm / MF+", edema: "Ausente", conduta: "Curva Glicêmica ok." }
     ],
     agendaConsultas: [],
     examesEnviados: []
@@ -83,19 +84,19 @@ export default function App() {
   const [showUploadExamModal, setShowUploadExamModal] = useState(false);
   const [showNewPatientModal, setShowNewPatientModal] = useState(false);
 
-  // ESTADOS DA CALCULADORA GESTACIONAL (USG)
+  // CALCULADORA GESTACIONAL (USG)
   const [calcUsgData, setCalcUsgData] = useState(new Date().toISOString().split('T')[0]);
   const [calcUsgSemanas, setCalcUsgSemanas] = useState("8");
   const [calcUsgDias, setCalcUsgDias] = useState("0");
   const [calcResultado, setCalcResultado] = useState<any>(null);
 
-  // CAMPOS DE LOGIN
+  // LOGIN
   const [doctorEmail, setDoctorEmail] = useState("");
   const [doctorPassword, setDoctorPassword] = useState("");
   const [loginCpf, setLoginCpf] = useState("");
   const [loginError, setLoginError] = useState("");
 
-  // ESTADO DE UPLOAD BASE64
+  // UPLOAD EXAMES
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [examName, setExamName] = useState("");
   const [examCategory, setExamCategory] = useState("Ecografia");
@@ -163,23 +164,61 @@ export default function App() {
 
   const currentGest = calculateWeeksAndDays(currentPatient.dum);
 
-  // 🧮 CÁLCULO GESTACIONAL POR ECOGRAFIA (USG)
+  // 📊 CÁLCULO DE IMC E CLASSIFICAÇÃO ATALAH / MS
+  const bmiInfo = useMemo(() => {
+    const p0 = parseFloat(currentPatient.pesoInicial) || 60;
+    const h = parseFloat(currentPatient.altura) || 1.65;
+    const bmi = p0 / (h * h);
+
+    if (bmi < 18.5) {
+      return {
+        cat: 'Baixo peso (IMC < 18,5 kg/m²)',
+        recom: 'Ganho Recomendado de Peso: 12,5 a 18,0 kg',
+        color: '#3B82F6',
+        bg: 'bg-blue-600',
+        minTotal: 12.5,
+        maxTotal: 18.0
+      };
+    } else if (bmi < 25.0) {
+      return {
+        cat: 'Adequado / Normal (IMC 18,5 a 24,9 kg/m²)',
+        recom: 'Ganho Recomendado de Peso: 11,5 a 16,0 kg',
+        color: '#10B981',
+        bg: 'bg-emerald-600',
+        minTotal: 11.5,
+        maxTotal: 16.0
+      };
+    } else if (bmi < 30.0) {
+      return {
+        cat: 'Sobrepeso (IMC 25,0 a 29,9 kg/m²)',
+        recom: 'Ganho Recomendado de Peso até 40 Semanas: 7 a 9 kg',
+        color: '#E11D48',
+        bg: 'bg-rose-600',
+        minTotal: 7.0,
+        maxTotal: 9.0
+      };
+    } else {
+      return {
+        cat: 'Obesidade (IMC ≥ 30,0 kg/m²)',
+        recom: 'Ganho Recomendado de Peso: 5,0 a 9,0 kg',
+        color: '#9333EA',
+        bg: 'bg-purple-600',
+        minTotal: 5.0,
+        maxTotal: 9.0
+      };
+    }
+  }, [currentPatient.pesoInicial, currentPatient.altura]);
+
   const handleCalculateUsg = (e: React.FormEvent) => {
     e.preventDefault();
     const dataUsg = new Date(calcUsgData);
     const sem = parseInt(calcUsgSemanas) || 0;
     const dias = parseInt(calcUsgDias) || 0;
 
-    // Total de dias da gestação na data do exame
     const totalDiasNaUsg = sem * 7 + dias;
-    
-    // Concepção teórica (DUM corrigida pelo USG)
     const dumCorrigida = new Date(dataUsg.getTime() - totalDiasNaUsg * 24 * 60 * 60 * 1000);
-    
-    // DPP = DUM Corrigida + 280 dias
     const dppCalculada = new Date(dumCorrigida.getTime() + 280 * 24 * 60 * 60 * 1000);
 
-    // IG Hoje
     const hoje = new Date();
     const diffDiasHoje = Math.floor(Math.max(0, hoje.getTime() - dumCorrigida.getTime()) / (1000 * 60 * 60 * 24));
     const semHoje = Math.floor(diffDiasHoje / 7);
@@ -192,7 +231,6 @@ export default function App() {
     });
   };
 
-  // 🔔 ALERTAS AUTOMÁTICOS DE EXAMES POR TRIMESTRE
   const examAlerts = useMemo(() => {
     const sem = currentGest.weeks;
     const list = [];
@@ -271,7 +309,7 @@ export default function App() {
       };
     } else {
       return {
-        resumoIA: `🌸 **Acompanhamento para a Mamãe (IA)**:\nDocumento anexado e organized com segurança em seu prontuário digital.`,
+        resumoIA: `🌸 **Acompanhamento para a Mamãe (IA)**:\nDocumento anexado e organizado com segurança em seu prontuário digital.`,
         notaDra: `🩺 **Anotações Clínicas (Dra. Priscila)**:\n- Documento conferido e arquivado no prontuário da gestante.`
       };
     }
@@ -546,8 +584,8 @@ export default function App() {
           <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-gray-200 flex overflow-x-auto gap-1">
             {[
               { id: 'resumo', label: 'Resumo' },
+              { id: 'graficos', label: 'Gráfico GPG (MS)' },
               { id: 'calculadora', label: 'Calculadora Gestacional' },
-              { id: 'graficos', label: 'Gráficos' },
               { id: 'dados', label: 'Dados Clínicos' },
               { id: 'vacinas', label: 'Vacinas' },
               { id: 'consultas', label: 'Consultas' },
@@ -619,7 +657,148 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 2: CALCULADORA GESTACIONAL INTEGRADA */}
+          {/* TAB 2: GRÁFICO OFICIAL DE ACOMPANHAMENTO DO GANHO DE PESO (MINISTÉRIO DA SAÚDE) */}
+          {activeTab === 'graficos' && (
+            <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 gap-3">
+                <div>
+                  <h3 className="font-serif text-lg font-bold text-[#2E482A] uppercase tracking-wide">
+                    Gráfico de Acompanhamento do Ganho de Peso
+                  </h3>
+                  <p className="text-xs text-gray-500">Padrão da Caderneta de Saúde da Gestante (Ministério da Saúde / Atalah)</p>
+                </div>
+                {userRole === 'medica' && (
+                  <button onClick={() => setShowAddConsultaModal(true)} className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs">
+                    + Registrar Peso na Consulta
+                  </button>
+                )}
+              </div>
+
+              {/* BADGE DE CLASSIFICAÇÃO NUTRICIONAL OFICIAL DO GRÁFICO */}
+              <div className="flex flex-col items-center justify-center space-y-1 py-2">
+                <div className={`px-6 py-2 text-white font-bold text-sm rounded-full shadow-sm text-center ${bmiInfo.bg}`}>
+                  {bmiInfo.cat}
+                </div>
+                <span className="text-xs font-bold text-slate-700 tracking-wide uppercase">
+                  {bmiInfo.recom}
+                </span>
+              </div>
+
+              {/* RENDERIZAÇÃO DO GRÁFICO OFICIAL SVG */}
+              <div className="bg-white p-3 rounded-2xl border border-slate-200 overflow-x-auto">
+                <svg viewBox="0 0 720 400" className="w-full min-w-[650px] font-sans">
+                  {/* Fundo de Grade */}
+                  <rect x="50" y="40" width="620" height="300" fill="#FAFAFA" stroke="#CBD5E1" strokeWidth="1.5" />
+
+                  {/* Linhas Horizontais de Peso (de -4kg a 25kg) */}
+                  {Array.from({ length: 30 }, (_, i) => i - 4).map((kg) => {
+                    if (kg % 2 !== 0 && kg !== 25) return null; // Linhas principais a cada 2kg
+                    const y = 340 - ((kg + 4) / 29) * 300;
+                    return (
+                      <g key={kg}>
+                        <line x1="50" y1={y} x2="670" y2={y} stroke={kg === 0 ? "#64748B" : "#E2E8F0"} strokeWidth={kg === 0 ? "1.5" : "1"} />
+                        <text x="42" y={y + 3} fontSize="9" fontWeight="bold" fill="#475569" textAnchor="end">{kg}</text>
+                        <text x="678" y={y + 3} fontSize="9" fontWeight="bold" fill="#475569" textAnchor="start">{kg}</text>
+                      </g>
+                    );
+                  })}
+
+                  {/* Linhas Verticais de Semanas (10 a 40) */}
+                  {Array.from({ length: 31 }, (_, i) => i + 10).map((sem) => {
+                    const x = 50 + ((sem - 10) / 30) * 620;
+                    const isDivisoria = sem === 13 || sem === 27;
+                    return (
+                      <g key={sem}>
+                        <line x1={x} y1="40" x2={x} y2="340" stroke={isDivisoria ? "#E11D48" : "#F1F5F9"} strokeWidth={isDivisoria ? "2" : "1"} />
+                        <text x={x} y="34" fontSize="9" fontWeight={isDivisoria ? "bold" : "medium"} fill={isDivisoria ? "#E11D48" : "#64748B"} textAnchor="middle">{sem}</text>
+                        <text x={x} y="352" fontSize="9" fontWeight={isDivisoria ? "bold" : "medium"} fill={isDivisoria ? "#E11D48" : "#64748B"} textAnchor="middle">{sem}</text>
+                      </g>
+                    );
+                  })}
+
+                  {/* FAIXA SHADED DO GANHO RECOMENDADO (LIMITES MIN E MAX) */}
+                  {(() => {
+                    // Mapeia curvas de ganho acumulado por semana conforme IMC pré-gestacional
+                    const minT = bmiInfo.minTotal;
+                    const maxT = bmiInfo.maxTotal;
+
+                    // Curva Mínima e Máxima de Ganho de Peso por Semana
+                    const pointsMin = Array.from({ length: 31 }, (_, i) => {
+                      const sem = i + 10;
+                      const g = sem <= 13 ? 0.5 : 0.5 + ((sem - 13) / 27) * (minT - 0.5);
+                      return { x: 50 + (i / 30) * 620, y: 340 - ((g + 4) / 29) * 300 };
+                    });
+
+                    const pointsMax = Array.from({ length: 31 }, (_, i) => {
+                      const sem = i + 10;
+                      const g = sem <= 13 ? 2.0 : 2.0 + ((sem - 13) / 27) * (maxT - 2.0);
+                      return { x: 50 + (i / 30) * 620, y: 340 - ((g + 4) / 29) * 300 };
+                    });
+
+                    const pathArea = [
+                      ...pointsMin.map(p => `${p.x},${p.y}`),
+                      ...pointsMax.slice().reverse().map(p => `${p.x},${p.y}`)
+                    ].join(" ");
+
+                    return (
+                      <g>
+                        <polygon points={pathArea} fill="#FB7185" fillOpacity="0.25" />
+                        <polyline fill="none" stroke="#E11D48" strokeWidth="1.5" strokeDasharray="4 4" points={pointsMin.map(p => `${p.x},${p.y}`).join(" ")} />
+                        <polyline fill="none" stroke="#E11D48" strokeWidth="1.5" strokeDasharray="4 4" points={pointsMax.map(p => `${p.x},${p.y}`).join(" ")} />
+                      </g>
+                    );
+                  })()}
+
+                  {/* PONTOS REAIS REGISTRADOS DA GESTANTE */}
+                  {(() => {
+                    const pesoInicial = parseFloat(currentPatient.pesoInicial) || 60;
+                    const realPoints = currentPatient.consultasEvolucao
+                      .filter(c => c.igSem >= 10 && c.igSem <= 40)
+                      .map(c => {
+                        const ganhoAcumulado = c.peso - pesoInicial;
+                        return {
+                          x: 50 + ((c.igSem - 10) / 30) * 620,
+                          y: 340 - ((ganhoAcumulado + 4) / 29) * 300,
+                          ganho: ganhoAcumulado.toFixed(1),
+                          ...c
+                        };
+                      });
+
+                    return (
+                      <g>
+                        {realPoints.length > 1 && (
+                          <polyline fill="none" stroke="#2E482A" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" points={realPoints.map(p => `${p.x},${p.y}`).join(" ")} />
+                        )}
+                        {realPoints.map(p => (
+                          <g key={p.id}>
+                            <circle cx={p.x} cy={p.y} r="6" fill="#D4AF37" stroke="#2E482A" strokeWidth="2.5" />
+                            <rect x={p.x - 18} y={p.y - 20} width="36" height="13" rx="4" fill="#2E482A" />
+                            <text x={p.x} y={p.y - 10} fontSize="8" fontWeight="bold" fill="#FFFFFF" textAnchor="middle">
+                              {p.ganho >= 0 ? `+${p.ganho}kg` : `${p.ganho}kg`}
+                            </text>
+                          </g>
+                        ))}
+                      </g>
+                    );
+                  })()}
+
+                  {/* ROTULOS DE TRIMESTRES NA BASE DO GRÁFICO */}
+                  <rect x="50" y="365" width="620" height="18" fill="#F1F5F9" rx="4" />
+                  <text x="110" y="377" fontSize="9" fontWeight="bold" fill="#475569" textAnchor="middle">1º TRIMESTRE</text>
+                  <line x1="172" y1="365" x2="172" y2="383" stroke="#CBD5E1" strokeWidth="1" />
+                  <text x="310" y="377" fontSize="9" fontWeight="bold" fill="#475569" textAnchor="middle">2º TRIMESTRE</text>
+                  <line x1="461" y1="365" x2="461" y2="383" stroke="#CBD5E1" strokeWidth="1" />
+                  <text x="560" y="377" fontSize="9" fontWeight="bold" fill="#475569" textAnchor="middle">3º TRIMESTRE</text>
+
+                  {/* Titulos de Eixo */}
+                  <text x="360" y="396" fontSize="10" fontWeight="bold" fill="#2E482A" textAnchor="middle">SEMANAS DE GESTAÇÃO</text>
+                  <text x="18" y="190" fontSize="10" fontWeight="bold" fill="#2E482A" textAnchor="middle" transform="rotate(-90 18 190)">GANHO DE PESO GESTACIONAL (kg)</text>
+                </svg>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: CALCULADORA GESTACIONAL INTEGRADA */}
           {activeTab === 'calculadora' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-6">
               <div className="border-b pb-3">
@@ -678,49 +857,6 @@ export default function App() {
                     </div>
                   )}
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: GRÁFICOS (CURVA DE GANHO DE PESO) */}
-          {activeTab === 'graficos' && (
-            <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4">
-              <div className="flex justify-between items-center border-b pb-3">
-                <div>
-                  <h3 className="font-bold text-gray-900 text-base flex items-center">
-                    Curva de Ganho de Peso Materno
-                    <Tooltip title="Curva Atalah / MS" text="Gráfico oficial do Ministério da Saúde que avalia o ganho de peso ideal segundo o IMC pré-gestacional." />
-                  </h3>
-                  <p className="text-xs text-gray-500">Acompanhamento do peso ideal ao longo das semanas de gestação</p>
-                </div>
-                {userRole === 'medica' && (
-                  <button onClick={() => setShowAddConsultaModal(true)} className="bg-[#2E482A] text-white px-3.5 py-1.5 rounded-xl text-xs font-bold">+ Registrar Consulta/Peso</button>
-                )}
-              </div>
-              <div className="bg-gray-50 p-4 rounded-2xl border overflow-x-auto">
-                <svg viewBox="0 0 600 260" className="w-full min-w-[500px]">
-                  {[50, 60, 70, 80, 90].map((w) => (
-                    <line key={w} x1="40" y1={220 - ((w - 50) / 45) * 200} x2="580" y2={220 - ((w - 50) / 45) * 200} stroke="#E5E7EB" strokeDasharray="3 3" />
-                  ))}
-                  {(() => {
-                    const points = currentPatient.consultasEvolucao.map(c => ({
-                      x: 40 + ((c.igSem) / 40) * 540,
-                      y: 220 - ((c.peso - 50) / 45) * 200,
-                      ...c
-                    }));
-                    return (
-                      <g>
-                        {points.length > 1 && <polyline fill="none" stroke="#2E482A" strokeWidth="3" points={points.map(p => `${p.x},${p.y}`).join(" ")} />}
-                        {points.map(p => (
-                          <g key={p.id}>
-                            <circle cx={p.x} cy={p.y} r="5" fill="#D4AF37" stroke="#2E482A" strokeWidth="2" />
-                            <text x={p.x} y={p.y - 8} fontSize="9" fontWeight="bold" fill="#1E311B" textAnchor="middle">{p.peso}kg</text>
-                          </g>
-                        ))}
-                      </g>
-                    );
-                  })()}
-                </svg>
               </div>
             </div>
           )}
