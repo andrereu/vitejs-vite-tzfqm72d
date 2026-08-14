@@ -16,23 +16,27 @@ export const sendPrenatalChatMessage = async (
   const apiKey = (import.meta.env.VITE_GEMINI_API_KEY || "").trim();
 
   if (!apiKey) {
-    return "❌ Erro: VITE_GEMINI_API_KEY não foi configurada na Vercel.";
+    return "❌ Erro: Chave VITE_GEMINI_API_KEY não encontrada nas variáveis de ambiente da Vercel.";
   }
 
   const promptText = `Você é a Assistente Virtual Pré-Natal da Dra. Priscila Gapski (CRM 24734).
-Paciente: ${patient.nome}, Gestação: ${weeks} semanas, Bebê: ${patient.nomeBebe || 'Bebê'}.
+Informações da paciente:
+- Nome: ${patient.nome}
+- Gestação: ${weeks} semanas
+- Nome do Bebê: ${patient.nomeBebe || 'Bebê'}
+
 Dúvida da gestante: "${userMessage}"
 
-Diretrizes:
-- Responda em português com carinho, acolhimento e emojis delicados (🌸, 👶, ✨).
-- Explique de forma simples os sintomas e cuidados para ${weeks} semanas.
-- NUNCA prescreva remédios. Se houver dores fortes, perda de líquido ou sangramento, recomende ir ao pronto-atendimento com urgência.`;
+Diretrizes de resposta:
+1. Responda em português com muito carinho, acolhimento e emojis delicados (🌸, 👶, ✨).
+2. Explique de forma simples e didática o que é esperado para a fase de ${weeks} semanas.
+3. NUNCA prescreva medicamentos. Se houver sangramentos, dor forte ou perda de líquido, oriente atendimento médico de urgência com calma e firmeza.`;
 
-  // Endpoint oficial Interactions API
+  // Endpoint oficial da Interactions API com chave na URL
   const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`;
 
   const payload = {
-    model: "gemini-2.5-flash",
+    model: "models/gemini-2.5-flash",
     input: promptText
   };
 
@@ -48,21 +52,21 @@ Diretrizes:
     const data = await response.json();
 
     if (response.ok) {
-      // Extrai o retorno da Interactions API
-      const reply =
+      // Extração resiliente do texto da Interactions API
+      const textOutput =
         data.output?.text ||
         data.output ||
-        (Array.isArray(data.outputs) ? data.outputs.map((o: any) => o.text || o.content).join("\n") : null) ||
+        (Array.isArray(data.outputs) ? data.outputs.map((o: any) => o.text || o.content || JSON.stringify(o)).join("\n") : null) ||
         data.text ||
         data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-      if (reply && typeof reply === 'string') return reply;
-      if (typeof reply === 'object') return JSON.stringify(reply);
+      if (textOutput && typeof textOutput === "string") return textOutput;
+      if (typeof textOutput === "object") return JSON.stringify(textOutput);
       return JSON.stringify(data);
     } else {
-      return `❌ Erro da API (${response.status}): ${data?.error?.message || JSON.stringify(data)}`;
+      return `❌ [v-interactions] Erro da API (${response.status}): ${data?.error?.message || JSON.stringify(data)}`;
     }
   } catch (error: any) {
-    return `❌ Erro de conexão: ${error?.message || error}`;
+    return `❌ [v-interactions] Erro de rede: ${error?.message || error}`;
   }
 };
