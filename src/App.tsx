@@ -1338,17 +1338,15 @@ export default function App() {
 
       {/* 👇 ADICIONE AQUI NO FINAL (invisível na tela, só surge na impressão) */}
       {currentPatient && (
+              {/* Printable Carteirinha */}
+      {currentPatient && (
         <PrintableCarteirinha 
           patient={currentPatient} 
           weeks={gestationalWeeks} 
         />
-      )
+      )}
     </div>
   );
 }
 
 export default App;
-
-    </div>
-  );
-}
