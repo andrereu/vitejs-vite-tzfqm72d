@@ -183,37 +183,56 @@
   }
 }
 /* ===================================================
-   REGRAS DE IMPRESSÃO A4 PAISAGEM (SEGURO)
+   IMPRESSÃO A4 PAISAGEM: 2 PÁGINAS EXATAS
    =================================================== */
 @media print {
   @page {
     size: A4 landscape;
-    margin: 8mm;
+    margin: 0;
   }
 
   html, body, #root {
-    width: 297mm !important;
-    height: auto !important;
-    background: #ffffff !important;
     margin: 0 !important;
     padding: 0 !important;
+    background: #ffffff !important;
+    width: 297mm !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* Esconde apenas os elementos com a classe do Tailwind ou botões/menus globais */
-  header, nav, form, button, .print\:hidden {
-    display: none !important;
+  /* Oculta tudo da tela normal */
+  body * {
+    visibility: hidden;
   }
 
-  /* Garante que a carteirinha ocupe a folha inteira */
-  #print-carteirinha-root {
-    display: block !important;
-    width: 100% !important;
-    position: absolute;
-    top: 0;
-    left: 0;
+  /* Deixa visível apenas a nova Carteirinha Oficial */
+  #print-carteirinha-root, #print-carteirinha-root * {
+    visibility: visible;
   }
+
+  #print-carteirinha-root {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 297mm;
+    display: block !important;
+  }
+
+  .print-page {
+    width: 297mm !important;
+    height: 210mm !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    box-sizing: border-box;
+    padding: 10mm !important;
+  }
+
+  .print-page:last-child {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+}
+
 
   .print-page {
     page-break-inside: avoid !important;
