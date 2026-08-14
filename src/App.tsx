@@ -80,7 +80,8 @@ const initialPatientsList = [
       influenza: { realizada: true, data: "2026-03-10", lote: "INF2026-B" },
       vsr: { realizada: true, data: "2026-07-28", lote: "VSR-884" },
       dtpa: { realizada: true, data: "2026-05-20", lote: "DTP-9921" },
-      covid19: { realizada: true, data: "2026-02-15", lote: "COV-3" }
+      covid19: { realizada: true, data: "2026-02-15", lote: "COV-3" },
+      hepatiteB: { d1: "2026-01-20", d2: "2026-02-20", d3: "" }
     },
     examesTabela: {
       hbVg: { d1: "2026-02-20", r1: "12.8 g/dL / 38%", d2: "", r2: "" },
@@ -152,6 +153,8 @@ export default function App() {
   const [showNewPatientModal, setShowNewPatientModal] = useState(false);
   const [showEditExamesModal, setShowEditExamesModal] = useState(false);
   const [showAddAgendaModal, setShowAddAgendaModal] = useState(false);
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [showEditVacinasModal, setShowEditVacinasModal] = useState(false);
 
   // CALCULADORA GESTACIONAL (USG)
   const [calcUsgData, setCalcUsgData] = useState(new Date().toISOString().split('T')[0]);
@@ -171,8 +174,11 @@ export default function App() {
   const [examCategory, setExamCategory] = useState("Ecografia");
   const [isUploading, setIsUploading] = useState(false);
 
-  // FORMULÁRIOS
+  // FORMULÁRIOS E EDIÇÕES
   const [editExamesData, setEditExamesData] = useState<any>({});
+  const [editProfileData, setEditProfileData] = useState<any>({});
+  const [editVacinasData, setEditVacinasData] = useState<any>({});
+
   const [newAgenda, setNewAgenda] = useState({
     data: new Date().toISOString().split('T')[0],
     horario: '14:00',
@@ -182,9 +188,10 @@ export default function App() {
   });
 
   const [newPatient, setNewPatient] = useState({
-    nome: '', cpf: '', idade: '', pai: '', nomeBebe: '',
+    nome: '', cpf: '', idade: '28', pai: '', nomeBebe: '',
     dum: new Date().toISOString().split('T')[0],
-    pesoInicial: '60.0', altura: '1.65', tipoSanguineo: 'O+', doencasPrevias: ''
+    pesoInicial: '60.0', altura: '1.65', tipoSanguineo: 'O+', doencasPrevias: '',
+    g: '1', p: '0', c: '0', a: '0'
   });
 
   const [newConsulta, setNewConsulta] = useState({
@@ -210,7 +217,6 @@ export default function App() {
     };
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
 
-    // Injeção do Web App Manifest
     const manifestObj = {
       name: "Carteirinha Pré-Natal • Dra. Priscila Gapski",
       short_name: "Pré-Natal Dra. Priscila",
@@ -564,6 +570,31 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
     setShowEditExamesModal(false);
   };
 
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    const dumDate = new Date(editProfileData.dum);
+    const dppDate = new Date(dumDate.getTime() + 280 * 24 * 60 * 60 * 1000);
+
+    const updated = {
+      ...currentPatient,
+      ...editProfileData,
+      dpp: dppDate.toISOString().split('T')[0]
+    };
+
+    saveToFirestore(patients.map(p => p.id === updated.id ? updated : p));
+    setShowEditProfileModal(false);
+  };
+
+  const handleSaveVacinas = (e: React.FormEvent) => {
+    e.preventDefault();
+    const updated = {
+      ...currentPatient,
+      vacinas: editVacinasData
+    };
+    saveToFirestore(patients.map(p => p.id === updated.id ? updated : p));
+    setShowEditVacinasModal(false);
+  };
+
   const handleAddAgenda = (e: React.FormEvent) => {
     e.preventDefault();
     const itemAgenda = {
@@ -604,21 +635,25 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
       nomeBebe: newPatient.nomeBebe || "A definir",
       dum: newPatient.dum,
       dpp: dppDate.toISOString().split('T')[0],
-      g: "1", p: "0", c: "0", a: "0",
-      pesoInicial: newPatient.pesoInicial,
-      altura: newPatient.altura,
-      tipoSanguineo: newPatient.tipoSanguineo,
+      g: newPatient.g || "1", 
+      p: newPatient.p || "0", 
+      c: newPatient.c || "0", 
+      a: newPatient.a || "0",
+      pesoInicial: newPatient.pesoInicial || "60.0",
+      altura: newPatient.altura || "1.65",
+      tipoSanguineo: newPatient.tipoSanguineo || "O+",
       doencasPrevias: newPatient.doencasPrevias || "Nenhuma",
       vacinas: {
         influenza: { realizada: false, data: "", lote: "" },
         vsr: { realizada: false, data: "", lote: "" },
         dtpa: { realizada: false, data: "", lote: "" },
-        covid19: { realizada: false, data: "", lote: "" }
+        covid19: { realizada: false, data: "", lote: "" },
+        hepatiteB: { d1: "", d2: "", d3: "" }
       },
       examesTabela: {},
       agendaConsultas: [],
       consultasEvolucao: [
-        { id: `c-init`, data: newPatient.dum, igSem: 0, peso: parseFloat(newPatient.pesoInicial), pa: "120/80", au: "NP", bcfMf: "Aguardando", edema: "Ausente", conduta: "Consulta Inicial de Pré-Natal." }
+        { id: `c-init`, data: newPatient.dum, igSem: 0, peso: parseFloat(newPatient.pesoInicial || '60'), pa: "120/80", au: "NP", bcfMf: "Aguardando", edema: "Ausente", conduta: "Consulta Inicial de Pré-Natal." }
       ],
       examesEnviados: []
     };
@@ -720,7 +755,6 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
           </div>
 
           <div className="flex items-center gap-2">
-            {/* BOTÃO INSTALAR PWA NO TELEMÓVEL */}
             <button
               onClick={handleInstallPWA}
               className="bg-[#D4AF37] hover:bg-amber-400 text-gray-900 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all animate-pulse"
@@ -808,7 +842,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
                 className="w-full sm:w-64 text-xs p-2.5 border rounded-xl"
               />
               <button onClick={() => setShowNewPatientModal(true)} className="bg-[#2E482A] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-sm">
-                <UserPlus className="w-4 h-4" /> + Cadastrar
+                <UserPlus className="w-4 h-4" /> + Cadastrar Gestante
               </button>
             </div>
           </div>
@@ -824,6 +858,9 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
                     <span className="inline-flex items-center ml-1">
                       DPP: {new Date(pat.dpp).toLocaleDateString('pt-BR')}
                     </span>
+                  </p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    G{pat.g} P{pat.p} C{pat.c} A{pat.a} • Pai: {pat.pai || 'Não informado'}
                   </p>
                 </div>
                 <button onClick={() => { setSelectedPatientId(pat.id); setCurrentScreen('patient_app'); }} className="px-4 py-2.5 bg-[#2E482A] text-white rounded-xl text-xs font-bold shrink-0">
@@ -872,12 +909,12 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
           <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-gray-200 flex overflow-x-auto gap-1 print:hidden">
             {[
               { id: 'resumo', label: 'Resumo' },
-              { id: 'agenda', label: 'Agenda & Lembretes' },
+              { id: 'dados', label: 'Dados Clínicos & GPCA' },
+              { id: 'vacinas', label: 'Vacinas' },
               { id: 'examesTabela', label: 'Exames Laboratoriais' },
+              { id: 'agenda', label: 'Agenda & Lembretes' },
               { id: 'graficos', label: 'Gráfico GPG (MS)' },
               { id: 'calculadora', label: 'Calculadora Gestacional' },
-              { id: 'dados', label: 'Dados Clínicos' },
-              { id: 'vacinas', label: 'Vacinas' },
               { id: 'consultas', label: 'Consultas' },
               { id: 'examesCentral', label: 'Central de Exames + IA' }
             ].map((tab) => (
@@ -968,54 +1005,163 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
             </div>
           )}
 
-          {/* TAB AGENDA & LEMBRETES */}
-          {activeTab === 'agenda' && (
+          {/* TAB 2: DADOS CLÍNICOS & GPCA (COM BOTÃO DE EDIÇÃO ILIMITADA) */}
+          {activeTab === 'dados' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-6 print:hidden">
-              <div className="flex justify-between items-center border-b pb-4">
+              <div className="flex justify-between items-center border-b pb-3">
                 <div>
-                  <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
-                    <CalendarPlus className="w-5 h-5 text-[#2E482A]" />
-                    Agenda de Consultas & Lembretes
-                  </h3>
-                  <p className="text-xs text-gray-500">Próximos compromissos pré-natais da gestante</p>
+                  <h3 className="font-bold text-gray-900 text-base">Dados Cadastrais, Anamnese & GPCA</h3>
+                  <p className="text-xs text-gray-500">Histórico obstétrico e informações pessoais da gestante</p>
                 </div>
                 {userRole === 'medica' && (
                   <button 
-                    onClick={() => setShowAddAgendaModal(true)}
-                    className="bg-[#2E482A] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs"
+                    onClick={() => {
+                      setEditProfileData({
+                        nome: currentPatient.nome || '',
+                        cpf: currentPatient.cpf || '',
+                        idade: currentPatient.idade || '',
+                        pai: currentPatient.pai || '',
+                        nomeBebe: currentPatient.nomeBebe || '',
+                        dum: currentPatient.dum || '',
+                        pesoInicial: currentPatient.pesoInicial || '',
+                        altura: currentPatient.altura || '',
+                        tipoSanguineo: currentPatient.tipoSanguineo || 'A+',
+                        doencasPrevias: currentPatient.doencasPrevias || '',
+                        g: currentPatient.g || '1',
+                        p: currentPatient.p || '0',
+                        c: currentPatient.c || '0',
+                        a: currentPatient.a || '0'
+                      });
+                      setShowEditProfileModal(true);
+                    }} 
+                    className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs"
                   >
-                    <Plus className="w-4 h-4" /> Agendar Nova Consulta
+                    <Edit3 className="w-4 h-4" /> Editar Perfil & Anamnese
                   </button>
                 )}
               </div>
 
-              {(!currentPatient.agendaConsultas || currentPatient.agendaConsultas.length === 0) ? (
-                <div className="text-center py-10 text-gray-400 text-xs space-y-2">
-                  <Calendar className="w-8 h-8 mx-auto text-gray-300" />
-                  <p>Nenhuma consulta futura agendada na carteirinha digital.</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                  <span className="text-gray-400 font-bold block uppercase text-[10px]">Nome Completo</span>
+                  <strong className="text-sm text-gray-900 mt-0.5 block">{currentPatient.nome}</strong>
+                  <span className="text-gray-500 mt-1 block">CPF: {currentPatient.cpf}</span>
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {currentPatient.agendaConsultas.map((item: any) => (
-                    <div key={item.id} className="p-5 bg-gray-50 rounded-2xl border border-gray-200 space-y-2 relative">
-                      <div className="flex justify-between items-start">
-                        <span className="bg-[#2E482A] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
-                          {formatDateBR(item.data)} às {item.horario}
-                        </span>
+
+                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                  <span className="text-gray-400 font-bold block uppercase text-[10px]">Idade & Altura</span>
+                  <strong className="text-sm text-gray-900 mt-0.5 block">{currentPatient.idade} anos • {currentPatient.altura} m</strong>
+                  <span className="text-gray-500 mt-1 block">Peso Inicial: {currentPatient.pesoInicial} kg</span>
+                </div>
+
+                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                  <span className="text-gray-400 font-bold block uppercase text-[10px]">Nome do Bebê</span>
+                  <strong className="text-sm text-gray-900 mt-0.5 block">👶 {currentPatient.nomeBebe}</strong>
+                  <span className="text-gray-500 mt-1 block">DPP: {formatDateBR(currentPatient.dpp)}</span>
+                </div>
+
+                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                  <span className="text-gray-400 font-bold block uppercase text-[10px]">Pai / Acompanhante</span>
+                  <strong className="text-sm text-gray-900 mt-0.5 block">{currentPatient.pai || 'Não informado'}</strong>
+                </div>
+
+                <div className="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-200">
+                  <span className="text-emerald-800 font-bold block uppercase text-[10px]">Histórico Obstétrico (GPCA)</span>
+                  <strong className="text-base text-emerald-950 mt-0.5 block">
+                    G{currentPatient.g} P{currentPatient.p} C{currentPatient.c} A{currentPatient.a}
+                  </strong>
+                  <span className="text-[11px] text-emerald-800 mt-1 block">
+                    G: Gestas • P: Partos • C: Cesáreas • A: Abortos
+                  </span>
+                </div>
+
+                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                  <span className="text-gray-400 font-bold block uppercase text-[10px]">Tipo Sanguíneo</span>
+                  <strong className="text-base text-gray-900 mt-0.5 block">🩸 {currentPatient.tipoSanguineo}</strong>
+                </div>
+              </div>
+
+              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-xs">
+                <span className="text-gray-400 font-bold block uppercase text-[10px] mb-1">Doenças Prévias, Alergias e Observações</span>
+                <p className="text-gray-800 text-sm font-medium whitespace-pre-line">{currentPatient.doencasPrevias || 'Nenhuma alteração registrada.'}</p>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: VACINAS (COM REGISTRO E EDIÇÃO DEDICADA) */}
+          {activeTab === 'vacinas' && (
+            <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4 print:hidden">
+              <div className="flex justify-between items-center border-b pb-3">
+                <div>
+                  <h3 className="font-bold text-gray-900 text-base">Carteira de Vacinação da Gestante</h3>
+                  <p className="text-xs text-gray-500">Esquema vacinal recomendado para a gestação</p>
+                </div>
+                {userRole === 'medica' && (
+                  <button 
+                    onClick={() => {
+                      setEditVacinasData(currentPatient.vacinas || {
+                        influenza: { realizada: false, data: "", lote: "" },
+                        vsr: { realizada: false, data: "", lote: "" },
+                        dtpa: { realizada: false, data: "", lote: "" },
+                        covid19: { realizada: false, data: "", lote: "" },
+                        hepatiteB: { d1: "", d2: "", d3: "" }
+                      });
+                      setShowEditVacinasModal(true);
+                    }} 
+                    className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs"
+                  >
+                    <Syringe className="w-4 h-4" /> Registrar / Editar Vacinas
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { key: 'influenza', nome: 'INFLUENZA (Gripe)', recom: 'Dose Anual recomendada' },
+                  { key: 'vsr', nome: 'VSR (Vírus Sincicial Respiratório)', recom: 'A partir da 32ª semana' },
+                  { key: 'dtpa', nome: 'dTpa (Coqueluche / Tétano)', recom: 'A partir da 20ª semana' },
+                  { key: 'covid19', nome: 'COVID-19', recom: 'Dose de reforço' },
+                ].map(v => {
+                  const vac = (currentPatient.vacinas as any)?.[v.key] || {};
+                  return (
+                    <div key={v.key} className="p-4 bg-gray-50 rounded-2xl border flex justify-between items-center">
+                      <div>
+                        <strong className="text-sm font-bold text-gray-900 block">{v.nome}</strong>
+                        <span className="text-[10px] text-gray-500 block">{v.recom}</span>
+                        {vac.realizada ? (
+                          <span className="text-xs font-bold text-emerald-800 mt-1 block">
+                            Aplicada em: {formatDateBR(vac.data)} {vac.lote ? `(Lote: ${vac.lote})` : ''}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-amber-700 italic mt-1 block">Pendente</span>
+                        )}
                       </div>
-                      <h4 className="font-bold text-gray-900 text-sm pt-1">{item.tipo}</h4>
-                      <p className="text-xs text-gray-600 flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-gray-400" /> {item.local}
-                      </p>
-                      {item.observacoes && (
-                        <p className="text-[11px] text-amber-800 bg-amber-50 p-2.5 rounded-xl border border-amber-200 mt-2">
-                          💡 <strong>Orientações:</strong> {item.observacoes}
-                        </p>
-                      )}
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold shrink-0 ${vac.realizada ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                        {vac.realizada ? 'OK / APLICADA' : 'PENDENTE'}
+                      </span>
                     </div>
-                  ))}
+                  );
+                })}
+              </div>
+
+              {/* HEPATITE B ESQUEMA 3 DOSES */}
+              <div className="p-4 bg-gray-50 rounded-2xl border space-y-2">
+                <strong className="text-sm font-bold text-gray-900 block">HEPATITE B (Esquema 3 Doses)</strong>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="p-2 bg-white border rounded-xl">
+                    <span className="text-[10px] text-gray-400 font-bold block">1ª DOSE</span>
+                    <strong>{formatDateBR((currentPatient.vacinas as any)?.hepatiteB?.d1) || '____/____/____'}</strong>
+                  </div>
+                  <div className="p-2 bg-white border rounded-xl">
+                    <span className="text-[10px] text-gray-400 font-bold block">2ª DOSE</span>
+                    <strong>{formatDateBR((currentPatient.vacinas as any)?.hepatiteB?.d2) || '____/____/____'}</strong>
+                  </div>
+                  <div className="p-2 bg-white border rounded-xl">
+                    <span className="text-[10px] text-gray-400 font-bold block">3ª DOSE</span>
+                    <strong>{formatDateBR((currentPatient.vacinas as any)?.hepatiteB?.d3) || '____/____/____'}</strong>
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           )}
 
@@ -1072,7 +1218,58 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
             </div>
           )}
 
-          {/* TAB 2: GRÁFICO GPG */}
+          {/* TAB AGENDA & LEMBRETES */}
+          {activeTab === 'agenda' && (
+            <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-6 print:hidden">
+              <div className="flex justify-between items-center border-b pb-4">
+                <div>
+                  <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
+                    <CalendarPlus className="w-5 h-5 text-[#2E482A]" />
+                    Agenda de Consultas & Lembretes
+                  </h3>
+                  <p className="text-xs text-gray-500">Próximos compromissos pré-natais da gestante</p>
+                </div>
+                {userRole === 'medica' && (
+                  <button 
+                    onClick={() => setShowAddAgendaModal(true)}
+                    className="bg-[#2E482A] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs"
+                  >
+                    <Plus className="w-4 h-4" /> Agendar Nova Consulta
+                  </button>
+                )}
+              </div>
+
+              {(!currentPatient.agendaConsultas || currentPatient.agendaConsultas.length === 0) ? (
+                <div className="text-center py-10 text-gray-400 text-xs space-y-2">
+                  <Calendar className="w-8 h-8 mx-auto text-gray-300" />
+                  <p>Nenhuma consulta futura agendada na carteirinha digital.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {currentPatient.agendaConsultas.map((item: any) => (
+                    <div key={item.id} className="p-5 bg-gray-50 rounded-2xl border border-gray-200 space-y-2 relative">
+                      <div className="flex justify-between items-start">
+                        <span className="bg-[#2E482A] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
+                          {formatDateBR(item.data)} às {item.horario}
+                        </span>
+                      </div>
+                      <h4 className="font-bold text-gray-900 text-sm pt-1">{item.tipo}</h4>
+                      <p className="text-xs text-gray-600 flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-gray-400" /> {item.local}
+                      </p>
+                      {item.observacoes && (
+                        <p className="text-[11px] text-amber-800 bg-amber-50 p-2.5 rounded-xl border border-amber-200 mt-2">
+                          💡 <strong>Orientações:</strong> {item.observacoes}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB GRÁFICO GPG */}
           {activeTab === 'graficos' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-5 print:hidden">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 gap-3">
@@ -1148,7 +1345,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
             </div>
           )}
 
-          {/* TAB 3: CALCULADORA GESTACIONAL */}
+          {/* TAB CALCULADORA GESTACIONAL */}
           {activeTab === 'calculadora' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-6 print:hidden">
               <div className="border-b pb-3">
@@ -1177,35 +1374,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
             </div>
           )}
 
-          {/* TAB 4: DADOS CLÍNICOS */}
-          {activeTab === 'dados' && (
-            <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4 print:hidden">
-              <h3 className="font-bold text-gray-900 text-base border-b pb-3">Dados Cadastrais e Histórico</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                <div className="p-4 bg-gray-50 rounded-2xl"><span className="text-gray-400 block font-bold">NOME</span><strong>{currentPatient.nome}</strong></div>
-                <div className="p-4 bg-gray-50 rounded-2xl"><span className="text-gray-400 block font-bold">PAI / ACOMPANHANTE</span><strong>{currentPatient.pai}</strong></div>
-                <div className="p-4 bg-gray-50 rounded-2xl"><span className="text-gray-400 block font-bold">HISTÓRICO GPCA</span><strong>G{currentPatient.g} P{currentPatient.p} C{currentPatient.c} A{currentPatient.a}</strong></div>
-                <div className="p-4 bg-gray-50 rounded-2xl"><span className="text-gray-400 block font-bold">TIPO SANGUÍNEO</span><strong>{currentPatient.tipoSanguineo}</strong></div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 5: VACINAS */}
-          {activeTab === 'vacinas' && (
-            <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4 print:hidden">
-              <h3 className="font-bold text-gray-900 text-base border-b pb-3">Carteira de Vacinação</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Object.entries(currentPatient.vacinas).map(([k, v]: any) => (
-                  <div key={k} className="p-4 bg-gray-50 rounded-2xl border flex justify-between items-center">
-                    <div><strong className="text-sm uppercase block">{k}</strong><span className="text-[10px] text-gray-500">{v.realizada ? `Aplicada em ${v.data}` : 'Pendente'}</span></div>
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${v.realizada ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{v.realizada ? 'OK' : 'PENDENTE'}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 6: CONSULTAS */}
+          {/* TAB CONSULTAS */}
           {activeTab === 'consultas' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4 print:hidden">
               <h3 className="font-bold text-gray-900 text-base border-b pb-3">Evolução das Consultas</h3>
@@ -1224,7 +1393,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
             </div>
           )}
 
-          {/* TAB 7: CENTRAL DE EXAMES + LEITURA AUTOMÁTICA GEMINI IA */}
+          {/* TAB CENTRAL DE EXAMES */}
           {activeTab === 'examesCentral' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4 print:hidden">
               <div className="flex justify-between items-center border-b pb-3">
@@ -1303,7 +1472,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
                       <div className="border bg-white p-0.5"><strong>dTpa</strong><br />20 SEMANAS<br />{currentPatient.vacinas?.dtpa?.data || '____/____/____'}</div>
                     </div>
                     <div className="border bg-white p-0.5 text-[7px]">
-                      <strong>HEPATITE B:</strong> 1ª Dose: ____/____ | 2ª Dose: ____/____ | 3ª Dose: ____/____
+                      <strong>HEPATITE B:</strong> 1ª Dose: {currentPatient.vacinas?.hepatiteB?.d1 || '____/____'} | 2ª Dose: {currentPatient.vacinas?.hepatiteB?.d2 || '____/____'} | 3ª Dose: {currentPatient.vacinas?.hepatiteB?.d3 || '____/____'}
                     </div>
                   </div>
                 </div>
@@ -1410,7 +1579,6 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
                   </table>
                 </div>
 
-                {/* CALENDÁRIO DE CONSULTAS ALIMENTADO DINAMICAMENTE DOS AGENDAMENTOS */}
                 <div className="pt-1 border-t">
                   <span className="font-bold text-[8px] uppercase block text-[#2E482A] text-center mb-1">CALENDÁRIO DE CONSULTAS (PRÓXIMAS)</span>
                   <div className="grid grid-cols-2 gap-1 text-[7px] border p-1 bg-gray-50">
@@ -1476,6 +1644,300 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
             >
               Entendi
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDITAR PERFIL & ANAMNESE COMPLETA (NOVO!) */}
+      {showEditProfileModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
+          <div className="bg-white p-6 rounded-3xl max-w-lg w-full max-h-[85vh] overflow-y-auto space-y-4">
+            <h3 className="font-bold text-gray-900 text-base border-b pb-2 flex items-center gap-2">
+              <User className="w-5 h-5 text-[#2E482A]" />
+              Editar Dados da Gestante & Anamnese
+            </h3>
+            
+            <form onSubmit={handleSaveProfile} className="space-y-3 text-xs">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">Nome Completo</label>
+                  <input 
+                    type="text" 
+                    value={editProfileData.nome || ''} 
+                    onChange={(e) => setEditProfileData({ ...editProfileData, nome: e.target.value })} 
+                    className="w-full p-2.5 border rounded-xl" 
+                    required 
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">CPF</label>
+                  <input 
+                    type="text" 
+                    value={editProfileData.cpf || ''} 
+                    onChange={(e) => setEditProfileData({ ...editProfileData, cpf: e.target.value })} 
+                    className="w-full p-2.5 border rounded-xl" 
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">Idade (anos)</label>
+                  <input 
+                    type="text" 
+                    value={editProfileData.idade || ''} 
+                    onChange={(e) => setEditProfileData({ ...editProfileData, idade: e.target.value })} 
+                    className="w-full p-2.5 border rounded-xl" 
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">Altura (m)</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ex: 1.65" 
+                    value={editProfileData.altura || ''} 
+                    onChange={(e) => setEditProfileData({ ...editProfileData, altura: e.target.value })} 
+                    className="w-full p-2.5 border rounded-xl" 
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">Peso Inicial (kg)</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ex: 65.0" 
+                    value={editProfileData.pesoInicial || ''} 
+                    onChange={(e) => setEditProfileData({ ...editProfileData, pesoInicial: e.target.value })} 
+                    className="w-full p-2.5 border rounded-xl" 
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">Pai / Acompanhante</label>
+                  <input 
+                    type="text" 
+                    value={editProfileData.pai || ''} 
+                    onChange={(e) => setEditProfileData({ ...editProfileData, pai: e.target.value })} 
+                    className="w-full p-2.5 border rounded-xl" 
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">Nome do Bebê</label>
+                  <input 
+                    type="text" 
+                    value={editProfileData.nomeBebe || ''} 
+                    onChange={(e) => setEditProfileData({ ...editProfileData, nomeBebe: e.target.value })} 
+                    className="w-full p-2.5 border rounded-xl" 
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">DUM (Última Menstruação)</label>
+                  <input 
+                    type="date" 
+                    value={editProfileData.dum || ''} 
+                    onChange={(e) => setEditProfileData({ ...editProfileData, dum: e.target.value })} 
+                    className="w-full p-2.5 border rounded-xl bg-white" 
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">Tipo Sanguíneo</label>
+                  <select 
+                    value={editProfileData.tipoSanguineo || 'A+'} 
+                    onChange={(e) => setEditProfileData({ ...editProfileData, tipoSanguineo: e.target.value })} 
+                    className="w-full p-2.5 border rounded-xl bg-white"
+                  >
+                    {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(ts => (
+                      <option key={ts} value={ts}>{ts}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* MÁSCARA GPCA DE OBSTETRÍCIA */}
+              <div className="bg-emerald-50/60 p-3 rounded-2xl border border-emerald-200">
+                <span className="font-bold text-emerald-900 block uppercase text-[10px] mb-1.5">Histórico Obstétrico (GPCA)</span>
+                <div className="grid grid-cols-4 gap-2 text-center">
+                  <div>
+                    <label className="font-bold text-[#2E482A] text-[10px] block">G (Gestas)</label>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      value={editProfileData.g || '1'} 
+                      onChange={(e) => setEditProfileData({ ...editProfileData, g: e.target.value })} 
+                      className="w-full p-1.5 border rounded-lg text-center font-bold text-xs bg-white" 
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-[#2E482A] text-[10px] block">P (Partos)</label>
+                    <input 
+                      type="number" 
+                      min="0" 
+                      value={editProfileData.p || '0'} 
+                      onChange={(e) => setEditProfileData({ ...editProfileData, p: e.target.value })} 
+                      className="w-full p-1.5 border rounded-lg text-center font-bold text-xs bg-white" 
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-[#2E482A] text-[10px] block">C (Cesáreas)</label>
+                    <input 
+                      type="number" 
+                      min="0" 
+                      value={editProfileData.c || '0'} 
+                      onChange={(e) => setEditProfileData({ ...editProfileData, c: e.target.value })} 
+                      className="w-full p-1.5 border rounded-lg text-center font-bold text-xs bg-white" 
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-[#2E482A] text-[10px] block">A (Abortos)</label>
+                    <input 
+                      type="number" 
+                      min="0" 
+                      value={editProfileData.a || '0'} 
+                      onChange={(e) => setEditProfileData({ ...editProfileData, a: e.target.value })} 
+                      className="w-full p-1.5 border rounded-lg text-center font-bold text-xs bg-white" 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">Doenças Prévias / Alergias / Observações</label>
+                <textarea 
+                  value={editProfileData.doencasPrevias || ''} 
+                  onChange={(e) => setEditProfileData({ ...editProfileData, doencasPrevias: e.target.value })} 
+                  className="w-full p-2.5 border rounded-xl h-20 text-xs" 
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t">
+                <button type="button" onClick={() => setShowEditProfileModal(false)} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
+                <button type="submit" className="px-5 py-2 bg-[#2E482A] text-white font-bold text-xs rounded-xl">Salvar Perfil</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDITAR CARTEIRA DE VACINAS (NOVO!) */}
+      {showEditVacinasModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
+          <div className="bg-white p-6 rounded-3xl max-w-lg w-full max-h-[85vh] overflow-y-auto space-y-4">
+            <h3 className="font-bold text-gray-900 text-base border-b pb-2 flex items-center gap-2">
+              <Syringe className="w-5 h-5 text-[#2E482A]" />
+              Registrar Vacinas da Gestante
+            </h3>
+
+            <form onSubmit={handleSaveVacinas} className="space-y-3 text-xs">
+              {[
+                { key: 'influenza', label: 'INFLUENZA (Gripe)' },
+                { key: 'vsr', label: 'VSR (Vírus Sincicial Respiratório)' },
+                { key: 'dtpa', label: 'dTpa (Coqueluche / Tétano)' },
+                { key: 'covid19', label: 'COVID-19' },
+              ].map(v => {
+                const currentVac = editVacinasData[v.key] || { realizada: false, data: '', lote: '' };
+                return (
+                  <div key={v.key} className="p-3 bg-gray-50 rounded-2xl border space-y-2">
+                    <div className="flex justify-between items-center">
+                      <strong className="text-xs text-[#2E482A] block uppercase font-bold">{v.label}</strong>
+                      <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={currentVac.realizada || false} 
+                          onChange={(e) => setEditVacinasData({
+                            ...editVacinasData,
+                            [v.key]: { ...currentVac, realizada: e.target.checked }
+                          })}
+                          className="rounded text-[#2E482A]"
+                        />
+                        <span>Vacina Aplicada</span>
+                      </label>
+                    </div>
+
+                    {currentVac.realizada && (
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <div>
+                          <span className="text-[10px] text-gray-400 font-bold block">Data de Aplicação</span>
+                          <input 
+                            type="date" 
+                            value={currentVac.data || ''} 
+                            onChange={(e) => setEditVacinasData({
+                              ...editVacinasData,
+                              [v.key]: { ...currentVac, data: e.target.value }
+                            })} 
+                            className="w-full p-1.5 border rounded-lg text-xs bg-white" 
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-gray-400 font-bold block">Número do Lote</span>
+                          <input 
+                            type="text" 
+                            placeholder="Ex: LOTE-882" 
+                            value={currentVac.lote || ''} 
+                            onChange={(e) => setEditVacinasData({
+                              ...editVacinasData,
+                              [v.key]: { ...currentVac, lote: e.target.value }
+                            })} 
+                            className="w-full p-1.5 border rounded-lg text-xs bg-white" 
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* SEÇÃO HEPATITE B (3 DOSES) */}
+              <div className="p-3 bg-gray-50 rounded-2xl border space-y-2">
+                <strong className="text-xs text-[#2E482A] block uppercase font-bold">HEPATITE B (3 Doses)</strong>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <span className="text-[10px] text-gray-400 font-bold block">1ª Dose</span>
+                    <input 
+                      type="date" 
+                      value={editVacinasData.hepatiteB?.d1 || ''} 
+                      onChange={(e) => setEditVacinasData({
+                        ...editVacinasData,
+                        hepatiteB: { ...(editVacinasData.hepatiteB || {}), d1: e.target.value }
+                      })} 
+                      className="w-full p-1.5 border rounded-lg text-xs bg-white" 
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-400 font-bold block">2ª Dose</span>
+                    <input 
+                      type="date" 
+                      value={editVacinasData.hepatiteB?.d2 || ''} 
+                      onChange={(e) => setEditVacinasData({
+                        ...editVacinasData,
+                        hepatiteB: { ...(editVacinasData.hepatiteB || {}), d2: e.target.value }
+                      })} 
+                      className="w-full p-1.5 border rounded-lg text-xs bg-white" 
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-400 font-bold block">3ª Dose</span>
+                    <input 
+                      type="date" 
+                      value={editVacinasData.hepatiteB?.d3 || ''} 
+                      onChange={(e) => setEditVacinasData({
+                        ...editVacinasData,
+                        hepatiteB: { ...(editVacinasData.hepatiteB || {}), d3: e.target.value }
+                      })} 
+                      className="w-full p-1.5 border rounded-lg text-xs bg-white" 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t">
+                <button type="button" onClick={() => setShowEditVacinasModal(false)} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
+                <button type="submit" className="px-5 py-2 bg-[#2E482A] text-white font-bold text-xs rounded-xl">Salvar Vacinas</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -1691,7 +2153,7 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
         </div>
       )}
 
-      {/* MODAL ADICIONAR CONSULTA */}
+      {/* MODAL ADICIONAR CONSULTA DE EVOLUÇÃO */}
       {showAddConsultaModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
           <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-3">
@@ -1715,22 +2177,74 @@ Campos suportados para extração: hbVg, plaquetas, glicemiaTotg, htlv, hiv, sif
         </div>
       )}
 
-      {/* MODAL CADASTRAR NOVA PACIENTE */}
+      {/* MODAL CADASTRAR NOVA PACIENTE (FICHA COMPLETA) */}
       {showNewPatientModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
-          <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-3">
-            <h3 className="font-bold text-gray-900 text-base">Cadastrar Gestante no Banco</h3>
-            <input type="text" placeholder="Nome Completo" value={newPatient.nome} onChange={(e) => setNewPatient({ ...newPatient, nome: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-            <input type="text" placeholder="CPF" value={newPatient.cpf} onChange={(e) => setNewPatient({ ...newPatient, cpf: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-            <div className="grid grid-cols-2 gap-2">
-              <input type="date" value={newPatient.dum} onChange={(e) => setNewPatient({ ...newPatient, dum: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-              <input type="text" placeholder="Peso Inicial" value={newPatient.pesoInicial} onChange={(e) => setNewPatient({ ...newPatient, pesoInicial: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-            </div>
-            <input type="text" placeholder="Nome do Bebê" value={newPatient.nomeBebe} onChange={(e) => setNewPatient({ ...newPatient, nomeBebe: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-            <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowNewPatientModal(false)} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
-              <button onClick={handleCreatePatient} className="px-4 py-1.5 bg-[#2E482A] text-white font-bold text-xs rounded-xl">Salvar Paciente</button>
-            </div>
+          <div className="bg-white p-6 rounded-3xl max-w-lg w-full max-h-[85vh] overflow-y-auto space-y-3">
+            <h3 className="font-bold text-gray-900 text-base border-b pb-2">Cadastrar Gestante no Banco de Dados</h3>
+            
+            <form onSubmit={handleCreatePatient} className="space-y-3 text-xs">
+              <div className="grid grid-cols-2 gap-2">
+                <input type="text" placeholder="Nome Completo *" required value={newPatient.nome} onChange={(e) => setNewPatient({ ...newPatient, nome: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+                <input type="text" placeholder="CPF *" required value={newPatient.cpf} onChange={(e) => setNewPatient({ ...newPatient, cpf: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <input type="text" placeholder="Idade (anos)" value={newPatient.idade} onChange={(e) => setNewPatient({ ...newPatient, idade: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+                <input type="text" placeholder="Altura (ex: 1.65)" value={newPatient.altura} onChange={(e) => setNewPatient({ ...newPatient, altura: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+                <input type="text" placeholder="Peso Inicial (kg)" value={newPatient.pesoInicial} onChange={(e) => setNewPatient({ ...newPatient, pesoInicial: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <input type="text" placeholder="Nome do Pai / Acompanhante" value={newPatient.pai} onChange={(e) => setNewPatient({ ...newPatient, pai: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+                <input type="text" placeholder="Nome do Bebê" value={newPatient.nomeBebe} onChange={(e) => setNewPatient({ ...newPatient, nomeBebe: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 block mb-0.5 uppercase">DUM (Última Menstruação)</label>
+                  <input type="date" value={newPatient.dum} onChange={(e) => setNewPatient({ ...newPatient, dum: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl bg-white" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 block mb-0.5 uppercase">Tipo Sanguíneo</label>
+                  <select value={newPatient.tipoSanguineo} onChange={(e) => setNewPatient({ ...newPatient, tipoSanguineo: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl bg-white">
+                    {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(ts => (
+                      <option key={ts} value={ts}>{ts}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* MÁSCARA GPCA */}
+              <div className="bg-emerald-50/60 p-3 rounded-2xl border border-emerald-200">
+                <span className="font-bold text-emerald-900 block uppercase text-[10px] mb-1">Histórico Obstétrico (GPCA)</span>
+                <div className="grid grid-cols-4 gap-2 text-center">
+                  <div>
+                    <span className="font-bold text-[#2E482A] text-[10px] block">G</span>
+                    <input type="number" min="1" value={newPatient.g} onChange={(e) => setNewPatient({ ...newPatient, g: e.target.value })} className="w-full p-1.5 border rounded-lg text-center font-bold text-xs bg-white" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-[#2E482A] text-[10px] block">P</span>
+                    <input type="number" min="0" value={newPatient.p} onChange={(e) => setNewPatient({ ...newPatient, p: e.target.value })} className="w-full p-1.5 border rounded-lg text-center font-bold text-xs bg-white" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-[#2E482A] text-[10px] block">C</span>
+                    <input type="number" min="0" value={newPatient.c} onChange={(e) => setNewPatient({ ...newPatient, c: e.target.value })} className="w-full p-1.5 border rounded-lg text-center font-bold text-xs bg-white" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-[#2E482A] text-[10px] block">A</span>
+                    <input type="number" min="0" value={newPatient.a} onChange={(e) => setNewPatient({ ...newPatient, a: e.target.value })} className="w-full p-1.5 border rounded-lg text-center font-bold text-xs bg-white" />
+                  </div>
+                </div>
+              </div>
+
+              <textarea placeholder="Doenças Prévias / Alergias" value={newPatient.doencasPrevias} onChange={(e) => setNewPatient({ ...newPatient, doencasPrevias: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl h-16" />
+
+              <div className="flex justify-end gap-2 pt-2 border-t">
+                <button type="button" onClick={() => setShowNewPatientModal(false)} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
+                <button type="submit" className="px-4 py-1.5 bg-[#2E482A] text-white font-bold text-xs rounded-xl">Salvar Paciente</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
