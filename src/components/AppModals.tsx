@@ -159,7 +159,17 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">WhatsApp / Telefone</label>
+                  <input 
+                    type="text" 
+                    placeholder="(41) 99999-9999"
+                    value={props.editProfileData.telefone || ''} 
+                    onChange={(e) => props.setEditProfileData({ ...props.editProfileData, telefone: e.target.value })} 
+                    className="w-full p-2.5 border rounded-xl" 
+                  />
+                </div>
                 <div>
                   <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">Idade (anos)</label>
                   <input 
@@ -169,6 +179,9 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                     className="w-full p-2.5 border rounded-xl" 
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">Altura (m)</label>
                   <input 
@@ -664,8 +677,12 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                 <input type="text" placeholder="CPF *" required value={props.newPatient.cpf} onChange={(e) => props.setNewPatient({ ...props.newPatient, cpf: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
+                <input type="text" placeholder="WhatsApp / Telefone" value={props.newPatient.telefone || ''} onChange={(e) => props.setNewPatient({ ...props.newPatient, telefone: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
                 <input type="text" placeholder="Idade (anos)" value={props.newPatient.idade} onChange={(e) => props.setNewPatient({ ...props.newPatient, idade: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
                 <input type="text" placeholder="Altura (ex: 1.65)" value={props.newPatient.altura} onChange={(e) => props.setNewPatient({ ...props.newPatient, altura: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
                 <input type="text" placeholder="Peso Inicial (kg)" value={props.newPatient.pesoInicial} onChange={(e) => props.setNewPatient({ ...props.newPatient, pesoInicial: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
               </div>
@@ -747,7 +764,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
             <button onClick={props.handleDoctorLogin} className="w-full py-2.5 bg-[#D4AF37] text-gray-900 rounded-xl text-xs font-bold shadow-md">
               Entrar no Painel
             </button>
-            <button onClick={() => props.setShowDoctorLoginModal(false)} className="w-full text-xs text-gray-500 pt-1">
+            <button onClick={() => setShowDoctorLoginModal(false)} className="w-full text-xs text-gray-500 pt-1">
               Cancelar
             </button>
           </div>
