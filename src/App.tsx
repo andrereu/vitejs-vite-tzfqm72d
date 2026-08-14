@@ -3,7 +3,7 @@ import {
   Calendar, Activity, Heart, Upload, Sparkles, User, 
   Plus, Clock, Baby, Stethoscope, LogOut, Printer, X, 
   Syringe, Scale, FileCheck, Check, ExternalLink, FileText,
-  TrendingUp, UserPlus, Info
+  TrendingUp, UserPlus, Info, Calculator, AlertCircle
 } from 'lucide-react';
 
 import { db, auth } from './firebase';
@@ -83,6 +83,12 @@ export default function App() {
   const [showUploadExamModal, setShowUploadExamModal] = useState(false);
   const [showNewPatientModal, setShowNewPatientModal] = useState(false);
 
+  // ESTADOS DA CALCULADORA GESTACIONAL (USG)
+  const [calcUsgData, setCalcUsgData] = useState(new Date().toISOString().split('T')[0]);
+  const [calcUsgSemanas, setCalcUsgSemanas] = useState("8");
+  const [calcUsgDias, setCalcUsgDias] = useState("0");
+  const [calcResultado, setCalcResultado] = useState<any>(null);
+
   // CAMPOS DE LOGIN
   const [doctorEmail, setDoctorEmail] = useState("");
   const [doctorPassword, setDoctorPassword] = useState("");
@@ -157,6 +163,60 @@ export default function App() {
 
   const currentGest = calculateWeeksAndDays(currentPatient.dum);
 
+  // 🧮 CÁLCULO GESTACIONAL POR ECOGRAFIA (USG)
+  const handleCalculateUsg = (e: React.FormEvent) => {
+    e.preventDefault();
+    const dataUsg = new Date(calcUsgData);
+    const sem = parseInt(calcUsgSemanas) || 0;
+    const dias = parseInt(calcUsgDias) || 0;
+
+    // Total de dias da gestação na data do exame
+    const totalDiasNaUsg = sem * 7 + dias;
+    
+    // Concepção teórica (DUM corrigida pelo USG)
+    const dumCorrigida = new Date(dataUsg.getTime() - totalDiasNaUsg * 24 * 60 * 60 * 1000);
+    
+    // DPP = DUM Corrigida + 280 dias
+    const dppCalculada = new Date(dumCorrigida.getTime() + 280 * 24 * 60 * 60 * 1000);
+
+    // IG Hoje
+    const hoje = new Date();
+    const diffDiasHoje = Math.floor(Math.max(0, hoje.getTime() - dumCorrigida.getTime()) / (1000 * 60 * 60 * 24));
+    const semHoje = Math.floor(diffDiasHoje / 7);
+    const diasHoje = diffDiasHoje % 7;
+
+    setCalcResultado({
+      dumCorrigida: dumCorrigida.toISOString().split('T')[0],
+      dpp: dppCalculada.toLocaleDateString('pt-BR'),
+      igHoje: `${semHoje} Semanas e ${diasHoje} dias`
+    });
+  };
+
+  // 🔔 ALERTAS AUTOMÁTICOS DE EXAMES POR TRIMESTRE
+  const examAlerts = useMemo(() => {
+    const sem = currentGest.weeks;
+    const list = [];
+
+    if (sem >= 11 && sem <= 14) {
+      list.push({ tipo: 'urgente', titulo: 'Ecografia Morfológica do 1º Trimestre', desc: 'Indispensável para medição da Translucência Nucal (TN) e osso nasal.' });
+    }
+    if (sem >= 20 && sem <= 24) {
+      list.push({ tipo: 'urgente', titulo: 'Ecografia Morfológica do 2º Trimestre', desc: 'Avaliação detalhada da anatomia fetal, coração e inserção placentária.' });
+    }
+    if (sem >= 24 && sem <= 28) {
+      list.push({ tipo: 'alerta', titulo: 'TOTG (Teste Oral de Tolerância à Glicose)', desc: 'Rastreio obrigatório de Diabetes Mellitus Gestacional (DMG).' });
+      list.push({ tipo: 'alerta', titulo: 'Vacina dTPa', desc: 'Aplicação a partir da 20ª-28ª semana para imunização contra a coqueluche.' });
+    }
+    if (sem >= 28) {
+      list.push({ tipo: 'info', titulo: 'Sorologias do 3º Trimestre + Hemograma', desc: 'Repetição de VDRL, HIV, Toxoplasmose e contagem de plaquetas/hemoglobina.' });
+    }
+    if (sem >= 35 && sem <= 37) {
+      list.push({ tipo: 'urgente', titulo: 'Pesquisa de Estreptococo do Grupo B (GBS)', desc: 'Swab vaginal e anal para prevenção de infecção neonatal no parto.' });
+    }
+
+    return list;
+  }, [currentGest.weeks]);
+
   const handleDoctorLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError("");
@@ -211,7 +271,7 @@ export default function App() {
       };
     } else {
       return {
-        resumoIA: `🌸 **Acompanhamento para a Mamãe (IA)**:\nDocumento anexado e organizado com segurança em seu prontuário digital.`,
+        resumoIA: `🌸 **Acompanhamento para a Mamãe (IA)**:\nDocumento anexado e organized com segurança em seu prontuário digital.`,
         notaDra: `🩺 **Anotações Clínicas (Dra. Priscila)**:\n- Documento conferido e arquivado no prontuário da gestante.`
       };
     }
@@ -486,6 +546,7 @@ export default function App() {
           <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-gray-200 flex overflow-x-auto gap-1">
             {[
               { id: 'resumo', label: 'Resumo' },
+              { id: 'calculadora', label: 'Calculadora Gestacional' },
               { id: 'graficos', label: 'Gráficos' },
               { id: 'dados', label: 'Dados Clínicos' },
               { id: 'vacinas', label: 'Vacinas' },
@@ -514,6 +575,24 @@ export default function App() {
                 <p className="mt-3 text-xs font-bold text-[#E8ECD8]">Dra. Priscila Gapski • CRM 24734</p>
               </div>
 
+              {/* BLOCO DE ALERTAS RELEVANTES DO TRIMESTRE ATUAL */}
+              {examAlerts.length > 0 && (
+                <div className="bg-amber-50/80 p-5 rounded-3xl border border-amber-200 space-y-2">
+                  <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <AlertCircle className="w-4 h-4 text-amber-600" />
+                    Exames Recomendados para esta Fase ({currentGest.weeks}ª Semana)
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
+                    {examAlerts.map((al, idx) => (
+                      <div key={idx} className="bg-white p-3 rounded-2xl border border-amber-100 text-xs space-y-0.5">
+                        <strong className="text-gray-900 block font-bold">{al.titulo}</strong>
+                        <p className="text-gray-600 text-[11px]">{al.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs">
                   <div className="flex items-center text-[10px] text-gray-400 font-bold uppercase">
@@ -540,7 +619,70 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 2: GRÁFICOS (CURVA DE GANHO DE PESO) */}
+          {/* TAB 2: CALCULADORA GESTACIONAL INTEGRADA */}
+          {activeTab === 'calculadora' && (
+            <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-6">
+              <div className="border-b pb-3">
+                <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
+                  <Calculator className="w-5 h-5 text-[#2E482A]" />
+                  Calculadora Gestacional Obstétrica
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">Cálculo de DPP e DUM corrigida pela ultrassonografia inicial (USG)</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <form onSubmit={handleCalculateUsg} className="space-y-4 bg-gray-50 p-5 rounded-2xl border border-gray-200">
+                  <h4 className="text-xs font-bold uppercase text-[#2E482A] tracking-wider">Cálculo por Ecografia (USG)</h4>
+                  
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Data da Realização do Exame</label>
+                    <input type="date" value={calcUsgData} onChange={(e) => setCalcUsgData(e.target.value)} className="w-full text-xs p-2.5 border rounded-xl bg-white" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">IG na época (Semanas)</label>
+                      <input type="number" value={calcUsgSemanas} onChange={(e) => setCalcUsgSemanas(e.target.value)} className="w-full text-xs p-2.5 border rounded-xl bg-white" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">IG na época (Dias)</label>
+                      <input type="number" min="0" max="6" value={calcUsgDias} onChange={(e) => setCalcUsgDias(e.target.value)} className="w-full text-xs p-2.5 border rounded-xl bg-white" />
+                    </div>
+                  </div>
+
+                  <button type="submit" className="w-full py-2.5 bg-[#2E482A] text-white rounded-xl text-xs font-bold shadow-xs">
+                    Calcular DPP e DUM Corrigida
+                  </button>
+                </form>
+
+                <div className="flex flex-col justify-center space-y-3 bg-[#2E482A]/5 p-5 rounded-2xl border border-[#2E482A]/10">
+                  <h4 className="text-xs font-bold uppercase text-gray-500">Resultado do Cálculo:</h4>
+                  {calcResultado ? (
+                    <div className="space-y-3">
+                      <div className="bg-white p-3 rounded-xl border">
+                        <span className="text-[10px] text-gray-400 font-bold uppercase block">Idade Gestacional HOJE</span>
+                        <strong className="text-base text-[#2E482A] font-bold">{calcResultado.igHoje}</strong>
+                      </div>
+                      <div className="bg-white p-3 rounded-xl border">
+                        <span className="text-[10px] text-gray-400 font-bold uppercase block">DPP Calculada (40 Semanas)</span>
+                        <strong className="text-base text-gray-900 font-bold">{calcResultado.dpp}</strong>
+                      </div>
+                      <div className="bg-white p-3 rounded-xl border">
+                        <span className="text-[10px] text-gray-400 font-bold uppercase block">DUM Corrigida / Data de Concepção</span>
+                        <strong className="text-xs text-gray-700">{calcResultado.dumCorrigida}</strong>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center text-xs text-gray-400 py-6">
+                      Preencha a data do primeiro ultrassom e a idade gestacional constante no laudo para calcular a DPP exata.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: GRÁFICOS (CURVA DE GANHO DE PESO) */}
           {activeTab === 'graficos' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4">
               <div className="flex justify-between items-center border-b pb-3">
@@ -583,7 +725,7 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 3: DADOS CLÍNICOS DA GESTANTE */}
+          {/* TAB 4: DADOS CLÍNICOS DA GESTANTE */}
           {activeTab === 'dados' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4">
               <h3 className="font-bold text-gray-900 text-base border-b pb-3">Dados Cadastrais e Histórico Obstétrico</h3>
@@ -617,7 +759,7 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 4: VACINAS */}
+          {/* TAB 5: VACINAS */}
           {activeTab === 'vacinas' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4">
               <h3 className="font-bold text-gray-900 text-base border-b pb-3">Carteira de Vacinação Gestacional</h3>
@@ -648,7 +790,7 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 5: CONSULTAS E EVOLUÇÃO (COM TOOLTIPS NAS COLUNAS) */}
+          {/* TAB 6: CONSULTAS E EVOLUÇÃO */}
           {activeTab === 'consultas' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4">
               <div className="flex justify-between items-center border-b pb-3">
@@ -700,7 +842,7 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 6: CENTRAL DE EXAMES + IA & DRA PRISCILA */}
+          {/* TAB 7: CENTRAL DE EXAMES + IA & DRA PRISCILA */}
           {activeTab === 'examesCentral' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4">
               <div className="flex justify-between items-center border-b pb-3">
