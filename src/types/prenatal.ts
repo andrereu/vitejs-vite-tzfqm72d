@@ -39,6 +39,7 @@ export interface AgendaConsulta {
 export interface Patient {
   id: string;
   cpf: string;
+  telefone?: string;
   senhaAcc?: string;
   nome: string;
   idade: string;
@@ -65,6 +66,7 @@ export const initialPatientsList: Patient[] = [
   {
     id: "gestante-01",
     cpf: "123.456.789-00",
+    telefone: "(41) 99999-8888",
     senhaAcc: "1234",
     nome: "Juliana Maria da Silva",
     idade: "29",
