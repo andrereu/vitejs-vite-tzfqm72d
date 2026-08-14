@@ -1336,17 +1336,4 @@ export default function App() {
       {/* Conteúdo das abas (Consultas, IA, Calculadora, etc.) */}
       {/* ... */}
 
-      {/* 👇 ADICIONE AQUI NO FINAL (invisível na tela, só surge na impressão) */}
-                  {/* Printable Carteirinha Segura */}
-      <div className="hidden print:block">
-                    {currentPatient && (
-        <PrintableCarteirinha 
-          patient={currentPatient} 
-          weeks={gestationalWeeks} 
-        />
-      )}
-    </div>
-  </div>
-  );
-
-export default App;
+      
