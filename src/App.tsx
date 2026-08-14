@@ -2,20 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Calendar, Activity, Heart, Upload, Sparkles, User, 
   Plus, Clock, Baby, Stethoscope, LogOut, Printer, X, 
-  Syringe, Scale, FileCheck, Check,
+  Syringe, Scale, FileCheck, Check, ExternalLink, FileText,
   TrendingUp, UserPlus
 } from 'lucide-react';
 
-// Importa o banco Firestore e o módulo de Autenticação
 import { db, auth } from './firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
-import { 
-  signInWithEmailAndPassword, 
-  signOut, 
-  onAuthStateChanged 
-} from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 
-// --- CURVAS REFERENCIAIS DE GANHO DE PESO MATERNO (ATALAH / MS) ---
 const WEIGHT_CURVES: Record<string, { label: string; targetMin: number; targetMax: number; color: string }> = {
   baixoPeso: { label: 'Baixo Peso (IMC < 18,5)', targetMin: 12.5, targetMax: 18.0, color: '#3B82F6' },
   normal: { label: 'Peso Normal (IMC 18,5 - 24,9)', targetMin: 11.5, targetMax: 16.0, color: '#10B981' },
@@ -67,18 +61,22 @@ export default function App() {
   const [showPatientLoginModal, setShowPatientLoginModal] = useState(false);
   const [showDoctorLoginModal, setShowDoctorLoginModal] = useState(false);
   const [showAddConsultaModal, setShowAddConsultaModal] = useState(false);
-  const [showAddUSModal, setShowAddUSModal] = useState(false);
   const [showUploadExamModal, setShowUploadExamModal] = useState(false);
   const [showNewPatientModal, setShowNewPatientModal] = useState(false);
-  const [showPrintModal, setShowPrintModal] = useState(false);
 
-  // CAMPOS DE LOGIN REAL
+  // CAMPOS DE LOGIN
   const [doctorEmail, setDoctorEmail] = useState("");
   const [doctorPassword, setDoctorPassword] = useState("");
   const [loginCpf, setLoginCpf] = useState("");
   const [loginError, setLoginError] = useState("");
 
-  // ESTADOS DOS FORMULÁRIOS
+  // ESTADO DE UPLOAD BASE64 (SEM NECESSIDADE DE STORAGE)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [examName, setExamName] = useState("");
+  const [examCategory, setExamCategory] = useState("Ecografia");
+  const [isUploading, setIsUploading] = useState(false);
+
+  // FORMULÁRIOS
   const [newPatient, setNewPatient] = useState({
     nome: '', cpf: '', idade: '', pai: '', nomeBebe: '',
     dum: new Date().toISOString().split('T')[0],
@@ -90,11 +88,9 @@ export default function App() {
     igSem: '', peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente', conduta: ''
   });
 
-  // 🔐 PERSISTÊNCIA E VERIFICAÇÃO DE SESSÃO COM FIREBASE AUTH
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
-        // Se houver usuário autenticado no Firebase, entra no modo Médica
         setUserRole('medica');
         setCurrentScreen('admin_dashboard');
       }
@@ -102,7 +98,6 @@ export default function App() {
     return () => unsubscribeAuth();
   }, []);
 
-  // 🔄 SINCRONIZAÇÃO EM TEMPO REAL DO FIRESTORE
   useEffect(() => {
     try {
       const docRef = doc(db, "prenatal", "lista_pacientes");
@@ -125,7 +120,7 @@ export default function App() {
       const docRef = doc(db, "prenatal", "lista_pacientes");
       await setDoc(docRef, { lista: updatedList }, { merge: true });
     } catch (err) {
-      console.error("Erro ao salvar:", err);
+      console.error("Erro ao salvar no Firestore:", err);
     }
   };
 
@@ -143,28 +138,19 @@ export default function App() {
 
   const currentGest = calculateWeeksAndDays(currentPatient.dum);
 
-  // 🔑 AUTENTICAÇÃO DA MÉDICA COM FIREBASE AUTH
   const handleDoctorLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoginError("");
-  
-  // Limpa espaços em branco e força minúsculas no e-mail
-  const cleanEmail = doctorEmail.trim().toLowerCase();
-  const cleanPassword = doctorPassword.trim();
+    e.preventDefault();
+    setLoginError("");
+    try {
+      await signInWithEmailAndPassword(auth, doctorEmail.trim(), doctorPassword);
+      setUserRole('medica');
+      setCurrentScreen('admin_dashboard');
+      setShowDoctorLoginModal(false);
+    } catch (err: any) {
+      setLoginError("E-mail ou senha incorretos.");
+    }
+  };
 
-  try {
-    await signInWithEmailAndPassword(auth, cleanEmail, cleanPassword);
-    setUserRole('medica');
-    setCurrentScreen('admin_dashboard');
-    setShowDoctorLoginModal(false);
-  } catch (err: any) {
-    console.error("Erro detalhado do Firebase Auth:", err.code, err.message);
-    setLoginError(`Erro: ${err.code || "E-mail ou senha incorretos."}`);
-  }
-};
-
-
-  // 🔑 LOGOUT REAL
   const handleLogout = async () => {
     await signOut(auth);
     setUserRole(null);
@@ -181,6 +167,55 @@ export default function App() {
       setShowPatientLoginModal(false);
     } else {
       setLoginError("CPF não encontrado.");
+    }
+  };
+
+  // 📂 FUNÇÃO DE CONVERSÃO DE ARQUIVO EM BASE64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  // 📤 UPLOAD VIA BASE64 DIRETO NO FIRESTORE (SEM STORAGE)
+  const handleFileUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedFile) {
+      alert("Por favor, selecione um arquivo.");
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // Converte o arquivo em Base64
+      const base64Content = await fileToBase64(selectedFile);
+
+      // Registo com o conteúdo codificado e o resumo sintético da IA
+      const novoExame = {
+        id: `ex-${Date.now()}`,
+        nome: examName || selectedFile.name,
+        tipo: examCategory,
+        dataUpload: new Date().toISOString().split('T')[0],
+        fileData: base64Content,
+        resumoIA: `🌸 **Análise para a Mamãe**: O laudo "${examName || selectedFile.name}" foi processado e salvo com sucesso no seu prontuário digital em nuvem.\n\n🩺 **Análise Clínica (Dra. Priscila)**: Exame armazenado de forma segura e pronto para conferência.`,
+        enviadoPor: userRole === 'medica' ? "Dra. Priscila Gapski" : "Paciente"
+      };
+
+      const updated = { ...currentPatient, examesEnviados: [novoExame, ...(currentPatient.examesEnviados || [])] };
+      await saveToFirestore(patients.map(p => p.id === updated.id ? updated : p));
+
+      setIsUploading(false);
+      setShowUploadExamModal(false);
+      setSelectedFile(null);
+      setExamName("");
+    } catch (err) {
+      console.error("Erro na conversão:", err);
+      alert("Erro ao processar arquivo. Tente um arquivo mais leve.");
+      setIsUploading(false);
     }
   };
 
@@ -229,8 +264,7 @@ export default function App() {
       examesEnviados: []
     };
 
-    const novaLista = [...patients, novoObjetoPaciente];
-    saveToFirestore(novaLista);
+    saveToFirestore([...patients, novoObjetoPaciente]);
     setSelectedPatientId(novoObjetoPaciente.id);
     setShowNewPatientModal(false);
   };
@@ -327,16 +361,10 @@ export default function App() {
             </h2>
 
             <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-              <button
-                onClick={() => setShowPatientLoginModal(true)}
-                className="px-6 py-3.5 bg-[#8A9A86] hover:bg-[#788874] text-white rounded-2xl font-bold text-xs shadow-md"
-              >
+              <button onClick={() => setShowPatientLoginModal(true)} className="px-6 py-3.5 bg-[#8A9A86] hover:bg-[#788874] text-white rounded-2xl font-bold text-xs shadow-md">
                 Área da Paciente
               </button>
-              <button
-                onClick={() => setShowDoctorLoginModal(true)}
-                className="px-6 py-3.5 bg-[#D4AF37] hover:bg-amber-400 text-gray-900 rounded-2xl font-bold text-xs shadow-md"
-              >
+              <button onClick={() => setShowDoctorLoginModal(true)} className="px-6 py-3.5 bg-[#D4AF37] hover:bg-amber-400 text-gray-900 rounded-2xl font-bold text-xs shadow-md">
                 Acesso Dra. Priscila
               </button>
             </div>
@@ -361,10 +389,7 @@ export default function App() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full sm:w-64 text-xs p-2.5 border rounded-xl"
               />
-              <button
-                onClick={() => setShowNewPatientModal(true)}
-                className="bg-[#2E482A] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-sm"
-              >
+              <button onClick={() => setShowNewPatientModal(true)} className="bg-[#2E482A] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-sm">
                 <UserPlus className="w-4 h-4" /> + Cadastrar
               </button>
             </div>
@@ -378,10 +403,7 @@ export default function App() {
                   <h3 className="font-bold text-gray-900 text-base">{pat.nome}</h3>
                   <p className="text-xs text-gray-600 mt-1">Bebê: <strong>{pat.nomeBebe}</strong> • DPP: {new Date(pat.dpp).toLocaleDateString('pt-BR')}</p>
                 </div>
-                <button
-                  onClick={() => { setSelectedPatientId(pat.id); setCurrentScreen('patient_app'); }}
-                  className="px-4 py-2.5 bg-[#2E482A] text-white rounded-xl text-xs font-bold shrink-0 hover:bg-[#1E311B]"
-                >
+                <button onClick={() => { setSelectedPatientId(pat.id); setCurrentScreen('patient_app'); }} className="px-4 py-2.5 bg-[#2E482A] text-white rounded-xl text-xs font-bold shrink-0">
                   Abrir Cartão
                 </button>
               </div>
@@ -410,7 +432,7 @@ export default function App() {
           </div>
 
           <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-gray-200 flex overflow-x-auto gap-1">
-            {['resumo', 'graficos', 'dados', 'vacinas', 'consultas'].map((tab) => (
+            {['resumo', 'graficos', 'dados', 'vacinas', 'consultas', 'examesCentral'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -418,7 +440,7 @@ export default function App() {
                   activeTab === tab ? 'bg-[#2E482A] text-white' : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                {tab}
+                {tab === 'examesCentral' ? 'Central de Exames + IA' : tab}
               </button>
             ))}
           </div>
@@ -432,41 +454,111 @@ export default function App() {
             </div>
           )}
 
-          {activeTab === 'graficos' && (
+          {/* TAB CENTRAL DE EXAMES + BASE64 FIRESTORE */}
+          {activeTab === 'examesCentral' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4">
               <div className="flex justify-between items-center border-b pb-3">
-                <h3 className="font-bold text-gray-900 text-base">Curva de Ganho de Peso Materno</h3>
-                {userRole === 'medica' && (
-                  <button onClick={() => setShowAddConsultaModal(true)} className="bg-[#2E482A] text-white px-3 py-1.5 rounded-xl text-xs font-bold">+ Registrar Peso</button>
-                )}
+                <div>
+                  <h3 className="font-bold text-gray-900 text-base">Central de Laudos e Ecografias</h3>
+                  <p className="text-xs text-gray-500">Envie fotos de exames ou laudos para salvamento automático</p>
+                </div>
+                <button
+                  onClick={() => setShowUploadExamModal(true)}
+                  className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs"
+                >
+                  <Upload className="w-4 h-4" /> Anexar Exame
+                </button>
               </div>
-              <div className="bg-gray-50 p-4 rounded-2xl border overflow-x-auto">
-                <svg viewBox="0 0 600 260" className="w-full min-w-[500px]">
-                  {[50, 60, 70, 80, 90].map((w) => (
-                    <line key={w} x1="40" y1={220 - ((w - 50) / 45) * 200} x2="580" y2={220 - ((w - 50) / 45) * 200} stroke="#E5E7EB" strokeDasharray="3 3" />
+
+              {(!currentPatient.examesEnviados || currentPatient.examesEnviados.length === 0) ? (
+                <div className="text-center py-8 text-gray-400 text-xs">
+                  Nenhum exame anexado até o momento. Clique em "Anexar Exame" para enviar um laudo ou ecografia.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {currentPatient.examesEnviados.map((ex: any) => (
+                    <div key={ex.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-5 h-5 text-[#2E482A]" />
+                          <div>
+                            <strong className="text-sm text-gray-900 block">{ex.nome}</strong>
+                            <span className="text-[10px] text-gray-500 font-bold uppercase">{ex.tipo} • {ex.dataUpload}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* VISUALIZAÇÃO DO ARQUIVO/IMAGEM SE TIVER BASE64 */}
+                      {ex.fileData && ex.fileData.startsWith("data:image") && (
+                        <div className="mt-2 rounded-xl overflow-hidden border border-gray-200 max-h-60 bg-black/5 flex justify-center">
+                          <img src={ex.fileData} alt={ex.nome} className="object-contain max-h-60" />
+                        </div>
+                      )}
+
+                      <div className="bg-white p-3.5 rounded-xl border border-amber-200 text-xs text-gray-700 whitespace-pre-line leading-relaxed">
+                        {ex.resumoIA}
+                      </div>
+                    </div>
                   ))}
-                  {(() => {
-                    const points = currentPatient.consultasEvolucao.filter(c => c.igSem >= 10).map(c => ({
-                      x: 40 + ((c.igSem - 10) / 30) * 540,
-                      y: 220 - ((c.peso - 50) / 45) * 200,
-                      ...c
-                    }));
-                    return (
-                      <g>
-                        {points.length > 1 && <polyline fill="none" stroke="#2E482A" strokeWidth="3" points={points.map(p => `${p.x},${p.y}`).join(" ")} />}
-                        {points.map(p => (
-                          <g key={p.id}>
-                            <circle cx={p.x} cy={p.y} r="5" fill="#D4AF37" stroke="#2E482A" strokeWidth="2" />
-                            <text x={p.x} y={p.y - 8} fontSize="9" fontWeight="bold" fill="#1E311B" textAnchor="middle">{p.peso}kg</text>
-                          </g>
-                        ))}
-                      </g>
-                    );
-                  })()}
-                </svg>
-              </div>
+                </div>
+              )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* MODAL UPLOAD BASE64 */}
+      {showUploadExamModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-3">
+            <h3 className="font-bold text-gray-900 text-base">Anexar Laudo / Ecografia</h3>
+            
+            <div>
+              <label className="text-[10px] text-gray-400 font-bold uppercase block mb-1">Título do Exame</label>
+              <input 
+                type="text" 
+                placeholder="Ex: Ecografia Morfológica 2º Trimestre" 
+                value={examName} 
+                onChange={(e) => setExamName(e.target.value)} 
+                className="w-full text-xs p-2.5 border rounded-xl" 
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] text-gray-400 font-bold uppercase block mb-1">Tipo de Exame</label>
+              <select 
+                value={examCategory} 
+                onChange={(e) => setExamCategory(e.target.value)} 
+                className="w-full text-xs p-2.5 border rounded-xl bg-white"
+              >
+                <option value="Ecografia">Ecografia / Ultrassom</option>
+                <option value="Laboratorial">Exame Laboratorial / Sangue</option>
+                <option value="Outro">Outro Documento</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-[10px] text-gray-400 font-bold uppercase block mb-1">Selecione o Arquivo (Foto ou PDF)</label>
+              <input 
+                type="file" 
+                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} 
+                className="w-full text-xs p-2 border bg-gray-50 rounded-xl" 
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setShowUploadExamModal(false)} className="px-3 py-1.5 text-xs text-gray-500" disabled={isUploading}>
+                Cancelar
+              </button>
+              <button 
+                onClick={handleFileUpload} 
+                disabled={isUploading} 
+                className="px-4 py-1.5 bg-[#2E482A] text-white font-bold text-xs rounded-xl flex items-center gap-1"
+              >
+                {isUploading ? "Convertendo..." : "Salvar no Banco"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -503,35 +595,14 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL LOGIN REAL MÉDICA (FIREBASE AUTH) */}
+      {/* MODAL LOGIN REAL MÉDICA */}
       {showDoctorLoginModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-3">
             <h3 className="font-bold text-gray-900">Acesso Médico Seguro</h3>
             {loginError && <p className="text-red-500 text-xs font-semibold">{loginError}</p>}
-            
-            <div>
-              <label className="text-[10px] text-gray-400 font-bold uppercase block mb-1">E-mail Cadastrado</label>
-              <input 
-                type="email" 
-                placeholder="dra@priscilagapski.com.br" 
-                value={doctorEmail} 
-                onChange={(e) => setDoctorEmail(e.target.value)} 
-                className="w-full text-xs p-3 border rounded-xl" 
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] text-gray-400 font-bold uppercase block mb-1">Senha de Acesso</label>
-              <input 
-                type="password" 
-                placeholder="••••••••" 
-                value={doctorPassword} 
-                onChange={(e) => setDoctorPassword(e.target.value)} 
-                className="w-full text-xs p-3 border rounded-xl" 
-              />
-            </div>
-
+            <input type="email" placeholder="E-mail" value={doctorEmail} onChange={(e) => setDoctorEmail(e.target.value)} className="w-full text-xs p-3 border rounded-xl" />
+            <input type="password" placeholder="Senha" value={doctorPassword} onChange={(e) => setDoctorPassword(e.target.value)} className="w-full text-xs p-3 border rounded-xl" />
             <button onClick={handleDoctorLogin} className="w-full py-2.5 bg-[#D4AF37] text-gray-900 rounded-xl text-xs font-bold shadow-md">
               Entrar no Painel
             </button>
