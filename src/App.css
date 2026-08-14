@@ -182,33 +182,54 @@
     border-right-color: var(--border);
   }
 }
-/* ==========================================
-   ESTILOS DE IMPRESSÃO A4 (CARTEIRINHA)
-   ========================================== */
+/* ===================================================
+   REGRAS DE IMPRESSÃO A4 PAISAGEM (FRENTE E VERSO)
+   =================================================== */
 @media print {
   @page {
-    size: A4 landscape; /* Força folha horizontal A4 */
-    margin: 6mm;        /* Margem mínima para caber perfeitamente */
+    size: A4 landscape;
+    margin: 8mm;
   }
 
   html, body {
-    width: 100% !important;
+    width: 297mm !important;
     height: auto !important;
     margin: 0 !important;
     padding: 0 !important;
     background: #ffffff !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 
-  /* Oculta tudo que não deve sair na folha impressa */
-  header, nav, button, form, .print\\:hidden {
+  /* Oculta tudo que é interativo da tela normal */
+  header, nav, button, form, .print\\:hidden, #root > div > *:not(#print-carteirinha-root) {
     display: none !important;
   }
 
-  /* Evita quebra de página indevida e páginas em branco */
-  * {
-    page-break-inside: avoid;
-    break-inside: avoid;
+  /* Exibe exclusivamente a carteirinha diagramada */
+  #print-carteirinha-root {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  /* Força a divisão exata entre Página 1 (Frente) e Página 2 (Verso) */
+  .print-page {
+    width: 100% !important;
+    height: 190mm !important;
+    box-sizing: border-box !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .print-page:first-child {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  .print-page:last-child {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
   }
 }
+
