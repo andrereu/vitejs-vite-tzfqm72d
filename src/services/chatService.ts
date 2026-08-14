@@ -16,73 +16,52 @@ export const sendPrenatalChatMessage = async (
   const apiKey = (import.meta.env.VITE_GEMINI_API_KEY || "").trim();
 
   if (!apiKey) {
-    return "❌ Erro: VITE_GEMINI_API_KEY não encontrada nas variáveis da Vercel.";
+    return "❌ Erro: VITE_GEMINI_API_KEY não foi configurada na Vercel.";
   }
 
-  const promptText = `Você é a Assistente Virtual Pré-Natal da Dra. Priscila Gapski (CRM 24734).
+  const systemInstruction = `Você é a Assistente Virtual Pré-Natal da Dra. Priscila Gapski (CRM 24734).
 Informações da gestante:
 - Nome: ${patient.nome}
 - Idade Gestacional: ${weeks} semanas
 - Nome do Bebê: ${patient.nomeBebe || 'Bebê'}
 
-Dúvida da gestante: "${userMessage}"
+Diretrizes de atendimento:
+- Responda em português de forma extremamente carinhosa, empática e acolhedora com emojis delicados (🌸, 👶, ✨).
+- Explique de forma simples e didática o que é comum e esperado para ${weeks} semanas.
+- NUNCA prescreva medicamentos. Em caso de sangramentos, perda de líquido, dores fortes ou ausência de movimentos fetais, recomende buscar atendimento médico de urgência com calma e firmeza.`;
 
-Diretrizes:
-- Responda em português com carinho, acolhimento e emojis delicados (🌸, 👶, ✨).
-- Dê orientações seguras sobre sintomas comuns para ${weeks} semanas.
-- NUNCA prescreva medicamentos. Se houver sangramento, dor intensa ou perda de líquido, oriente atendimento de urgência.`;
+  // Novo endpoint da Interactions API
+  const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`;
 
   const payload = {
-    contents: [
-      {
-        parts: [{ text: promptText }]
-      }
-    ]
+    input: userMessage,
+    system_instruction: systemInstruction,
+    generation_config: {
+      temperature: 0.7
+    }
   };
 
   try {
-    // 1. Descobre dinamicamente os modelos disponíveis para esta chave
-    const listRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
-    );
-    const listData = await listRes.json();
-
-    if (!listRes.ok) {
-      return `❌ Erro ao consultar modelos (${listRes.status}): ${listData?.error?.message || JSON.stringify(listData)}`;
-    }
-
-    // Filtra apenas modelos que suportam geração de conteúdo
-    const availableModels: string[] = (listData.models || [])
-      .filter((m: any) => m.supportedGenerationMethods?.includes("generateContent"))
-      .map((m: any) => m.name); // Ex: "models/gemini-pro", "models/gemini-1.5-pro", etc.
-
-    if (availableModels.length === 0) {
-      return `❌ Nenhum modelo de geração ativo encontrado para esta chave. Modelos retornados: ${JSON.stringify(listData.models?.map((m: any) => m.name))}`;
-    }
-
-    // Prioriza flash ou pro, senão pega o primeiro disponível
-    const selectedModel =
-      availableModels.find(m => m.includes("flash")) ||
-      availableModels.find(m => m.includes("gemini")) ||
-      availableModels[0];
-
-    // 2. Executa a requisição no modelo descoberto
-    const generateUrl = `https://generativelanguage.googleapis.com/v1beta/${selectedModel}:generateContent?key=${apiKey}`;
-
-    const genRes = await fetch(generateUrl, {
+    const response = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey
+      },
       body: JSON.stringify(payload)
     });
 
-    const genData = await genRes.json();
+    const data = await response.json();
 
-    if (genRes.ok) {
-      return genData.candidates?.[0]?.content?.parts?.[0]?.text || "Desculpe, não consegui obter a resposta agora.";
+    if (response.ok) {
+      // Extrai a resposta gerada pela nova Interactions API
+      const reply = data.output || data.text || data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (reply) return reply;
+      return JSON.stringify(data);
     } else {
-      return `❌ Erro ao gerar com ${selectedModel} (${genRes.status}): ${genData?.error?.message || JSON.stringify(genData)}`;
+      return `❌ Erro da API (${response.status}): ${data?.error?.message || JSON.stringify(data)}`;
     }
-  } catch (err: any) {
-    return `❌ Erro na requisição: ${err?.message || err}`;
+  } catch (error: any) {
+    return `❌ Erro de conexão: ${error?.message || error}`;
   }
 };
