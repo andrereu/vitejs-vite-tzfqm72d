@@ -35,7 +35,7 @@ const Tooltip = ({ title, text }: { title: string; text: string }) => {
   );
 };
 
-// HELPER PARA FORMATAR DATA YYYY-MM-DD EM DD/MM PARA EXIBIÇÃO LIMPA
+// HELPER PARA FORMATAR DATA YYYY-MM-DD EM DD/MM
 const formatDateDisplay = (dateStr: string) => {
   if (!dateStr) return '';
   if (dateStr.includes('-')) {
@@ -70,8 +70,8 @@ const initialPatientsList = [
       covid19: { realizada: true, data: "2026-02-15", lote: "COV-3" }
     },
     examesTabela: {
-      hbVg: { d1: "2026-02-20", r1: "12.8 / 38%", d2: "", r2: "" },
-      plaquetas: { d1: "2026-02-20", r1: "245.000", d2: "", r2: "" },
+      hbVg: { d1: "2026-02-20", r1: "12.8 g/dL / 38%", d2: "", r2: "" },
+      plaquetas: { d1: "2026-02-20", r1: "245.000 /mm³", d2: "", r2: "" },
       glicemiaTotg: { d1: "2026-02-20", r1: "82 mg/dL", d2: "", r2: "" },
       htlv: { d1: "2026-02-20", r1: "Não Reagente", d2: "", r2: "" },
       hiv: { d1: "2026-02-20", r1: "Não Reagente", d2: "", r2: "" },
@@ -85,7 +85,7 @@ const initialPatientsList = [
       vitD: { d1: "2026-02-20", r1: "34 ng/mL", d2: "", r2: "" },
       ferritina: { d1: "2026-02-20", r1: "65 ng/mL", d2: "", r2: "" },
       vitB12: { d1: "2026-02-20", r1: "420 pg/mL", d2: "", r2: "" },
-      urinaUrocultura: { d1: "2026-02-20", r1: "Sem bacteriúria", d2: "", r2: "" },
+      urinaUrocultura: { d1: "2026-02-20", r1: "Normal / Ausente", d2: "", r2: "" },
       gbs: { d1: "", r1: "", d2: "", r2: "" }
     },
     consultasEvolucao: [
@@ -302,7 +302,7 @@ export default function App() {
       };
     } else {
       return {
-        resumoIA: `🌸 **Acompanhamento para a Mamãe (IA)**:\nDocumento anexado e organized com segurança em seu prontuário digital.`,
+        resumoIA: `🌸 **Acompanhamento para a Mamãe (IA)**:\nDocumento anexado e organizado com segurança em seu prontuário digital.`,
         notaDra: `🩺 **Anotações Clínicas (Dra. Priscila)**:\n- Documento conferido e arquivado no prontuário da gestante.`
       };
     }
@@ -421,24 +421,25 @@ export default function App() {
     return patients.filter(p => p.nome.toLowerCase().includes(q) || p.cpf.includes(q));
   }, [patients, searchQuery]);
 
+  // DICIONÁRIO DE EXAMES DA LISTA OFICIAL COM SEUS PLACEHOLDERS DE MÉTRICA
   const LISTA_EXAMES_OFICIAIS = [
-    { id: 'hbVg', label: 'HB / VG' },
-    { id: 'plaquetas', label: 'PLAQUETAS' },
-    { id: 'glicemiaTotg', label: 'GLICEMIA / TOTG' },
-    { id: 'htlv', label: 'HTLV' },
-    { id: 'hiv', label: 'HIV' },
-    { id: 'sifilis', label: 'SÍFILIS' },
-    { id: 'hbsag', label: 'HBsAG / Anti-HBS' },
-    { id: 'tsh', label: 'TSH' },
-    { id: 'antiHcv', label: 'Anti-HCV' },
-    { id: 'rubeola', label: 'RUBÉOLA' },
-    { id: 'cmv', label: 'CMV' },
-    { id: 'toxo', label: 'TOXO' },
-    { id: 'vitD', label: 'VITAMINA D' },
-    { id: 'ferritina', label: 'FERRITINA' },
-    { id: 'vitB12', label: 'VITAMINA B12' },
-    { id: 'urinaUrocultura', label: 'URINA / UROCULTURA' },
-    { id: 'gbs', label: 'GBS (35-37 sem)' }
+    { id: 'hbVg', label: 'HB / VG', placeholder: 'Ex: 12.5 g/dL / 38%' },
+    { id: 'plaquetas', label: 'PLAQUETAS', placeholder: 'Ex: 240.000 /mm³' },
+    { id: 'glicemiaTotg', label: 'GLICEMIA / TOTG', placeholder: 'Ex: 85 mg/dL' },
+    { id: 'htlv', label: 'HTLV', placeholder: 'Ex: Não Reagente' },
+    { id: 'hiv', label: 'HIV', placeholder: 'Ex: Não Reagente' },
+    { id: 'sifilis', label: 'SÍFILIS', placeholder: 'Ex: Não Reagente (VDRL)' },
+    { id: 'hbsag', label: 'HBsAG / Anti-HBS', placeholder: 'Ex: Não Reagente' },
+    { id: 'tsh', label: 'TSH', placeholder: 'Ex: 1.8 mIU/L' },
+    { id: 'antiHcv', label: 'Anti-HCV', placeholder: 'Ex: Não Reagente' },
+    { id: 'rubeola', label: 'RUBÉOLA', placeholder: 'Ex: IgG Imune / IgM-' },
+    { id: 'cmv', label: 'CMV', placeholder: 'Ex: IgG Imune / IgM-' },
+    { id: 'toxo', label: 'TOXO', placeholder: 'Ex: IgG+ IgM-' },
+    { id: 'vitD', label: 'VITAMINA D', placeholder: 'Ex: 35 ng/mL' },
+    { id: 'ferritina', label: 'FERRITINA', placeholder: 'Ex: 60 ng/mL' },
+    { id: 'vitB12', label: 'VITAMINA B12', placeholder: 'Ex: 450 pg/mL' },
+    { id: 'urinaUrocultura', label: 'URINA / UROCULTURA', placeholder: 'Ex: Normal / Sem germes' },
+    { id: 'gbs', label: 'GBS (35-37 sem)', placeholder: 'Ex: Negativo / Positivo' }
   ];
 
   return (
@@ -711,11 +712,11 @@ export default function App() {
                           <td className="p-3 font-bold text-gray-900">{ex.label}</td>
                           <td className="p-3 text-gray-700">
                             {dados.d1 ? <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md mr-2">{formatDateDisplay(dados.d1)}</span> : null}
-                            {dados.r1 || <span className="text-gray-300 italic">Pendente</span>}
+                            {dados.r1 || <span className="text-gray-300 italic">Pendente ({ex.placeholder})</span>}
                           </td>
                           <td className="p-3 text-gray-700">
                             {dados.d2 ? <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md mr-2">{formatDateDisplay(dados.d2)}</span> : null}
-                            {dados.r2 || <span className="text-gray-300 italic">Pendente</span>}
+                            {dados.r2 || <span className="text-gray-300 italic">Pendente ({ex.placeholder})</span>}
                           </td>
                         </tr>
                       );
@@ -1066,7 +1067,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL EDITAR EXAMES LABORATORIAIS (AGORA COM SELETOR DE CALENDÁRIO NATIVO <input type="date">) */}
+      {/* MODAL EDITAR EXAMES LABORATORIAIS (AGORA COM PLACEHOLDERS DE MÉTRICAS CLÍNICAS EXATAS) */}
       {showEditExamesModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
           <div className="bg-white p-6 rounded-3xl max-w-xl w-full max-h-[85vh] overflow-y-auto space-y-4">
@@ -1093,13 +1094,13 @@ export default function App() {
                           />
                           <input 
                             type="text" 
-                            placeholder="Resultado" 
+                            placeholder={ex.placeholder} 
                             value={currentVal.r1 || ''} 
                             onChange={(e) => setEditExamesData({
                               ...editExamesData,
                               [ex.id]: { ...currentVal, r1: e.target.value }
                             })} 
-                            className="p-1.5 border rounded-lg text-xs bg-white" 
+                            className="p-1.5 border rounded-lg text-xs bg-white font-medium" 
                           />
                         </div>
                       </div>
@@ -1118,13 +1119,13 @@ export default function App() {
                           />
                           <input 
                             type="text" 
-                            placeholder="Resultado" 
+                            placeholder={ex.placeholder} 
                             value={currentVal.r2 || ''} 
                             onChange={(e) => setEditExamesData({
                               ...editExamesData,
                               [ex.id]: { ...currentVal, r2: e.target.value }
                             })} 
-                            className="p-1.5 border rounded-lg text-xs bg-white" 
+                            className="p-1.5 border rounded-lg text-xs bg-white font-medium" 
                           />
                         </div>
                       </div>
