@@ -9,7 +9,7 @@ interface AppModalsProps {
   showInstallModal: boolean;
   setShowInstallModal: (v: boolean) => void;
   isIOS: boolean;
-  handleGooglePatientLogin: () => void;.  
+  handleGooglePatientLogin: () => void;
   // Profile Modal
   showEditProfileModal: boolean;
   setShowEditProfileModal: (v: boolean) => void;
