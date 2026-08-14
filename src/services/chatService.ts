@@ -27,14 +27,20 @@ Informações da gestante:
 
 Diretrizes de atendimento:
 - Responda em português com muito carinho, empatia e acolhimento usando emojis delicados (🌸, 👶, ✨).
-- Explique de forma simples o que é esperado e dicas seguras para ${weeks} semanas.
-- NUNCA prescreva medicamentos. Em caso de sangramentos, perda de líquido ou dor forte, recomende atendimento médico de urgência com firmeza e calma.`;
+- Explique de forma simples e didática o que é esperado e dicas seguras para ${weeks} semanas.
+- NUNCA prescreva medicamentos. Em caso de sangramentos, perda de líquido, dor intensa ou ausência de movimentos fetais, oriente atendimento de urgência com firmeza e calma.`;
 
+  // Endpoint oficial Interactions API
   const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`;
 
   const payload = {
     model: "gemini-2.5-flash",
-    input: userMessage,
+    input: [
+      {
+        role: "user",
+        content: userMessage
+      }
+    ],
     system_instruction: systemInstruction
   };
 
@@ -51,16 +57,16 @@ Diretrizes de atendimento:
     const data = await response.json();
 
     if (response.ok) {
-      // Extrai o texto de resposta retornado pela Interactions API
-      const reply =
+      // Extrai o texto da resposta da Interactions API
+      const textOutput =
+        data.output?.map?.((o: any) => o.content || o.text).join('\n') ||
+        data.output?.[0]?.content ||
         data.output?.text ||
-        data.output ||
         data.text ||
         data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-      if (reply && typeof reply === 'string') return reply;
-      if (typeof reply === 'object') return JSON.stringify(reply);
-      return JSON.stringify(data);
+      if (textOutput) return textOutput;
+      return typeof data === 'string' ? data : JSON.stringify(data);
     } else {
       return `❌ Erro da API (${response.status}): ${data?.error?.message || JSON.stringify(data)}`;
     }
