@@ -17,7 +17,7 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
     <div id="print-carteirinha-root" className="hidden print:block text-gray-800 text-[11px] leading-tight font-sans">
       
       {/* PÁGINA 1: CAPA OFICIAL + GRÁFICO GPG */}
-      <div className="print-page w-full h-[190mm] p-6 flex gap-6 bg-white border-2 border-gray-200 rounded-2xl mb-0">
+      <div className="print-page w-full h-full flex gap-6 bg-white border-2 border-gray-200 rounded-2xl">
         
         {/* COLUNA ESQUERDA: CAPA */}
         <div className="w-1/2 flex flex-col justify-between border-r-2 border-dashed border-[#2E482A]/30 pr-6">
@@ -135,7 +135,7 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
       </div>
 
       {/* PÁGINA 2: CONSULTAS + EXAMES */}
-      <div className="print-page w-full h-[190mm] p-6 flex gap-6 bg-white border-2 border-gray-200 rounded-2xl">
+      <div className="print-page w-full h-full flex gap-6 bg-white border-2 border-gray-200 rounded-2xl">
         
         {/* COLUNA ESQUERDA: CONSULTAS */}
         <div className="w-1/2 flex flex-col justify-between border-r-2 border-dashed border-[#2E482A]/30 pr-6">
