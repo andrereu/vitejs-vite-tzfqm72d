@@ -10,13 +10,6 @@ import { db, auth } from './firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 
-const WEIGHT_CURVES: Record<string, { label: string; targetMin: number; targetMax: number; color: string }> = {
-  baixoPeso: { label: 'Baixo Peso (IMC < 18,5)', targetMin: 12.5, targetMax: 18.0, color: '#3B82F6' },
-  normal: { label: 'Peso Normal (IMC 18,5 - 24,9)', targetMin: 11.5, targetMax: 16.0, color: '#10B981' },
-  sobrepeso: { label: 'Sobrepeso (IMC 25,0 - 29,9)', targetMin: 7.0, targetMax: 11.5, color: '#F59E0B' },
-  obesidade: { label: 'Obesidade (IMC ≥ 30,0)', targetMin: 5.0, targetMax: 9.0, color: '#EF4444' }
-};
-
 const initialPatientsList = [
   {
     id: "gestante-01",
@@ -42,7 +35,8 @@ const initialPatientsList = [
     examesLab: [],
     ultrassons: [],
     consultasEvolucao: [
-      { id: "c-1", data: "2026-02-20", igSem: 6, peso: 62.5, pa: "110/70", au: "NP", bcfMf: "Visível USG", edema: "Ausente", conduta: "Início do Ácido Fólico." }
+      { id: "c-1", data: "2026-02-20", igSem: 6, peso: 62.5, pa: "110/70", au: "NP", bcfMf: "Visível USG", edema: "Ausente", conduta: "Início do Ácido Fólico." },
+      { id: "c-2", data: "2026-04-15", igSem: 13, peso: 64.0, pa: "115/75", au: "12 cm", bcfMf: "152 bpm / MF-", edema: "Ausente", conduta: "Ecografia Morfológica solicitada." }
     ],
     agendaConsultas: [],
     examesEnviados: []
@@ -179,7 +173,6 @@ export default function App() {
     });
   };
 
-  // 📂 GERADOR DE ANÁLISES REALISTAS (IA + CLÍNICA)
   const generateRealistAnalyses = (category: string, title: string) => {
     if (category === "Ecografia") {
       return {
@@ -199,7 +192,6 @@ export default function App() {
     }
   };
 
-  // 📤 UPLOAD VIA BASE64 COM ANÁLISES REALISTAS
   const handleFileUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile) {
@@ -286,6 +278,31 @@ export default function App() {
     saveToFirestore([...patients, novoObjetoPaciente]);
     setSelectedPatientId(novoObjetoPaciente.id);
     setShowNewPatientModal(false);
+  };
+
+  const handleAddConsulta = (e: React.FormEvent) => {
+    e.preventDefault();
+    const sem = parseInt(newConsulta.igSem) || currentGest.weeks;
+    const pesoVal = parseFloat(newConsulta.peso) || parseFloat(currentPatient.pesoInicial);
+
+    const updatedConsultas = [
+      ...currentPatient.consultasEvolucao,
+      {
+        id: `c-${Date.now()}`,
+        data: newConsulta.data,
+        igSem: sem,
+        peso: pesoVal,
+        pa: newConsulta.pa,
+        au: newConsulta.au,
+        bcfMf: newConsulta.bcfMf,
+        edema: newConsulta.edema,
+        conduta: newConsulta.conduta
+      }
+    ].sort((a, b) => a.igSem - b.igSem);
+
+    const updated = { ...currentPatient, consultasEvolucao: updatedConsultas };
+    saveToFirestore(patients.map(p => p.id === updated.id ? updated : p));
+    setShowAddConsultaModal(false);
   };
 
   const filteredPatients = useMemo(() => {
@@ -426,29 +443,194 @@ export default function App() {
           </div>
 
           <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-gray-200 flex overflow-x-auto gap-1">
-            {['resumo', 'graficos', 'dados', 'vacinas', 'consultas', 'examesCentral'].map((tab) => (
+            {[
+              { id: 'resumo', label: 'Resumo' },
+              { id: 'graficos', label: 'Gráficos' },
+              { id: 'dados', label: 'Dados Clínicos' },
+              { id: 'vacinas', label: 'Vacinas' },
+              { id: 'consultas', label: 'Consultas' },
+              { id: 'examesCentral', label: 'Central de Exames + IA' }
+            ].map((tab) => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
                 className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap uppercase transition-all ${
-                  activeTab === tab ? 'bg-[#2E482A] text-white' : 'text-gray-600 hover:bg-gray-100'
+                  activeTab === tab.id ? 'bg-[#2E482A] text-white' : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                {tab === 'examesCentral' ? 'Central de Exames + IA' : tab}
+                {tab.label}
               </button>
             ))}
           </div>
 
+          {/* TAB 1: RESUMO */}
           {activeTab === 'resumo' && (
-            <div className="bg-gradient-to-br from-[#2E482A] to-[#1E311B] text-white p-6 rounded-3xl shadow-md">
-              <blockquote className="font-serif italic text-lg leading-relaxed text-[#F4F6F0]">
-                "Antes de você existir eu já te queria, antes de você existir eu já te amava, em menos de um minuto de nascido já daria minha vida por você."
-              </blockquote>
-              <p className="mt-3 text-xs font-bold text-[#E8ECD8]">Dra. Priscila Gapski • CRM 24734</p>
+            <div className="space-y-4">
+              <div className="bg-gradient-to-br from-[#2E482A] to-[#1E311B] text-white p-6 rounded-3xl shadow-md">
+                <blockquote className="font-serif italic text-lg leading-relaxed text-[#F4F6F0]">
+                  "Antes de você existir eu já te queria, antes de você existir eu já te amava, em menos de um minuto de nascido já daria minha vida por você."
+                </blockquote>
+                <p className="mt-3 text-xs font-bold text-[#E8ECD8]">Dra. Priscila Gapski • CRM 24734</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs">
+                  <span className="text-[10px] text-gray-400 font-bold uppercase block">Idade Gestacional</span>
+                  <div className="text-2xl font-bold text-gray-900 mt-1">{currentGest.weeks} Semanas e {currentGest.days} dias</div>
+                </div>
+                <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs">
+                  <span className="text-[10px] text-gray-400 font-bold uppercase block">Data Provável do Parto (DPP)</span>
+                  <div className="text-2xl font-bold text-gray-900 mt-1">{new Date(currentPatient.dpp).toLocaleDateString('pt-BR')}</div>
+                </div>
+                <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs">
+                  <span className="text-[10px] text-gray-400 font-bold uppercase block">Tipo Sanguíneo</span>
+                  <div className="text-2xl font-bold text-gray-900 mt-1">{currentPatient.tipoSanguineo}</div>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* TAB CENTRAL DE EXAMES + IA & DRA PRISCILA */}
+          {/* TAB 2: GRÁFICOS (CURVA DE GANHO DE PESO) */}
+          {activeTab === 'graficos' && (
+            <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4">
+              <div className="flex justify-between items-center border-b pb-3">
+                <div>
+                  <h3 className="font-bold text-gray-900 text-base">Curva de Ganho de Peso Materno (Atalah / MS)</h3>
+                  <p className="text-xs text-gray-500">Acompanhamento do peso ideal ao longo das semanas de gestação</p>
+                </div>
+                {userRole === 'medica' && (
+                  <button onClick={() => setShowAddConsultaModal(true)} className="bg-[#2E482A] text-white px-3.5 py-1.5 rounded-xl text-xs font-bold">+ Registrar Consulta/Peso</button>
+                )}
+              </div>
+              <div className="bg-gray-50 p-4 rounded-2xl border overflow-x-auto">
+                <svg viewBox="0 0 600 260" className="w-full min-w-[500px]">
+                  {[50, 60, 70, 80, 90].map((w) => (
+                    <line key={w} x1="40" y1={220 - ((w - 50) / 45) * 200} x2="580" y2={220 - ((w - 50) / 45) * 200} stroke="#E5E7EB" strokeDasharray="3 3" />
+                  ))}
+                  {(() => {
+                    const points = currentPatient.consultasEvolucao.map(c => ({
+                      x: 40 + ((c.igSem) / 40) * 540,
+                      y: 220 - ((c.peso - 50) / 45) * 200,
+                      ...c
+                    }));
+                    return (
+                      <g>
+                        {points.length > 1 && <polyline fill="none" stroke="#2E482A" strokeWidth="3" points={points.map(p => `${p.x},${p.y}`).join(" ")} />}
+                        {points.map(p => (
+                          <g key={p.id}>
+                            <circle cx={p.x} cy={p.y} r="5" fill="#D4AF37" stroke="#2E482A" strokeWidth="2" />
+                            <text x={p.x} y={p.y - 8} fontSize="9" fontWeight="bold" fill="#1E311B" textAnchor="middle">{p.peso}kg</text>
+                          </g>
+                        ))}
+                      </g>
+                    );
+                  })()}
+                </svg>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: DADOS CLÍNICOS DA GESTANTE */}
+          {activeTab === 'dados' && (
+            <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4">
+              <h3 className="font-bold text-gray-900 text-base border-b pb-3">Dados Cadastrais e Obstétricos</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div className="p-4 bg-gray-50 rounded-2xl space-y-1">
+                  <span className="text-gray-400 uppercase font-bold block">Nome da Paciente</span>
+                  <strong className="text-sm text-gray-900">{currentPatient.nome}</strong>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-2xl space-y-1">
+                  <span className="text-gray-400 uppercase font-bold block">Acompanhante / Pai</span>
+                  <strong className="text-sm text-gray-900">{currentPatient.pai}</strong>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-2xl space-y-1">
+                  <span className="text-gray-400 uppercase font-bold block">Idade / CPF</span>
+                  <strong className="text-sm text-gray-900">{currentPatient.idade} anos • {currentPatient.cpf}</strong>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-2xl space-y-1">
+                  <span className="text-gray-400 uppercase font-bold block">Histórico Obstétrico (G / P / C / A)</span>
+                  <strong className="text-sm text-gray-900">G{currentPatient.g} P{currentPatient.p} C{currentPatient.c} A{currentPatient.a}</strong>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-2xl space-y-1 col-span-1 md:col-span-2">
+                  <span className="text-gray-400 uppercase font-bold block">Doenças Prévias / Alergias</span>
+                  <strong className="text-sm text-gray-900">{currentPatient.doencasPrevias}</strong>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: VACINAS */}
+          {activeTab === 'vacinas' && (
+            <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4">
+              <h3 className="font-bold text-gray-900 text-base border-b pb-3">Carteira de Vacinação Gestacional</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { key: 'influenza', label: 'Influenza (Gripe)', obs: 'Dose única na gestação' },
+                  { key: 'vsr', label: 'VSR (Vírus Sincicial Respiratório)', obs: 'Proteção para bronquiolite' },
+                  { key: 'dtpa', label: 'dTPa (Tétano, Difteria e Coqueluche)', obs: 'A partir da 20ª semana' },
+                  { key: 'covid19', label: 'Covid-19', obs: 'Dose de reforço' }
+                ].map(vac => {
+                  const info = (currentPatient.vacinas as any)?.[vac.key];
+                  return (
+                    <div key={vac.key} className="p-4 bg-gray-50 rounded-2xl border border-gray-200 flex justify-between items-center">
+                      <div>
+                        <strong className="text-sm text-gray-900 block">{vac.label}</strong>
+                        <span className="text-[10px] text-gray-500 block">{vac.obs}</span>
+                        {info?.realizada && (
+                          <span className="text-[10px] text-emerald-600 font-bold mt-1 block">Realizada em {info.data} • Lote: {info.lote}</span>
+                        )}
+                      </div>
+                      <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${info?.realizada ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                        {info?.realizada ? 'Aplicada' : 'Pendente'}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: CONSULTAS E EVOLUÇÃO */}
+          {activeTab === 'consultas' && (
+            <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4">
+              <div className="flex justify-between items-center border-b pb-3">
+                <h3 className="font-bold text-gray-900 text-base">Evolução das Consultas de Pré-Natal</h3>
+                {userRole === 'medica' && (
+                  <button onClick={() => setShowAddConsultaModal(true)} className="bg-[#2E482A] text-white px-3.5 py-1.5 rounded-xl text-xs font-bold">+ Nova Consulta</button>
+                )}
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="p-3 font-bold text-gray-600">Data</th>
+                      <th className="p-3 font-bold text-gray-600">IG</th>
+                      <th className="p-3 font-bold text-gray-600">Peso</th>
+                      <th className="p-3 font-bold text-gray-600">P.A.</th>
+                      <th className="p-3 font-bold text-gray-600">A.U.</th>
+                      <th className="p-3 font-bold text-gray-600">BCF / MF</th>
+                      <th className="p-3 font-bold text-gray-600">Conduta</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {currentPatient.consultasEvolucao.map(c => (
+                      <tr key={c.id} className="hover:bg-gray-50">
+                        <td className="p-3 font-semibold">{c.data}</td>
+                        <td className="p-3">{c.igSem} Sem</td>
+                        <td className="p-3">{c.peso} kg</td>
+                        <td className="p-3">{c.pa}</td>
+                        <td className="p-3">{c.au}</td>
+                        <td className="p-3">{c.bcfMf}</td>
+                        <td className="p-3 text-gray-600">{c.conduta}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 6: CENTRAL DE EXAMES + IA & DRA PRISCILA */}
           {activeTab === 'examesCentral' && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4">
               <div className="flex justify-between items-center border-b pb-3">
@@ -557,6 +739,30 @@ export default function App() {
               >
                 {isUploading ? "Convertendo..." : "Salvar no Banco"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL ADICIONAR CONSULTA */}
+      {showAddConsultaModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-3">
+            <h3 className="font-bold text-gray-900 text-base">Registrar Nova Consulta</h3>
+            <input type="date" value={newConsulta.data} onChange={(e) => setNewConsulta({ ...newConsulta, data: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+            <div className="grid grid-cols-2 gap-2">
+              <input type="number" placeholder="Semanas (IG)" value={newConsulta.igSem} onChange={(e) => setNewConsulta({ ...newConsulta, igSem: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+              <input type="text" placeholder="Peso (kg)" value={newConsulta.peso} onChange={(e) => setNewConsulta({ ...newConsulta, peso: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <input type="text" placeholder="P.A. (ex: 120/80)" value={newConsulta.pa} onChange={(e) => setNewConsulta({ ...newConsulta, pa: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+              <input type="text" placeholder="Altura Uterina" value={newConsulta.au} onChange={(e) => setNewConsulta({ ...newConsulta, au: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+            </div>
+            <input type="text" placeholder="BCF / Mov. Fetal" value={newConsulta.bcfMf} onChange={(e) => setNewConsulta({ ...newConsulta, bcfMf: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+            <textarea placeholder="Conduta / Recomendações" value={newConsulta.conduta} onChange={(e) => setNewConsulta({ ...newConsulta, conduta: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl h-20" />
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setShowAddConsultaModal(false)} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
+              <button onClick={handleAddConsulta} className="px-4 py-1.5 bg-[#2E482A] text-white font-bold text-xs rounded-xl">Salvar Registro</button>
             </div>
           </div>
         </div>
