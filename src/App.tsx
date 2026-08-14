@@ -23,6 +23,8 @@ import { AppModals } from './components/AppModals';
 import { PrenatalChatTab } from './components/PrenatalChatTab';
 import { PrintableCarteirinha } from './components/PrintableCarteirinha';
 import { db, auth, googleProvider, signInWithPopup } from './firebase';
+import { AdBanner } from './components/AdBanner';
+
 
 
 
@@ -735,7 +737,11 @@ export default function App() {
               </button>
             ))}
           </div>
-
+{/* BANNER DE ANÚNCIO / MONETIZAÇÃO */}
+          <AdBanner 
+            placeholderTitle="Dicas & Cuidados"
+            placeholderSubtitle="Enxoval, amamentação e cuidados no pós-parto"
+          />
           {/* TAB 1: RESUMO */}
           {activeTab === 'resumo' && (
             <div className="space-y-4 print:hidden">
