@@ -1344,10 +1344,8 @@ export default function App() {
           weeks={gestationalWeeks} 
         />
       )}
-
-        </div>
-      </div>
     </div>
+  </div>
   );
 }
 
