@@ -4,7 +4,7 @@ import {
   Plus, LogOut, Printer,
   Syringe, 
   UserPlus, Calculator, AlertCircle, Edit3, Bot,
-  MapPin, CalendarPlus, Download, Smartphone, WifiOff, Share2, Send
+  MapPin, CalendarPlus, Calendar, Download, Smartphone, WifiOff, Share2, Send
 } from 'lucide-react';
 
 import { db, auth } from './firebase';
@@ -1251,12 +1251,6 @@ export default function App() {
               </div>
             </div>
           )}
-
-          {/* IMPRESSÃO A4 */}
-          <PrintCardA4 
-            currentPatient={currentPatient} 
-            LISTA_EXAMES_OFICIAIS={LISTA_EXAMES_OFICIAIS} 
-          />
 
         </div>
       )}
