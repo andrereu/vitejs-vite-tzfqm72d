@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Patient } from '../types/prenatal';
 
 interface PrintableCarteirinhaProps {
@@ -10,12 +11,12 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
   patient, 
   weeks = 30 
 }) => {
-  if (!patient) return null;
+  if (!patient || typeof document === 'undefined') return null;
 
-  return (
+  const content = (
     <div id="print-carteirinha-root" className="hidden print:block text-gray-800 text-[11px] leading-tight font-sans">
       
-      {/* PÁGINA 1: CAPA OFICIAL + GRÁFICO DE GANHO PONDERAL */}
+      {/* PÁGINA 1: CAPA OFICIAL + GRÁFICO GPG */}
       <div className="print-page w-full h-[190mm] p-6 flex gap-6 bg-white border-2 border-gray-200 rounded-2xl mb-0">
         
         {/* COLUNA ESQUERDA: CAPA */}
@@ -253,6 +254,8 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
 
     </div>
   );
+
+  return createPortal(content, document.body);
 };
 
 export default PrintableCarteirinha;
