@@ -24,9 +24,7 @@ import { PrenatalChatTab } from './components/PrenatalChatTab';
 import { PrintableCarteirinha } from './components/PrintableCarteirinha';
 import { db, auth, googleProvider, signInWithPopup } from './firebase';
 import { AdBanner } from './components/AdBanner';
-
-
-
+import { LandingPage } from './components/LandingPage';
 
 const LISTA_EXAMES_OFICIAIS = [
   { id: 'hbVg', label: 'HB / VG', placeholder: 'Ex: 12.5 g/dL / 38%' },
@@ -49,7 +47,8 @@ const LISTA_EXAMES_OFICIAIS = [
 ];
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'landing' | 'patient_app' | 'admin_dashboard'>('landing');
+  const [currentScreen, setCurrentScreen] = useState<'landing' | 'doctor_panel' | 'patient_app'>('landing');
+
   const [userRole, setUserRole] = useState<'paciente' | 'medica' | null>(null);
   const [patients, setPatients] = useState<Patient[]>(initialPatientsList);
   const [selectedPatientId, setSelectedPatientId] = useState("gestante-01");
@@ -92,8 +91,8 @@ export default function App() {
   const [examCategory, setExamCategory] = useState("Ecografia");
   const [isUploading, setIsUploading] = useState(false);
 
-  // Google
-    const handleGooglePatientLogin = async () => {
+  // Login com Google da Paciente
+  const handleGooglePatientLogin = async () => {
     setLoginError("");
     try {
       const result = await signInWithPopup(auth, googleProvider);
@@ -127,7 +126,6 @@ export default function App() {
       }
     }
   };
-
 
   // Forms
   const [editExamesData, setEditExamesData] = useState<any>({});
@@ -181,7 +179,7 @@ export default function App() {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUserRole('medica');
-        setCurrentScreen('admin_dashboard');
+        setCurrentScreen('doctor_panel');
       }
     });
     return () => unsubscribeAuth();
@@ -300,7 +298,7 @@ export default function App() {
     try {
       await signInWithEmailAndPassword(auth, doctorEmail.trim(), doctorPassword);
       setUserRole('medica');
-      setCurrentScreen('admin_dashboard');
+      setCurrentScreen('doctor_panel');
       setShowDoctorLoginModal(false);
     } catch (err) {
       setLoginError("E-mail ou senha incorretos.");
@@ -555,7 +553,7 @@ export default function App() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleInstallPWA}
-              className="bg-[#D4AF37] hover:bg-amber-400 text-gray-900 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+              className="bg-[#D4AF37] hover:bg-amber-400 text-gray-900 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
             >
               <Smartphone className="w-4 h-4" />
               <span className="hidden sm:inline">Instalar App</span>
@@ -565,13 +563,13 @@ export default function App() {
               <>
                 {userRole === 'medica' && (
                   <button
-                    onClick={() => setCurrentScreen('admin_dashboard')}
-                    className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 text-white hover:bg-white/20"
+                    onClick={() => setCurrentScreen('doctor_panel')}
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 text-white hover:bg-white/20 cursor-pointer"
                   >
                     Lista de Pacientes
                   </button>
                 )}
-                <button onClick={handleLogout} className="p-2 bg-red-500/20 text-red-200 rounded-xl">
+                <button onClick={handleLogout} className="p-2 bg-red-500/20 text-red-200 rounded-xl cursor-pointer">
                   <LogOut className="w-4 h-4" />
                 </button>
               </>
@@ -579,10 +577,10 @@ export default function App() {
 
             {currentScreen === 'landing' && (
               <>
-                <button onClick={() => setShowPatientLoginModal(true)} className="bg-white/10 text-white px-3 py-1.5 rounded-xl text-xs font-semibold">
+                <button onClick={() => setShowPatientLoginModal(true)} className="bg-white/10 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-white/20 cursor-pointer">
                   Paciente
                 </button>
-                <button onClick={() => setShowDoctorLoginModal(true)} className="bg-[#D4AF37] text-gray-900 px-3 py-1.5 rounded-xl text-xs font-bold">
+                <button onClick={() => setShowDoctorLoginModal(true)} className="bg-[#D4AF37] text-gray-900 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-amber-400 cursor-pointer">
                   Dra. Priscila
                 </button>
               </>
@@ -591,38 +589,17 @@ export default function App() {
         </div>
       </header>
 
-      {/* LANDING PAGE */}
+      {/* 1. LANDING PAGE PRINCIPAL */}
       {currentScreen === 'landing' && (
-        <div className="space-y-8 pt-8 px-4 max-w-4xl mx-auto text-center print:hidden">
-          <div className="bg-gradient-to-b from-[#2E482A] to-[#1E311B] text-white p-8 rounded-3xl shadow-xl space-y-4">
-            <span className="bg-white/10 text-[#E8ECD8] text-[10px] font-bold px-3 py-1 rounded-full uppercase border border-white/20 inline-block">
-              Acompanhamento Pré-Natal Digital PWA
-            </span>
-            <h2 className="text-2xl md:text-4xl font-serif font-bold text-[#F4F6F0] leading-tight">
-              Sua gestação acompanhada com carinho, tecnologia e precisão
-            </h2>
-            <p className="text-xs md:text-sm text-[#A3B18A] max-w-xl mx-auto">
-              Carteirinha digital completa, leitura de laudos por Inteligência Artificial e acesso rápido offline.
-            </p>
-
-            <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
-              <button onClick={() => setShowPatientLoginModal(true)} className="w-full sm:w-auto px-6 py-3.5 bg-[#8A9A86] hover:bg-[#788874] text-white rounded-2xl font-bold text-xs shadow-md">
-                Área da Paciente
-              </button>
-              <button onClick={() => setShowDoctorLoginModal(true)} className="w-full sm:w-auto px-6 py-3.5 bg-[#D4AF37] hover:bg-amber-400 text-gray-900 rounded-2xl font-bold text-xs shadow-md">
-                Acesso Dra. Priscila
-              </button>
-              <button onClick={handleInstallPWA} className="w-full sm:w-auto px-6 py-3.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-bold text-xs border border-white/20 flex items-center justify-center gap-2">
-                <Download className="w-4 h-4 text-pink-300" />
-                Instalar no Celular
-              </button>
-            </div>
-          </div>
-        </div>
+        <LandingPage
+          onOpenPatientLogin={() => setShowPatientLoginModal(true)}
+          onOpenDoctorLogin={() => setShowDoctorLoginModal(true)}
+          onInstallPWA={handleInstallPWA}
+        />
       )}
 
-      {/* DASHBOARD MÉDICO */}
-      {currentScreen === 'admin_dashboard' && (
+      {/* 2. PAINEL DO MÉDICO */}
+      {currentScreen === 'doctor_panel' && (
         <div className="max-w-6xl mx-auto px-4 pt-6 space-y-6 print:hidden">
           <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
@@ -638,7 +615,7 @@ export default function App() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full sm:w-64 text-xs p-2.5 border rounded-xl"
               />
-              <button onClick={() => setShowNewPatientModal(true)} className="bg-[#2E482A] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-sm">
+              <button onClick={() => setShowNewPatientModal(true)} className="bg-[#2E482A] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer">
                 <UserPlus className="w-4 h-4" /> + Cadastrar Gestante
               </button>
             </div>
@@ -660,7 +637,7 @@ export default function App() {
                     G{pat.g} P{pat.p} C{pat.c} A{pat.a} • WhatsApp: {pat.telefone || 'Não informado'}
                   </p>
                 </div>
-                <button onClick={() => { setSelectedPatientId(pat.id); setCurrentScreen('patient_app'); }} className="px-4 py-2.5 bg-[#2E482A] text-white rounded-xl text-xs font-bold shrink-0">
+                <button onClick={() => { setSelectedPatientId(pat.id); setCurrentScreen('patient_app'); }} className="px-4 py-2.5 bg-[#2E482A] text-white rounded-xl text-xs font-bold shrink-0 cursor-pointer">
                   Abrir Cartão
                 </button>
               </div>
@@ -669,7 +646,7 @@ export default function App() {
         </div>
       )}
 
-      {/* ÁREA DA PACIENTE */}
+      {/* 3. ÁREA DA PACIENTE */}
       {currentScreen === 'patient_app' && (
         <div className="max-w-5xl mx-auto px-4 pt-4 space-y-6 print:p-0 print:m-0 print:max-w-none">
           <div className="bg-[#2E482A] text-white p-6 rounded-3xl shadow-md flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
@@ -688,7 +665,7 @@ export default function App() {
             <div className="flex flex-wrap items-center gap-2.5">
               <button 
                 onClick={() => sharePatientCard(currentPatient)}
-                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all"
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
                 title="Compartilhar carteirinha via WhatsApp ou redes"
               >
                 <Share2 className="w-4 h-4" /> Compartilhar
@@ -696,7 +673,7 @@ export default function App() {
 
               <button 
                 onClick={() => window.print()}
-                className="px-3.5 py-2 bg-[#D4AF37] text-gray-900 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm hover:bg-amber-400"
+                className="px-3.5 py-2 bg-[#D4AF37] text-gray-900 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm hover:bg-amber-400 cursor-pointer"
               >
                 <Printer className="w-4 h-4" /> Imprimir A4
               </button>
@@ -729,7 +706,7 @@ export default function App() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap uppercase transition-all ${
+                className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap uppercase transition-all cursor-pointer ${
                   activeTab === tab.id ? 'bg-[#2E482A] text-white' : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
@@ -737,11 +714,13 @@ export default function App() {
               </button>
             ))}
           </div>
-{/* BANNER DE ANÚNCIO / MONETIZAÇÃO */}
+
+          {/* BANNER DE ANÚNCIO / MONETIZAÇÃO */}
           <AdBanner 
             placeholderTitle="Dicas & Cuidados"
             placeholderSubtitle="Enxoval, amamentação e cuidados no pós-parto"
           />
+
           {/* TAB 1: RESUMO */}
           {activeTab === 'resumo' && (
             <div className="space-y-4 print:hidden">
@@ -780,7 +759,7 @@ export default function App() {
                     )}
                     <button 
                       onClick={() => setActiveTab('agenda')}
-                      className="px-3.5 py-2 bg-[#2E482A] text-white rounded-xl text-xs font-bold shrink-0"
+                      className="px-3.5 py-2 bg-[#2E482A] text-white rounded-xl text-xs font-bold shrink-0 cursor-pointer"
                     >
                       Ver Agenda
                     </button>
@@ -790,7 +769,7 @@ export default function App() {
                 <div className="bg-gray-50 border p-4 rounded-2xl flex justify-between items-center text-xs text-gray-500">
                   <span>Nenhuma consulta agendada no momento.</span>
                   {userRole === 'medica' && (
-                    <button onClick={() => setShowAddAgendaModal(true)} className="text-[#2E482A] font-bold underline">+ Agendar Agora</button>
+                    <button onClick={() => setShowAddAgendaModal(true)} className="text-[#2E482A] font-bold underline cursor-pointer">+ Agendar Agora</button>
                   )}
                 </div>
               )}
@@ -859,7 +838,7 @@ export default function App() {
                       });
                       setShowEditProfileModal(true);
                     }} 
-                    className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs"
+                    className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     <Edit3 className="w-4 h-4" /> Editar Perfil & Anamnese
                   </button>
@@ -928,7 +907,7 @@ export default function App() {
                       setEditVacinasData(currentPatient.vacinas || {});
                       setShowEditVacinasModal(true);
                     }} 
-                    className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs"
+                    className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     <Syringe className="w-4 h-4" /> Registrar / Editar Vacinas
                   </button>
@@ -998,7 +977,7 @@ export default function App() {
                       setEditExamesData(currentPatient.examesTabela || {});
                       setShowEditExamesModal(true);
                     }} 
-                    className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5"
+                    className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer"
                   >
                     <Edit3 className="w-4 h-4" /> Preencher / Editar Exames
                   </button>
@@ -1051,7 +1030,7 @@ export default function App() {
                 {userRole === 'medica' && (
                   <button 
                     onClick={() => setShowAddAgendaModal(true)}
-                    className="bg-[#2E482A] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs"
+                    className="bg-[#2E482A] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     <Plus className="w-4 h-4" /> Agendar Nova Consulta
                   </button>
@@ -1110,7 +1089,7 @@ export default function App() {
                   <p className="text-xs text-gray-500">Padrão da Caderneta de Saúde da Gestante (MS / Atalah)</p>
                 </div>
                 {userRole === 'medica' && (
-                  <button onClick={() => setShowAddConsultaModal(true)} className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs">
+                  <button onClick={() => setShowAddConsultaModal(true)} className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs cursor-pointer">
                     + Registrar Peso na Consulta
                   </button>
                 )}
@@ -1192,7 +1171,7 @@ export default function App() {
                     <input type="number" placeholder="Semanas" value={calcUsgSemanas} onChange={(e) => setCalcUsgSemanas(e.target.value)} className="w-full text-xs p-2.5 border rounded-xl bg-white" />
                     <input type="number" placeholder="Dias" min="0" max="6" value={calcUsgDias} onChange={(e) => setCalcUsgDias(e.target.value)} className="w-full text-xs p-2.5 border rounded-xl bg-white" />
                   </div>
-                  <button type="submit" className="w-full py-2.5 bg-[#2E482A] text-white rounded-xl text-xs font-bold">Calcular DPP</button>
+                  <button type="submit" className="w-full py-2.5 bg-[#2E482A] text-white rounded-xl text-xs font-bold cursor-pointer">Calcular DPP</button>
                 </form>
                 {calcResultado && (
                   <div className="space-y-3 bg-[#2E482A]/5 p-5 rounded-2xl border">
@@ -1274,7 +1253,7 @@ export default function App() {
                   </h3>
                   <p className="text-xs text-gray-500">Envie laudos: o Gemini extrai os dados e resume tudo para a mãe</p>
                 </div>
-                <button onClick={() => setShowUploadExamModal(true)} className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5">
+                <button onClick={() => setShowUploadExamModal(true)} className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer">
                   <Upload className="w-4 h-4" /> + Anexar Exame
                 </button>
               </div>
@@ -1304,6 +1283,7 @@ export default function App() {
         showInstallModal={showInstallModal}
         setShowInstallModal={setShowInstallModal}
         isIOS={isIOS}
+        handleGooglePatientLogin={handleGooglePatientLogin}
         showEditProfileModal={showEditProfileModal}
         setShowEditProfileModal={setShowEditProfileModal}
         editProfileData={editProfileData}
@@ -1358,6 +1338,7 @@ export default function App() {
         handleDoctorLogin={handleDoctorLogin}
         loginError={loginError}
       />
+
       {/* CARTEIRINHA DE IMPRESSÃO */}
       {currentPatient && (
         <PrintableCarteirinha 
