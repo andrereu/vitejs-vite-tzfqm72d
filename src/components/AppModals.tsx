@@ -108,23 +108,6 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                 <X className="w-5 h-5" />
               </button>
             </div>
-<div className="flex gap-2 p-1 bg-gray-100 rounded-xl mb-3">
-  <button
-    type="button"
-    onClick={() => setLoginRole('medica')}
-    className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${loginRole === 'medica' ? 'bg-[#2E482A] text-white shadow-xs' : 'text-gray-600'}`}
-  >
-    🩺 Obstetra
-  </button>
-  <button
-    type="button"
-    onClick={() => setLoginRole('secretaria')}
-    className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${loginRole === 'secretaria' ? 'bg-[#2E482A] text-white shadow-xs' : 'text-gray-600'}`}
-  >
-    📋 Secretária / Recepção
-  </button>
-</div>
-
             {props.isIOS ? (
               <div className="space-y-3 text-xs text-gray-700 leading-relaxed">
                 <p>Para instalar no seu iPhone ou iPad:</p>
@@ -837,42 +820,100 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
         </div>
       )}
 
-      {/* MODAL LOGIN MÉDICA */}
+            {/* MODAL LOGIN EQUIPE MÉDICA / SECRETARIA */}
       {props.showDoctorLoginModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 print:hidden">
-          <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-3">
-            <h3 className="font-bold text-gray-900">Acesso Médico Seguro</h3>
-            {props.loginError && <p className="text-red-500 text-xs font-semibold">{props.loginError}</p>}
-            <input 
-              type="email" 
-              placeholder="E-mail" 
-              value={props.doctorEmail} 
-              onChange={(e) => props.setDoctorEmail(e.target.value)} 
-              className="w-full text-xs p-3 border rounded-xl" 
-            />
-            <input 
-              type="password" 
-              placeholder="Senha" 
-              value={props.doctorPassword} 
-              onChange={(e) => props.setDoctorPassword(e.target.value)} 
-              className="w-full text-xs p-3 border rounded-xl" 
-            />
-            <button 
-              onClick={props.handleDoctorLogin} 
-              className="w-full py-2.5 bg-[#D4AF37] text-gray-900 rounded-xl text-xs font-bold shadow-md cursor-pointer"
-            >
-              Entrar no Painel
-            </button>
-            <button 
-              type="button"
-              onClick={() => props.setShowDoctorLoginModal(false)} 
-              className="w-full text-xs text-gray-500 pt-1 cursor-pointer"
-            >
-              Cancelar
-            </button>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+            
+            <div className="flex justify-between items-center border-b pb-3">
+              <div>
+                <h3 className="font-bold text-gray-900 text-base">Acesso Profissional</h3>
+                <p className="text-[11px] text-gray-500">Área restrita para médicos e secretárias</p>
+              </div>
+              <button 
+                onClick={() => props.setShowDoctorLoginModal(false)}
+                className="text-gray-400 hover:text-gray-700 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* SELETOR DE PERFIL: MÉDICA OU SECRETÁRIA */}
+            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-100 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => {
+                  if (props.setLoginRole) props.setLoginRole('medica');
+                }}
+                className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                  props.loginRole === 'medica' || !props.loginRole 
+                    ? 'bg-[#2E482A] text-white shadow-xs' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                🩺 Obstetra
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (props.setLoginRole) props.setLoginRole('secretaria');
+                }}
+                className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                  props.loginRole === 'secretaria' 
+                    ? 'bg-[#2E482A] text-white shadow-xs' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                📋 Secretária
+              </button>
+            </div>
+
+            <form onSubmit={props.handleDoctorLogin} className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">
+                  E-mail de Acesso *
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder={props.loginRole === 'secretaria' ? 'secretaria@consultorio.com' : 'dra.priscila@maternaia.com.br'}
+                  value={props.doctorEmail}
+                  onChange={(e) => props.setDoctorEmail(e.target.value)}
+                  className="w-full p-2.5 bg-gray-50 border rounded-xl"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">
+                  Senha *
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  value={props.doctorPassword}
+                  onChange={(e) => props.setDoctorPassword(e.target.value)}
+                  className="w-full p-2.5 bg-gray-50 border rounded-xl"
+                />
+              </div>
+
+              {props.loginError && (
+                <div className="p-2.5 bg-red-50 text-red-700 rounded-xl text-[11px] font-medium border border-red-200">
+                  {props.loginError}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-[#2E482A] hover:bg-[#233820] text-white rounded-xl font-bold shadow-md cursor-pointer transition-all"
+              >
+                {props.loginRole === 'secretaria' ? 'Entrar como Secretária' : 'Entrar como Obstetra'}
+              </button>
+            </form>
           </div>
         </div>
       )}
+
             {/* MODAL LOGIN SUPER ADMIN / MASTER */}
       {props.showMasterLoginModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 print:hidden">
