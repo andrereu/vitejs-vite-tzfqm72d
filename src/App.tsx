@@ -6,12 +6,9 @@ import {
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, signInWithPopup } from 'firebase/auth';
 
-import { Patient, initialPatientsList, AgendaConsulta, UserRole } from './types/prenatal';
+import { Patient, initialPatientsList, AgendaConsulta, HorarioBloqueado, UserRole } from './types/prenatal';
 import { DoctorTenant } from './types/saas';
 import { db, auth, googleProvider } from './firebase';
-import { ClinicScheduleManager } from './components/ClinicScheduleManager';
-import { HorarioBloqueado } from './types/prenatal';
-
 
 import { AppModals } from './components/AppModals';
 import { PrintableCarteirinha } from './components/PrintableCarteirinha';
@@ -21,6 +18,7 @@ import { DoctorSettingsModal } from './components/DoctorSettingsModal';
 import { DoctorTrialSignupModal } from './components/DoctorTrialSignupModal';
 import { RequestAppointmentModal } from './components/RequestAppointmentModal';
 import { AppointmentConfirmModal } from './components/AppointmentConfirmModal';
+import { ClinicScheduleManager } from './components/ClinicScheduleManager';
 import { MaternaLogo } from './components/MaternaLogo';
 import { AdBanner } from './components/AdBanner';
 import { PrenatalChatTab } from './components/PrenatalChatTab';
@@ -52,8 +50,6 @@ const LISTA_EXAMES_OFICIAIS = [
   { id: 'urinaUrocultura', label: 'URINA / UROCULTURA', placeholder: 'Ex: Normal / Sem germes' },
   { id: 'gbs', label: 'GBS (35-37 sem)', placeholder: 'Ex: Negativo / Positivo' }
 ];
-const [blockedSlots, setBlockedSlots] = useState<HorarioBloqueado[]>([]);
-const [doctorPanelTab, setDoctorPanelTab] = useState<'pacientes' | 'agenda_geral'>('pacientes');
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'landing' | 'doctor_panel' | 'patient_app' | 'master_admin'>('landing');
@@ -83,6 +79,8 @@ export default function App() {
   const [selectedPatientId, setSelectedPatientId] = useState("gestante-01");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState('resumo');
+  const [doctorPanelTab, setDoctorPanelTab] = useState<'pacientes' | 'agenda_geral'>('pacientes');
+  const [blockedSlots, setBlockedSlots] = useState<HorarioBloqueado[]>([]);
 
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [, setIsInstallable] = useState(false);
@@ -737,7 +735,9 @@ export default function App() {
 
       {/* 2. PAINEL DO MÉDICO & SECRETARIA */}
       {currentScreen === 'doctor_panel' && (
-                {/* SELETOR DE ABAS DO PAINEL DA CLÍNICA */}
+        <div className="max-w-6xl mx-auto px-4 pt-6 space-y-6 print:hidden">
+          
+          {/* SELETOR DE ABAS DO PAINEL DA CLÍNICA */}
           <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
             <button
               onClick={() => setDoctorPanelTab('pacientes')}
@@ -757,7 +757,71 @@ export default function App() {
             </button>
           </div>
 
-          {/* RENDERIZAÇÃO DA CENTRAL DA AGENDA */}
+          {/* ABA 1: LISTA DE GESTANTES */}
+          {doctorPanelTab === 'pacientes' && (
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Gestantes Cadastradas</h2>
+                  <p className="text-xs text-gray-500">Acesse ou cadastre novas pacientes no banco de dados</p>
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                  <input
+                    type="text"
+                    placeholder="Buscar paciente por nome ou CPF..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full sm:w-64 text-xs p-2.5 border rounded-xl"
+                  />
+
+                  {hasPermission(userRole, 'canManageSchedule') && (
+                    <button 
+                      onClick={() => setShowDoctorSettingsModal(true)} 
+                      className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer border border-gray-200"
+                      title="Configurar Logo, CRM e endereço do consultório"
+                    >
+                      <Settings className="w-4 h-4 text-[#2E482A]" /> Configurar Consultório
+                    </button>
+                  )}
+
+                  {hasPermission(userRole, 'canManageBasicPatientData') && (
+                    <button 
+                      onClick={() => setShowNewPatientModal(true)} 
+                      className="bg-[#2E482A] hover:bg-[#233820] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
+                    >
+                      <UserPlus className="w-4 h-4" /> + Cadastrar Gestante
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredPatients.map(pat => (
+                  <div key={pat.id} className="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex justify-between items-center">
+                    <div>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase">CPF: {pat.cpf}</span>
+                      <h3 className="font-bold text-gray-900 text-base">{pat.nome}</h3>
+                      <p className="text-xs text-gray-600 mt-1">
+                        Bebê: <strong>{pat.nomeBebe}</strong> • 
+                        <span className="inline-flex items-center ml-1">
+                          DPP: {new Date(pat.dpp).toLocaleDateString('pt-BR')}
+                        </span>
+                      </p>
+                      <p className="text-[11px] text-gray-500 mt-0.5">
+                        G{pat.g} P{pat.p} C{pat.c} A{pat.a} • WhatsApp: {pat.telefone || 'Não informado'}
+                      </p>
+                    </div>
+                    <button onClick={() => { setSelectedPatientId(pat.id); setCurrentScreen('patient_app'); }} className="px-4 py-2.5 bg-[#2E482A] text-white rounded-xl text-xs font-bold shrink-0 cursor-pointer">
+                      Abrir Cartão
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ABA 2: CENTRAL DA AGENDA & RECEPÇÃO */}
           {doctorPanelTab === 'agenda_geral' && (
             <ClinicScheduleManager
               patients={patients}
@@ -777,65 +841,6 @@ export default function App() {
             />
           )}
 
-        <div className="max-w-6xl mx-auto px-4 pt-6 space-y-6 print:hidden">
-          <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">Gestantes Cadastradas</h2>
-              <p className="text-xs text-gray-500">Acesse ou cadastre novas pacientes no banco de dados</p>
-            </div>
-            
-            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-              <input
-                type="text"
-                placeholder="Buscar paciente por nome ou CPF..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full sm:w-64 text-xs p-2.5 border rounded-xl"
-              />
-
-              {hasPermission(userRole, 'canManageSchedule') && (
-                <button 
-                  onClick={() => setShowDoctorSettingsModal(true)} 
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer border border-gray-200"
-                  title="Configurar Logo, CRM e endereço do consultório"
-                >
-                  <Settings className="w-4 h-4 text-[#2E482A]" /> Configurar Consultório
-                </button>
-              )}
-
-              {hasPermission(userRole, 'canManageBasicPatientData') && (
-                <button 
-                  onClick={() => setShowNewPatientModal(true)} 
-                  className="bg-[#2E482A] hover:bg-[#233820] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
-                >
-                  <UserPlus className="w-4 h-4" /> + Cadastrar Gestante
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredPatients.map(pat => (
-              <div key={pat.id} className="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex justify-between items-center">
-                <div>
-                  <span className="text-[10px] text-gray-400 font-bold uppercase">CPF: {pat.cpf}</span>
-                  <h3 className="font-bold text-gray-900 text-base">{pat.nome}</h3>
-                  <p className="text-xs text-gray-600 mt-1">
-                    Bebê: <strong>{pat.nomeBebe}</strong> • 
-                    <span className="inline-flex items-center ml-1">
-                      DPP: {new Date(pat.dpp).toLocaleDateString('pt-BR')}
-                    </span>
-                  </p>
-                  <p className="text-[11px] text-gray-500 mt-0.5">
-                    G{pat.g} P{pat.p} C{pat.c} A{pat.a} • WhatsApp: {pat.telefone || 'Não informado'}
-                  </p>
-                </div>
-                <button onClick={() => { setSelectedPatientId(pat.id); setCurrentScreen('patient_app'); }} className="px-4 py-2.5 bg-[#2E482A] text-white rounded-xl text-xs font-bold shrink-0 cursor-pointer">
-                  Abrir Cartão
-                </button>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
