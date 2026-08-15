@@ -25,6 +25,8 @@ import { PrintableCarteirinha } from './components/PrintableCarteirinha';
 import { db, auth, googleProvider, signInWithPopup } from './firebase';
 import { AdBanner } from './components/AdBanner';
 import { LandingPage } from './components/LandingPage';
+import { MaternaLogo } from './components/MaternaLogo';
+
 
 const LISTA_EXAMES_OFICIAIS = [
   { id: 'hbVg', label: 'HB / VG', placeholder: 'Ex: 12.5 g/dL / 38%' },
@@ -537,38 +539,25 @@ export default function App() {
             <header className="bg-[#2E482A] text-white shadow-md sticky top-0 z-40 border-b border-[#3D5C38] print:hidden">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           
-          {/* LOGO / BRANDING DINÂMICO */}
-          <div onClick={() => setCurrentScreen('landing')} className="flex items-center gap-3 cursor-pointer select-none">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500/30 to-white/10 flex items-center justify-center p-1 border border-white/20 shadow-inner">
-              <Heart className="w-5 h-5 text-pink-300 fill-pink-300/30" />
-            </div>
-            <div>
-              {currentScreen === 'landing' ? (
-                <>
-                  <div className="flex items-center gap-1.5">
-                    <h1 className="font-serif text-lg md:text-xl font-bold text-[#E8ECD8] tracking-tight leading-none">
-                      Materna<span className="text-[#D4AF37]">IA</span>
-                    </h1>
-                    <span className="bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/40 text-[9px] font-black px-1.5 py-0.2 rounded-md uppercase tracking-wider">
-                      SaaS
-                    </span>
-                  </div>
-                  <p className="text-[9px] uppercase tracking-widest text-[#A3B18A] font-semibold mt-0.5">
-                    Obstetrícia & Pré-Natal Digital
-                  </p>
-                </>
-              ) : (
-                <>
-                  <h1 className="font-serif text-lg md:text-xl font-bold text-[#E8ECD8] leading-none">
+                    {/* LOGO DA MARCA */}
+          <div onClick={() => setCurrentScreen('landing')} className="cursor-pointer">
+            {currentScreen === 'landing' ? (
+              <MaternaLogo variant="full" theme="light" size="md" />
+            ) : (
+              <div className="flex items-center gap-3">
+                <MaternaLogo variant="icon" size="sm" />
+                <div>
+                  <h1 className="font-serif text-base md:text-lg font-bold text-[#E8ECD8] leading-none">
                     Dra. Priscila Gapski
                   </h1>
                   <p className="text-[9px] uppercase tracking-widest text-[#A3B18A] font-medium mt-0.5">
                     Obstetra • CRM 24734
                   </p>
-                </>
-              )}
-            </div>
+                </div>
+              </div>
+            )}
           </div>
+
 
           {/* AÇÕES DO CABEÇALHO */}
           <div className="flex items-center gap-2">
