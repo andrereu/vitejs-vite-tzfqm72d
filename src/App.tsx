@@ -30,6 +30,8 @@ import { LandingPage } from './components/LandingPage';
 import { MaternaLogo } from './components/MaternaLogo';
 import { AdminMasterDashboard } from './components/AdminMasterDashboard';
 import { DoctorSettingsModal } from './components/DoctorSettingsModal';
+import { DoctorTrialSignupModal } from './components/DoctorTrialSignupModal';
+
 
 const SUPER_ADMIN_EMAILS = [
   'admin@maternaia.com.br',
@@ -67,6 +69,8 @@ export default function App() {
 
   // Configurações do Consultório da Médica
   const [showDoctorSettingsModal, setShowDoctorSettingsModal] = useState(false);
+  const [showDoctorTrialModal, setShowDoctorTrialModal] = useState(false);
+
   const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
     id: 'doc-priscila',
     nome: 'Dra. Priscila Gapski',
@@ -1526,6 +1530,29 @@ export default function App() {
         setMasterPassword={setMasterPassword}
         handleMasterLogin={handleMasterLogin}
         loginError={loginError}
+      />
+      {/* 1. LANDING PAGE PRINCIPAL */}
+      {currentScreen === 'landing' && (
+        <div className="space-y-6">
+          <LandingPage
+            onOpenPatientLogin={() => setShowPatientLoginModal(true)}
+            onOpenDoctorLogin={() => setShowDoctorLoginModal(true)}
+            onOpenTrialModal={() => setShowDoctorTrialModal(true)}
+            onInstallPWA={handleInstallPWA}
+          />
+          {/* ... resto do rodapé ... */}
+        </div>
+      )}
+      {/* MODAL DE AUTO-CADASTRO TRIAL 14 DIAS */}
+      <DoctorTrialSignupModal
+        isOpen={showDoctorTrialModal}
+        onClose={() => setShowDoctorTrialModal(false)}
+        onSuccess={async (newDoctor) => {
+          await saveSaasDoctorsToFirestore([newDoctor, ...saasDoctors]);
+          setCurrentDoctorProfile(newDoctor);
+          setUserRole('medica');
+          setCurrentScreen('doctor_panel');
+        }}
       />
 
       {/* CARTEIRINHA DE IMPRESSÃO */}
