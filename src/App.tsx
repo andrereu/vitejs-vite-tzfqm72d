@@ -4,8 +4,10 @@ import {
   Plus, LogOut, Printer,
   Syringe, 
   UserPlus, Calculator, AlertCircle, Edit3, Bot,
-  MapPin, CalendarPlus, Calendar, Download, Smartphone, WifiOff, Share2, Send
+  MapPin, CalendarPlus, Calendar, Download, Smartphone, WifiOff, Share2, Send, Settings //
 } from 'lucide-react';
+
+import { DoctorSettingsModal } from './components/DoctorSettingsModal'; //
 
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
@@ -57,6 +59,26 @@ const LISTA_EXAMES_OFICIAIS = [
 ];
 
 export default function App() {
+    const [showDoctorSettingsModal, setShowDoctorSettingsModal] = useState(false);
+  const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
+    id: 'doc-priscila',
+    nome: 'Dra. Priscila Gapski',
+    email: 'dra.priscila@maternaia.com.br',
+    crm: '24734-PR',
+    telefone: '(41) 99999-8888',
+    clinicaNome: 'Consultório Dra. Priscila Gapski',
+    especialidade: 'Ginecologia & Obstetrícia',
+    enderecoConsultorio: 'Curitiba - PR',
+    plano: 'individual_pro',
+    status: 'active',
+    trialEndsAt: '2027-12-31',
+    diasRestantes: 365,
+    totalPacientes: patients.length,
+    dataCadastro: '2026-01-01',
+    valorMensalidade: 89.0,
+    metodoPagamento: 'pix'
+  });
+
   const [currentScreen, setCurrentScreen] = useState<'landing' | 'doctor_panel' | 'patient_app' | 'master_admin'>('landing');
 
   // SaaS Multi-Médicos & Master
@@ -736,7 +758,7 @@ const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
         </div>
       )}
 
-      {/* 2. PAINEL DO MÉDICO */}
+            {/* 2. PAINEL DO MÉDICO */}
       {currentScreen === 'doctor_panel' && (
         <div className="max-w-6xl mx-auto px-4 pt-6 space-y-6 print:hidden">
           <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -745,7 +767,7 @@ const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
               <p className="text-xs text-gray-500">Acesse ou cadastre novas pacientes no banco de dados</p>
             </div>
             
-                        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               <input
                 type="text"
                 placeholder="Buscar paciente por nome ou CPF..."
@@ -753,13 +775,16 @@ const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full sm:w-64 text-xs p-2.5 border rounded-xl"
               />
+
+              {/* BOTÃO CONFIGURAR CONSULTÓRIO */}
               <button 
                 onClick={() => setShowDoctorSettingsModal(true)} 
                 className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer border border-gray-200"
-                title="Personalizar dados da clínica e logotipo"
+                title="Configurar Logo, CRM e endereço do consultório"
               >
                 <Settings className="w-4 h-4 text-[#2E482A]" /> Configurar Consultório
               </button>
+
               <button 
                 onClick={() => setShowNewPatientModal(true)} 
                 className="bg-[#2E482A] hover:bg-[#233820] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
@@ -767,8 +792,8 @@ const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
                 <UserPlus className="w-4 h-4" /> + Cadastrar Gestante
               </button>
             </div>
-
           </div>
+
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredPatients.map(pat => (
@@ -1514,6 +1539,18 @@ const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
         setMasterPassword={setMasterPassword}
         handleMasterLogin={handleMasterLogin}
         loginError={loginError}
+      />
+      {/* MODAL CONFIGURAÇÕES DO CONSULTÓRIO (WHITE LABEL) */}
+      <DoctorSettingsModal
+        isOpen={showDoctorSettingsModal}
+        onClose={() => setShowDoctorSettingsModal(false)}
+        currentDoctor={currentDoctorProfile}
+        onSave={async (updated) => {
+          setCurrentDoctorProfile(updated);
+          await saveSaasDoctorsToFirestore(
+            saasDoctors.map(d => d.id === updated.id ? updated : d)
+          );
+        }}
       />
 
       {/* CARTEIRINHA DE IMPRESSÃO */}
