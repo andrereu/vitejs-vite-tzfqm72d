@@ -51,6 +51,12 @@ const LISTA_EXAMES_OFICIAIS = [
 ];
 
 export default function App() {
+    // SaaS Multi-Médicos & Master
+  const [saasDoctors, setSaasDoctors] = useState<DoctorTenant[]>([]);
+  const [showMasterLoginModal, setShowMasterLoginModal] = useState(false);
+  const [masterEmail, setMasterEmail] = useState("");
+  const [masterPassword, setMasterPassword] = useState("");
+
   const [currentScreen, setCurrentScreen] = useState<'landing' | 'doctor_panel' | 'patient_app' | 'master_admin'>('landing');
 
 
@@ -59,6 +65,12 @@ export default function App() {
   const [selectedPatientId, setSelectedPatientId] = useState("gestante-01");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState('resumo');
+
+  const SUPER_ADMIN_EMAILS = [
+  'admin@maternaia.com.br',
+  'andrereu@gmail.com'
+];
+
 
   // PWA
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -307,6 +319,26 @@ export default function App() {
       setShowDoctorLoginModal(false);
     } catch (err) {
       setLoginError("E-mail ou senha incorretos.");
+    }
+  };
+  const handleMasterLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError("");
+    const emailNorm = masterEmail.toLowerCase().trim();
+
+    try {
+      await signInWithEmailAndPassword(auth, emailNorm, masterPassword);
+      
+      // Validação de segurança: apenas e-mails da lista autorizada
+      if (SUPER_ADMIN_EMAILS.includes(emailNorm)) {
+        setCurrentScreen('master_admin');
+        setShowMasterLoginModal(false);
+      } else {
+        setLoginError("Acesso negado: este e-mail não possui permissões de Super Admin.");
+        await signOut(auth);
+      }
+    } catch (err) {
+      setLoginError("E-mail ou senha de administrador incorretos.");
     }
   };
 
@@ -1316,8 +1348,27 @@ export default function App() {
               </div>
             </div>
           )}
+        {/* RODAPÉ MASTER ADMIN */}
+        {currentScreen === 'landing' && (
+          <div className="text-center pt-8 pb-4 print:hidden">
+            <button
+              onClick={() => setShowMasterLoginModal(true)}
+              className="text-[11px] text-gray-400 hover:text-gray-600 transition-all font-medium cursor-pointer"
+            >
+              🔒 Acesso Restrito • Master Admin
+            </button>
+          </div>
+        )}
 
         </div>
+      )}
+      {/* PAINEL SUPER ADMIN MASTER */}
+      {currentScreen === 'master_admin' && (
+        <AdminMasterDashboard 
+          doctors={saasDoctors}
+          onSaveDoctors={saveSaasDoctorsToFirestore}
+          onLogout={() => setCurrentScreen('landing')}
+        />
       )}
 
       {/* MODAIS DO SISTEMA */}
