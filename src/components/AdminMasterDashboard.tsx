@@ -1,16 +1,35 @@
 import React, { useState } from 'react';
 import { 
   Users, DollarSign, Clock, ShieldCheck, Plus, 
-  Search, CheckCircle2, XCircle, MoreVertical, 
-  CreditCard, ArrowUpRight, Lock, Calendar, RefreshCw
+  Search, CheckCircle2, XCircle, 
+  CreditCard, ArrowUpRight, Lock, Calendar, RefreshCw, X
 } from 'lucide-react';
 import { DoctorTenant, SaaSMetrics } from '../types/saas';
 
 interface AdminMasterDashboardProps {
-  doctors: DoctorTenant[];
-  onSaveDoctors: (updatedList: DoctorTenant[]) => Promise<void>;
+  doctors?: DoctorTenant[];
+  onSaveDoctors?: (updatedList: DoctorTenant[]) => Promise<void> | void;
   onLogout: () => void;
 }
+
+const DEFAULT_DOCTORS: DoctorTenant[] = [
+  {
+    id: 'doc-01',
+    nome: 'Dra. Priscila Gapski',
+    email: 'dra.priscila@maternaia.com.br',
+    crm: '24734-PR',
+    telefone: '(41) 99999-8888',
+    clinicaNome: 'Consultório Gapski',
+    plano: 'individual_pro',
+    status: 'active',
+    trialEndsAt: '2026-12-31',
+    diasRestantes: 365,
+    totalPacientes: 42,
+    dataCadastro: '2026-01-10',
+    valorMensalidade: 89.00,
+    metodoPagamento: 'cartao'
+  }
+];
 
 export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({ 
   doctors = [], 
@@ -20,8 +39,7 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [showAddModal, setShowAddModal] = useState(false);
-const doctorList = Array.isArray(doctors) ? doctors : [];
-  
+
   const [newDoc, setNewDoc] = useState({
     nome: '',
     email: '',
@@ -32,54 +50,62 @@ const doctorList = Array.isArray(doctors) ? doctors : [];
     diasTrial: 14
   });
 
+  // Garante que a lista é sempre um array válido
+  const doctorList = Array.isArray(doctors) && doctors.length > 0 ? doctors : DEFAULT_DOCTORS;
+
+  // Cálculo seguro das métricas
   const metrics: SaaSMetrics = {
-    mrr: doctorList.reduce((acc, doc) => acc + (doc.status === 'active' ? (doc.valorMensalidade || 0) : 0), 0),
+    mrr: doctorList.reduce((acc, doc) => acc + (doc?.status === 'active' ? (Number(doc?.valorMensalidade) || 0) : 0), 0),
     totalMedicos: doctorList.length,
-    medicosAtivos: doctorList.filter(d => d.status === 'active').length,
-    trialsEmCurso: doctorList.filter(d => d.status === 'trialing').length,
-    totalGestantes: doctorList.reduce((acc, d) => acc + (d.totalPacientes || 0), 0)
+    medicosAtivos: doctorList.filter(d => d?.status === 'active').length,
+    trialsEmCurso: doctorList.filter(d => d?.status === 'trialing').length,
+    totalGestantes: doctorList.reduce((acc, d) => acc + (Number(d?.totalPacientes) || 0), 0)
   };
 
   const handleCreateDoctor = async (e: React.FormEvent) => {
     e.preventDefault();
     const created: DoctorTenant = {
       id: `doc-${Date.now()}`,
-      nome: newDoc.nome,
-      email: newDoc.email.toLowerCase().trim(),
-      crm: newDoc.crm,
-      telefone: newDoc.telefone,
+      nome: newDoc.nome || 'Novo Médico',
+      email: (newDoc.email || '').toLowerCase().trim(),
+      crm: newDoc.crm || '00000',
+      telefone: newDoc.telefone || '',
       clinicaNome: newDoc.clinicaNome || newDoc.nome,
       plano: newDoc.plano,
       status: 'trialing',
-      trialEndsAt: new Date(Date.now() + newDoc.diasTrial * 86400000).toISOString().split('T')[0],
-      diasRestantes: newDoc.diasTrial,
+      trialEndsAt: new Date(Date.now() + (newDoc.diasTrial || 14) * 86400000).toISOString().split('T')[0],
+      diasRestantes: newDoc.diasTrial || 14,
       totalPacientes: 0,
       dataCadastro: new Date().toISOString().split('T')[0],
       valorMensalidade: newDoc.plano === 'individual_pro' ? 89 : 199,
       metodoPagamento: 'pix'
     };
 
-    await onSaveDoctors([created, ...doctors]);
+    if (onSaveDoctors) {
+      await onSaveDoctors([created, ...doctorList]);
+    }
     setShowAddModal(false);
     setNewDoc({ nome: '', email: '', crm: '', telefone: '', clinicaNome: '', plano: 'individual_pro', diasTrial: 14 });
   };
 
   const handleExtendTrial = async (id: string, daysToAdd: number) => {
-    const updated = doctors.map(doc => {
+    const updated = doctorList.map(doc => {
       if (doc.id === id) {
         return {
           ...doc,
-          diasRestantes: doc.diasRestantes + daysToAdd,
+          diasRestantes: (doc.diasRestantes || 0) + daysToAdd,
           status: 'trialing' as const
         };
       }
       return doc;
     });
-    await onSaveDoctors(updated);
+    if (onSaveDoctors) {
+      await onSaveDoctors(updated);
+    }
   };
 
   const handleToggleStatus = async (id: string) => {
-    const updated = doctors.map(doc => {
+    const updated = doctorList.map(doc => {
       if (doc.id === id) {
         return {
           ...doc,
@@ -88,14 +114,19 @@ const doctorList = Array.isArray(doctors) ? doctors : [];
       }
       return doc;
     });
-    await onSaveDoctors(updated);
+    if (onSaveDoctors) {
+      await onSaveDoctors(updated);
+    }
   };
 
   const filteredDoctors = doctorList.filter(d => {
-    const matchesSearch = (d.nome || '').toLowerCase().includes(search.toLowerCase()) || 
-                          (d.email || '').toLowerCase().includes(search.toLowerCase()) ||
-                          (d.crm || '').toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || d.status === filterStatus;
+    const nome = (d?.nome || '').toLowerCase();
+    const email = (d?.email || '').toLowerCase();
+    const crm = (d?.crm || '').toLowerCase();
+    const q = search.toLowerCase();
+
+    const matchesSearch = nome.includes(q) || email.includes(q) || crm.includes(q);
+    const matchesStatus = filterStatus === 'all' || d?.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
 
@@ -143,7 +174,7 @@ const doctorList = Array.isArray(doctors) ? doctors : [];
             <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">MRR Estimado</span>
             <div className="flex items-baseline gap-1">
               <strong className="text-2xl font-black text-emerald-400">
-                R$ {metrics.mrr.toFixed(2)}
+                R$ {(metrics.mrr || 0).toFixed(2)}
               </strong>
               <span className="text-[10px] text-slate-400">/mês</span>
             </div>
@@ -245,7 +276,7 @@ const doctorList = Array.isArray(doctors) ? doctors : [];
                         {doc.plano === 'individual_pro' ? 'Obstetra Pro' : doc.plano === 'clinica_multi' ? 'Clínica Multi' : 'Trial Grátis'}
                       </strong>
                       <span className="text-slate-400 text-[11px]">
-                        {doc.valorMensalidade > 0 ? `R$ ${doc.valorMensalidade.toFixed(2)}/mês` : 'Período de Teste'}
+                        {Number(doc.valorMensalidade) > 0 ? `R$ ${Number(doc.valorMensalidade).toFixed(2)}/mês` : 'Período de Teste'}
                       </span>
                     </td>
 
@@ -256,7 +287,7 @@ const doctorList = Array.isArray(doctors) ? doctors : [];
                           doc.status === 'trialing' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
                           'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                         }`}>
-                          {doc.status === 'active' ? '● Ativo' : doc.status === 'trialing' ? `● Trial (${doc.diasRestantes} dias)` : '● Bloqueado'}
+                          {doc.status === 'active' ? '● Ativo' : doc.status === 'trialing' ? `● Trial (${doc.diasRestantes || 0} dias)` : '● Bloqueado'}
                         </span>
                         <span className="text-[10px] text-slate-500 block">Expira em: {doc.trialEndsAt}</span>
                       </div>
