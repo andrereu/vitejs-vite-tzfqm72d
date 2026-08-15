@@ -837,8 +837,7 @@ export default function App() {
               onQuickStatusChange={async (patientId, appointmentId, newStatus) => {
                 const targetPat = patients.find(p => p.id === patientId);
                 if (!targetPat) return;
-                const updatedAgenda = (targetPat.agendaConsultas || []).map(a => 
-                  a.id === appointmentId ? { ...a, status: newStatus } : a
+                
       {/* 2. PAINEL DO MÉDICO & SECRETARIA */}
       {currentScreen === 'doctor_panel' && (
         <div className="max-w-6xl mx-auto px-4 pt-6 space-y-6 print:hidden">
