@@ -5,6 +5,11 @@ import {
 } from 'lucide-react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, signInWithPopup } from 'firebase/auth';
+import { ClinicSecretary } from './types/saas';
+
+// Dentro do export default function App() {
+const [secretaries, setSecretaries] = useState<ClinicSecretary[]>([]);
+
 
 import { Patient, initialPatientsList, AgendaConsulta, HorarioBloqueado, UserRole } from './types/prenatal';
 import { DoctorTenant } from './types/saas';
@@ -1542,11 +1547,17 @@ const [loginRole, setLoginRole] = useState<'medica' | 'secretaria'>('medica');
         />
       )}
 
-      {/* MODAL CONFIGURAÇÕES DO CONSULTÓRIO (WHITE LABEL) */}
+            {/* MODAL CONFIGURAÇÕES DO CONSULTÓRIO (WHITE LABEL & SECRETÁRIAS) */}
       <DoctorSettingsModal
         isOpen={showDoctorSettingsModal}
         onClose={() => setShowDoctorSettingsModal(false)}
         currentDoctor={currentDoctorProfile}
+        secretaries={secretaries}
+        onSaveSecretaries={async (updatedSecs) => {
+          setSecretaries(updatedSecs);
+          const docRef = doc(db, "saas_config", "secretarias_cadastradas");
+          await setDoc(docRef, { lista: updatedSecs }, { merge: true });
+        }}
         onSave={async (updated) => {
           setCurrentDoctorProfile(updated);
           await saveSaasDoctorsToFirestore(
@@ -1554,6 +1565,7 @@ const [loginRole, setLoginRole] = useState<'medica' | 'secretaria'>('medica');
           );
         }}
       />
+
 
       {/* MODAL TRIAL 14 DIAS */}
       <DoctorTrialSignupModal
