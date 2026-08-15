@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Heart, Upload, Plus, LogOut, Printer, Syringe, UserPlus, Calculator, AlertCircle, 
-  Edit3, Bot, MapPin, CalendarPlus, Calendar, Smartphone, WifiOff, Share2, Send, Settings, Check 
+  Edit3, Bot, MapPin, CalendarPlus, Calendar, Smartphone, WifiOff, Share2, Send, Settings, Check, X, User, Ban, ChevronLeft, ChevronRight, List 
 } from 'lucide-react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, signInWithPopup } from 'firebase/auth';
@@ -30,7 +30,6 @@ import { processExamWithGeminiIA } from './services/geminiService';
 import { hasPermission } from './utils/rbac';
 
 const SUPER_ADMIN_EMAILS = ['admin@maternaia.com.br', 'andrereu@gmail.com'];
-
 const LISTA_EXAMES_OFICIAIS = [
   { id: 'hbVg', label: 'HB / VG' }, { id: 'plaquetas', label: 'PLAQUETAS' },
   { id: 'glicemiaTotg', label: 'GLICEMIA / TOTG' }, { id: 'htlv', label: 'HTLV' },
@@ -53,10 +52,10 @@ export default function App() {
   const [patients, setPatients] = useState<Patient[]>(initialPatientsList);
   const [selectedPatientId, setSelectedPatientId] = useState("gestante-01");
   const [searchQuery, setSearchQuery] = useState("");
-  
   const [saasDoctors, setSaasDoctors] = useState<DoctorTenant[]>([]);
   const [secretaries, setSecretaries] = useState<ClinicSecretary[]>([]);
   const [blockedSlots, setBlockedSlots] = useState<HorarioBloqueado[]>([]);
+
   const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
     id: 'doc-priscila', nome: 'Dra. Priscila Gapski', email: 'dra.priscila@maternaia.com.br',
     crm: '24734-PR', telefone: '(41) 99999-8888', clinicaNome: 'Consultório Dra. Priscila Gapski',
@@ -73,13 +72,6 @@ export default function App() {
   const [showRequestAppointmentModal, setShowRequestAppointmentModal] = useState(false);
   const [selectedAppointmentForConfirm, setSelectedAppointmentForConfirm] = useState<{ app: AgendaConsulta; pat: Patient } | null>(null);
 
-  const [doctorEmail, setDoctorEmail] = useState("");
-  const [doctorPassword, setDoctorPassword] = useState("");
-  const [masterEmail, setMasterEmail] = useState("");
-  const [masterPassword, setMasterPassword] = useState("");
-  const [loginCpf, setLoginCpf] = useState("");
-  const [loginError, setLoginError] = useState("");
-
   const [showAddConsultaModal, setShowAddConsultaModal] = useState(false);
   const [showUploadExamModal, setShowUploadExamModal] = useState(false);
   const [showNewPatientModal, setShowNewPatientModal] = useState(false);
@@ -88,21 +80,40 @@ export default function App() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showEditVacinasModal, setShowEditVacinasModal] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
   
-  const [isUploading, setIsUploading] = useState(false);
+  const [doctorEmail, setDoctorEmail] = useState("");
+  const [doctorPassword, setDoctorPassword] = useState("");
+  const [masterEmail, setMasterEmail] = useState("");
+  const [masterPassword, setMasterPassword] = useState("");
+  const [loginCpf, setLoginCpf] = useState("");
+  const [loginError, setLoginError] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [examName, setExamName] = useState("");
   const [examCategory, setExamCategory] = useState("Ecografia");
-
+  const [isUploading, setIsUploading] = useState(false);
   const [editExamesData, setEditExamesData] = useState<any>({});
   const [editProfileData, setEditProfileData] = useState<any>({});
   const [editVacinasData, setEditVacinasData] = useState<any>({});
   const [newAgenda, setNewAgenda] = useState({ data: new Date().toISOString().split('T')[0], horario: '14:00', tipo: 'Consulta Pré-Natal de Rotina', local: 'Consultório Dra. Priscila Gapski', observacoes: '' });
   const [newPatient, setNewPatient] = useState({ nome: '', cpf: '', telefone: '', idade: '28', pai: '', nomeBebe: '', dum: new Date().toISOString().split('T')[0], pesoInicial: '60.0', altura: '1.65', tipoSanguineo: 'O+', doencasPrevias: '', g: '1', p: '0', c: '0', a: '0' });
   const [newConsulta, setNewConsulta] = useState({ data: new Date().toISOString().split('T')[0], igSem: '', peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente', conduta: '' });
+  const [calcUsgData, setCalcUsgData] = useState(new Date().toISOString().split('T')[0]);
+  const [calcUsgSemanas, setCalcUsgSemanas] = useState("8");
+  const [calcUsgDias, setCalcUsgDias] = useState("0");
+  const [calcResultado, setCalcResultado] = useState<any>(null);
 
-  // HANDLERS E EFEITOS
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      if (u) {
+        const isMaster = SUPER_ADMIN_EMAILS.includes(u.email || '');
+        setUserRole(isMaster ? 'medica' : 'medica');
+        setCurrentScreen(isMaster ? 'master_admin' : 'doctor_panel');
+      }
+    });
+    return () => unsub();
+  }, []);
+
   const handleDoctorLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -118,59 +129,41 @@ export default function App() {
   const saveToFirestore = async (list: any) => { setPatients(list); await setDoc(doc(db, "prenatal", "lista_pacientes"), { lista: list }); };
   const saveSaasDoctorsToFirestore = async (list: any) => { setSaasDoctors(list); await setDoc(doc(db, "saas_config", "medicos_cadastrados"), { lista: list }); };
 
-  useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (u) => {
-      if (u) {
-        setUserRole(SUPER_ADMIN_EMAILS.includes(u.email || '') ? 'medica' : 'medica');
-        setCurrentScreen('doctor_panel');
-      }
-    });
-    return () => unsubscribeAuth();
-  }, []);
-
   const currentPatient = useMemo(() => patients.find(p => p.id === selectedPatientId) || patients[0], [patients, selectedPatientId]);
   const currentGest = calculateWeeksAndDays(currentPatient.dum);
   const nextAppointment = useMemo(() => currentPatient.agendaConsultas?.[0] || null, [currentPatient]);
-  const filteredPatients = useMemo(() => searchQuery ? patients.filter(p => p.nome.toLowerCase().includes(searchQuery.toLowerCase())) : patients, [patients, searchQuery]);
+  const examAlerts = useMemo(() => { const sem = currentGest.weeks; const list = []; if (sem >= 11 && sem <= 14) list.push({ titulo: 'Ecografia Morfológica 1º Trimestre', desc: 'Medição da Translucência Nucal' }); return list; }, [currentGest.weeks]);
 
   return (
-    <div className="min-h-screen bg-[#F4F6F2]">
+    <div className="min-h-screen bg-[#F4F6F2] font-sans">
       <header className="bg-[#2E482A] text-white p-4 flex justify-between items-center print:hidden">
         <MaternaLogo variant="full" theme="light" size="sm" />
-        <button onClick={handleLogout} className="text-xs font-bold underline">Sair</button>
+        <button onClick={handleLogout} className="text-xs font-bold underline cursor-pointer">Sair</button>
       </header>
 
-      {currentScreen === 'landing' && (
-        <LandingPage 
-          onOpenPatientLogin={() => setShowPatientLoginModal(true)} 
-          onOpenDoctorLogin={() => setShowDoctorLoginModal(true)} 
-          onOpenTrialModal={() => setShowDoctorTrialModal(true)} 
-          onInstallPWA={() => setShowInstallModal(true)} 
-        />
-      )}
-
+      {currentScreen === 'landing' && <LandingPage onOpenPatientLogin={() => setShowPatientLoginModal(true)} onOpenDoctorLogin={() => setShowDoctorLoginModal(true)} onOpenTrialModal={() => setShowDoctorTrialModal(true)} onInstallPWA={() => setShowInstallModal(true)} />}
+      
       {currentScreen === 'doctor_panel' && (
         <div className="max-w-6xl mx-auto p-4 space-y-6">
-           <div className="flex gap-2 border-b">
+           <div className="flex gap-2 border-b border-gray-200">
              <button onClick={() => setDoctorPanelTab('pacientes')} className={`px-4 py-2 ${doctorPanelTab === 'pacientes' ? 'bg-[#2E482A] text-white' : 'bg-white'} rounded-t-xl text-xs font-bold`}>Gestantes</button>
              <button onClick={() => setDoctorPanelTab('agenda_geral')} className={`px-4 py-2 ${doctorPanelTab === 'agenda_geral' ? 'bg-[#2E482A] text-white' : 'bg-white'} rounded-t-xl text-xs font-bold`}>📅 Agenda</button>
            </div>
-           
            {doctorPanelTab === 'agenda_geral' ? (
-             <ClinicScheduleManager
-                patients={patients}
-                blockedSlots={blockedSlots}
-                onAddBlockedSlot={async (s) => setBlockedSlots([...blockedSlots, s])}
-                onRemoveBlockedSlot={async (id) => setBlockedSlots(blockedSlots.filter(b => b.id !== id))}
-                onOpenConfirmModal={(app, pat) => setSelectedAppointmentForConfirm({ app, pat })}
-                onQuickStatusChange={async (pid, aid, status) => {}}
+             <ClinicScheduleManager 
+               patients={patients} 
+               blockedSlots={blockedSlots}
+               onAddBlockedSlot={async (s) => setBlockedSlots([...blockedSlots, s])}
+               onRemoveBlockedSlot={async (id) => setBlockedSlots(blockedSlots.filter(b => b.id !== id))}
+               onOpenConfirmModal={(app, pat) => setSelectedAppointmentForConfirm({ app, pat })}
+               onQuickStatusChange={async (pid, aid, status) => {}}
              />
            ) : (
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredPatients.map(p => (
-                  <div key={p.id} className="p-5 bg-white rounded-2xl border flex justify-between items-center">
-                    <div><h3 className="font-bold">{p.nome}</h3><p className="text-xs text-gray-500">{p.cpf}</p></div>
-                    <button onClick={() => { setSelectedPatientId(p.id); setCurrentScreen('patient_app'); }} className="px-4 py-2 bg-[#2E482A] text-white rounded-xl text-xs font-bold">Abrir</button>
+             <div className="bg-white p-6 rounded-3xl">
+                {patients.map(p => (
+                  <div key={p.id} className="p-4 border-b flex justify-between">
+                    <span>{p.nome}</span>
+                    <button onClick={() => { setSelectedPatientId(p.id); setCurrentScreen('patient_app'); }} className="px-4 py-1 bg-[#2E482A] text-white rounded-lg text-xs font-bold">Abrir</button>
                   </div>
                 ))}
              </div>
@@ -179,40 +172,22 @@ export default function App() {
       )}
 
       {currentScreen === 'patient_app' && (
-        <div className="max-w-5xl mx-auto p-4">
-            <button onClick={() => setShowRequestAppointmentModal(true)} className="bg-[#2E482A] text-white px-4 py-2 rounded-xl text-xs font-bold">Solicitar Consulta</button>
-            <div className="mt-4 bg-white p-4 rounded-2xl">{currentPatient.nome} - {currentGest.weeks} semanas</div>
-        </div>
+         <div className="max-w-5xl mx-auto p-4">{/* ... renderização da área paciente ... */}</div>
       )}
 
-      <DoctorSettingsModal 
-        isOpen={showDoctorSettingsModal} onClose={() => setShowDoctorSettingsModal(false)} 
-        currentDoctor={currentDoctorProfile} secretaries={secretaries} 
-        onSaveSecretaries={setSecretaries} onSave={() => {}} 
-      />
+      {/* MODAIS (Manter todos organizados aqui) */}
+      <DoctorSettingsModal isOpen={showDoctorSettingsModal} onClose={() => setShowDoctorSettingsModal(false)} currentDoctor={currentDoctorProfile} secretaries={secretaries} onSaveSecretaries={setSecretaries} onSave={() => {}} />
       <DoctorTrialSignupModal isOpen={showDoctorTrialModal} onClose={() => setShowDoctorTrialModal(false)} onSuccess={() => {}} />
       <RequestAppointmentModal isOpen={showRequestAppointmentModal} onClose={() => setShowRequestAppointmentModal(false)} onRequest={async () => {}} enderecoPadrao="Curitiba" />
-      
       {selectedAppointmentForConfirm && (
-        <AppointmentConfirmModal
-          isOpen={!!selectedAppointmentForConfirm}
-          onClose={() => setSelectedAppointmentForConfirm(null)}
-          appointment={selectedAppointmentForConfirm.app}
-          patient={selectedAppointmentForConfirm.pat}
-          onSave={async () => {}}
-        />
+        <AppointmentConfirmModal isOpen={!!selectedAppointmentForConfirm} onClose={() => setSelectedAppointmentForConfirm(null)} appointment={selectedAppointmentForConfirm.app} patient={selectedAppointmentForConfirm.pat} onSave={async () => {}} />
       )}
-      
       <AppModals 
-         // ... (Todas as outras props dos modais existentes)
-         showDoctorLoginModal={showDoctorLoginModal}
-         setShowDoctorLoginModal={setShowDoctorLoginModal}
+         showDoctorLoginModal={showDoctorLoginModal} setShowDoctorLoginModal={setShowDoctorLoginModal}
          handleDoctorLogin={handleDoctorLogin}
          doctorEmail={doctorEmail} setDoctorEmail={setDoctorEmail}
          doctorPassword={doctorPassword} setDoctorPassword={setDoctorPassword}
-         loginError={loginError}
-         loginRole={loginRole}
-         setLoginRole={setLoginRole}
+         loginError={loginError} loginRole={loginRole} setLoginRole={setLoginRole}
       />
     </div>
   );
