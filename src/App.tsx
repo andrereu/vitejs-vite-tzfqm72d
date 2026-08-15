@@ -745,7 +745,7 @@ const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
               <p className="text-xs text-gray-500">Acesse ou cadastre novas pacientes no banco de dados</p>
             </div>
             
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               <input
                 type="text"
                 placeholder="Buscar paciente por nome ou CPF..."
@@ -753,10 +753,21 @@ const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full sm:w-64 text-xs p-2.5 border rounded-xl"
               />
-              <button onClick={() => setShowNewPatientModal(true)} className="bg-[#2E482A] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer">
+              <button 
+                onClick={() => setShowDoctorSettingsModal(true)} 
+                className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer border border-gray-200"
+                title="Personalizar dados da clínica e logotipo"
+              >
+                <Settings className="w-4 h-4 text-[#2E482A]" /> Configurar Consultório
+              </button>
+              <button 
+                onClick={() => setShowNewPatientModal(true)} 
+                className="bg-[#2E482A] hover:bg-[#233820] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
+              >
                 <UserPlus className="w-4 h-4" /> + Cadastrar Gestante
               </button>
             </div>
+
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1415,6 +1426,18 @@ const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
 
         </div>
       )}
+  {/* MODAL CONFIGURAÇÕES WHITE LABEL */}
+  <DoctorSettingsModal
+    isOpen={showDoctorSettingsModal}
+    onClose={() => setShowDoctorSettingsModal(false)}
+    currentDoctor={currentDoctorProfile}
+    onSave={async (updated) => {
+      setCurrentDoctorProfile(updated);
+      await saveSaasDoctorsToFirestore(
+        saasDoctors.map(d => d.id === updated.id ? updated : d)
+      );
+    }}
+  />
 
       {/* 4. PAINEL SUPER ADMIN MASTER */}
       {currentScreen === 'master_admin' && (
