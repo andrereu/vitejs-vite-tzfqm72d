@@ -108,6 +108,22 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                 <X className="w-5 h-5" />
               </button>
             </div>
+<div className="flex gap-2 p-1 bg-gray-100 rounded-xl mb-3">
+  <button
+    type="button"
+    onClick={() => setLoginRole('medica')}
+    className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${loginRole === 'medica' ? 'bg-[#2E482A] text-white shadow-xs' : 'text-gray-600'}`}
+  >
+    🩺 Obstetra
+  </button>
+  <button
+    type="button"
+    onClick={() => setLoginRole('secretaria')}
+    className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${loginRole === 'secretaria' ? 'bg-[#2E482A] text-white shadow-xs' : 'text-gray-600'}`}
+  >
+    📋 Secretária / Recepção
+  </button>
+</div>
 
             {props.isIOS ? (
               <div className="space-y-3 text-xs text-gray-700 leading-relaxed">
