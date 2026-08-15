@@ -11,6 +11,7 @@ import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 
 import { Patient, initialPatientsList } from './types/prenatal';
+import { DoctorTenant } from './types/saas';
 import { formatDateDisplay, formatDateBR, calculateWeeksAndDays, fileToBase64 } from './utils/formatters';
 import { 
   generateAppointmentReminderLink, 
@@ -28,7 +29,10 @@ import { LandingPage } from './components/LandingPage';
 import { MaternaLogo } from './components/MaternaLogo';
 import { AdminMasterDashboard } from './components/AdminMasterDashboard';
 
-
+const SUPER_ADMIN_EMAILS = [
+  'admin@maternaia.com.br',
+  'andrereu@gmail.com'
+];
 
 const LISTA_EXAMES_OFICIAIS = [
   { id: 'hbVg', label: 'HB / VG', placeholder: 'Ex: 12.5 g/dL / 38%' },
@@ -51,26 +55,19 @@ const LISTA_EXAMES_OFICIAIS = [
 ];
 
 export default function App() {
-    // SaaS Multi-Médicos & Master
+  const [currentScreen, setCurrentScreen] = useState<'landing' | 'doctor_panel' | 'patient_app' | 'master_admin'>('landing');
+
+  // SaaS Multi-Médicos & Master
   const [saasDoctors, setSaasDoctors] = useState<DoctorTenant[]>([]);
   const [showMasterLoginModal, setShowMasterLoginModal] = useState(false);
   const [masterEmail, setMasterEmail] = useState("");
   const [masterPassword, setMasterPassword] = useState("");
-
-  const [currentScreen, setCurrentScreen] = useState<'landing' | 'doctor_panel' | 'patient_app' | 'master_admin'>('landing');
-
 
   const [userRole, setUserRole] = useState<'paciente' | 'medica' | null>(null);
   const [patients, setPatients] = useState<Patient[]>(initialPatientsList);
   const [selectedPatientId, setSelectedPatientId] = useState("gestante-01");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState('resumo');
-
-  const SUPER_ADMIN_EMAILS = [
-  'admin@maternaia.com.br',
-  'andrereu@gmail.com'
-];
-
 
   // PWA
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -107,42 +104,6 @@ export default function App() {
   const [examName, setExamName] = useState("");
   const [examCategory, setExamCategory] = useState("Ecografia");
   const [isUploading, setIsUploading] = useState(false);
-
-  // Login com Google da Paciente
-  const handleGooglePatientLogin = async () => {
-    setLoginError("");
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      const userEmail = user.email?.toLowerCase().trim();
-
-      if (!userEmail) {
-        setLoginError("Não foi possível obter o e-mail da sua conta Google.");
-        return;
-      }
-
-      // Procura a gestante pelo e-mail cadastrado
-      const matched = patients.find(
-        (p) => p.email && p.email.toLowerCase().trim() === userEmail
-      );
-
-      if (matched) {
-        setSelectedPatientId(matched.id);
-        setUserRole('paciente');
-        setCurrentScreen('patient_app');
-        setShowPatientLoginModal(false);
-      } else {
-        setLoginError(
-          `O e-mail ${userEmail} ainda não está vinculado a nenhum pré-natal cadastrado. Peça à sua médica para incluir seu e-mail no cadastro.`
-        );
-      }
-    } catch (err: any) {
-      console.error("Erro no login Google:", err);
-      if (err.code !== 'auth/popup-closed-by-user') {
-        setLoginError("Erro ao autenticar com o Google. Tente novamente.");
-      }
-    }
-  };
 
   // Forms
   const [editExamesData, setEditExamesData] = useState<any>({});
@@ -197,12 +158,10 @@ export default function App() {
       if (currentUser) {
         const userEmail = currentUser.email?.toLowerCase().trim() || '';
         
-        // Se for Super Admin, vai para o painel Master
         if (SUPER_ADMIN_EMAILS.includes(userEmail)) {
           setUserRole('medica');
           setCurrentScreen('master_admin');
         } else {
-          // Se for médico comum
           setUserRole('medica');
           setCurrentScreen('doctor_panel');
         }
@@ -211,7 +170,7 @@ export default function App() {
     return () => unsubscribeAuth();
   }, []);
 
-
+  // Carregar lista de pacientes
   useEffect(() => {
     try {
       const docRef = doc(db, "prenatal", "lista_pacientes");
@@ -227,6 +186,51 @@ export default function App() {
       console.warn("Modo offline:", err);
     }
   }, []);
+
+  // Carregar médicos SaaS do Firestore
+  useEffect(() => {
+    try {
+      const docRef = doc(db, "saas_config", "medicos_cadastrados");
+      const unsubscribe = onSnapshot(docRef, (snapshot) => {
+        if (snapshot.exists() && snapshot.data().lista) {
+          setSaasDoctors(snapshot.data().lista);
+        } else {
+          const initialDoc: DoctorTenant[] = [
+            {
+              id: 'doc-priscila',
+              nome: 'Dra. Priscila Gapski',
+              email: 'dra.priscila@maternaia.com.br',
+              crm: '24734-PR',
+              telefone: '(41) 99999-8888',
+              clinicaNome: 'Consultório Dra. Priscila',
+              plano: 'individual_pro',
+              status: 'active',
+              trialEndsAt: '2027-12-31',
+              diasRestantes: 365,
+              totalPacientes: 42,
+              dataCadastro: '2026-01-01',
+              valorMensalidade: 89.0,
+              metodoPagamento: 'pix'
+            }
+          ];
+          setDoc(docRef, { lista: initialDoc }).catch(console.error);
+        }
+      });
+      return () => unsubscribe();
+    } catch (err) {
+      console.warn("Modo offline SaaS:", err);
+    }
+  }, []);
+
+  const saveSaasDoctorsToFirestore = async (updatedList: DoctorTenant[]) => {
+    setSaasDoctors(updatedList);
+    try {
+      const docRef = doc(db, "saas_config", "medicos_cadastrados");
+      await setDoc(docRef, { lista: updatedList }, { merge: true });
+    } catch (err) {
+      console.error("Erro ao salvar médicos no Firestore:", err);
+    }
+  };
 
   const handleInstallPWA = async () => {
     if (deferredPrompt) {
@@ -319,6 +323,7 @@ export default function App() {
     return list;
   }, [currentGest.weeks]);
 
+  // Login da Médica
   const handleDoctorLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError("");
@@ -331,6 +336,8 @@ export default function App() {
       setLoginError("E-mail ou senha incorretos.");
     }
   };
+
+  // Login Super Admin Master
   const handleMasterLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError("");
@@ -339,7 +346,6 @@ export default function App() {
     try {
       await signInWithEmailAndPassword(auth, emailNorm, masterPassword);
       
-      // Validação de segurança: apenas e-mails da lista autorizada
       if (SUPER_ADMIN_EMAILS.includes(emailNorm)) {
         setCurrentScreen('master_admin');
         setShowMasterLoginModal(false);
@@ -349,6 +355,41 @@ export default function App() {
       }
     } catch (err) {
       setLoginError("E-mail ou senha de administrador incorretos.");
+    }
+  };
+
+  // Login com Google da Paciente
+  const handleGooglePatientLogin = async () => {
+    setLoginError("");
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      const userEmail = user.email?.toLowerCase().trim();
+
+      if (!userEmail) {
+        setLoginError("Não foi possível obter o e-mail da sua conta Google.");
+        return;
+      }
+
+      const matched = patients.find(
+        (p) => p.email && p.email.toLowerCase().trim() === userEmail
+      );
+
+      if (matched) {
+        setSelectedPatientId(matched.id);
+        setUserRole('paciente');
+        setCurrentScreen('patient_app');
+        setShowPatientLoginModal(false);
+      } else {
+        setLoginError(
+          `O e-mail ${userEmail} ainda não está vinculado a nenhum pré-natal cadastrado. Peça à sua médica para incluir seu e-mail no cadastro.`
+        );
+      }
+    } catch (err: any) {
+      console.error("Erro no login Google:", err);
+      if (err.code !== 'auth/popup-closed-by-user') {
+        setLoginError("Erro ao autenticar com o Google. Tente novamente.");
+      }
     }
   };
 
@@ -581,12 +622,13 @@ export default function App() {
         </div>
       )}
 
-            <header className="bg-[#2E482A] text-white shadow-md sticky top-0 z-40 border-b border-[#3D5C38] print:hidden">
+      {/* CABEÇALHO */}
+      <header className="bg-[#2E482A] text-white shadow-md sticky top-0 z-40 border-b border-[#3D5C38] print:hidden">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           
-                    {/* LOGO DA MARCA */}
+          {/* LOGO DA MARCA */}
           <div onClick={() => setCurrentScreen('landing')} className="cursor-pointer">
-            {currentScreen === 'landing' ? (
+            {currentScreen === 'landing' || currentScreen === 'master_admin' ? (
               <MaternaLogo variant="full" theme="light" size="md" />
             ) : (
               <div className="flex items-center gap-3">
@@ -602,18 +644,6 @@ export default function App() {
               </div>
             )}
           </div>
-{/* ACESSO EXCLUSIVO SUPER ADMIN */}
-{currentScreen === 'landing' && (
-  <div className="text-center pt-4 print:hidden">
-    <button
-      onClick={() => setCurrentScreen('master_admin')}
-      className="text-[11px] text-gray-400 hover:text-gray-600 transition-all font-medium"
-    >
-      🔒 Painel do Franqueador / Master Admin
-    </button>
-  </div>
-)}
-
 
           {/* AÇÕES DO CABEÇALHO */}
           <div className="flex items-center gap-2">
@@ -627,7 +657,7 @@ export default function App() {
 
             {currentScreen !== 'landing' && (
               <>
-                {userRole === 'medica' && (
+                {userRole === 'medica' && currentScreen !== 'master_admin' && (
                   <button
                     onClick={() => setCurrentScreen('doctor_panel')}
                     className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 text-white hover:bg-white/20 cursor-pointer"
@@ -662,24 +692,26 @@ export default function App() {
               </>
             )}
           </div>
-        </div>'
-                    {/* 4. PAINEL SUPER ADMIN (MASTER SAAS) */}
-      {currentScreen === 'master_admin' && (
-        <AdminMasterDashboard 
-          onLogout={() => setCurrentScreen('landing')}
-        />
-      )}
-
+        </div>
       </header>
-
 
       {/* 1. LANDING PAGE PRINCIPAL */}
       {currentScreen === 'landing' && (
-        <LandingPage
-          onOpenPatientLogin={() => setShowPatientLoginModal(true)}
-          onOpenDoctorLogin={() => setShowDoctorLoginModal(true)}
-          onInstallPWA={handleInstallPWA}
-        />
+        <div className="space-y-6">
+          <LandingPage
+            onOpenPatientLogin={() => setShowPatientLoginModal(true)}
+            onOpenDoctorLogin={() => setShowDoctorLoginModal(true)}
+            onInstallPWA={handleInstallPWA}
+          />
+          <div className="text-center pb-8 print:hidden">
+            <button
+              onClick={() => setShowMasterLoginModal(true)}
+              className="text-[11px] text-gray-400 hover:text-gray-600 transition-all font-medium cursor-pointer"
+            >
+              🔒 Acesso Restrito • Master Admin
+            </button>
+          </div>
+        </div>
       )}
 
       {/* 2. PAINEL DO MÉDICO */}
@@ -1358,21 +1390,11 @@ export default function App() {
               </div>
             </div>
           )}
-        {/* RODAPÉ MASTER ADMIN */}
-        {currentScreen === 'landing' && (
-          <div className="text-center pt-8 pb-4 print:hidden">
-            <button
-              onClick={() => setShowMasterLoginModal(true)}
-              className="text-[11px] text-gray-400 hover:text-gray-600 transition-all font-medium cursor-pointer"
-            >
-              🔒 Acesso Restrito • Master Admin
-            </button>
-          </div>
-        )}
 
         </div>
       )}
-      {/* PAINEL SUPER ADMIN MASTER */}
+
+      {/* 4. PAINEL SUPER ADMIN MASTER */}
       {currentScreen === 'master_admin' && (
         <AdminMasterDashboard 
           doctors={saasDoctors}
@@ -1439,6 +1461,13 @@ export default function App() {
         doctorPassword={doctorPassword}
         setDoctorPassword={setDoctorPassword}
         handleDoctorLogin={handleDoctorLogin}
+        showMasterLoginModal={showMasterLoginModal}
+        setShowMasterLoginModal={setShowMasterLoginModal}
+        masterEmail={masterEmail}
+        setMasterEmail={setMasterEmail}
+        masterPassword={masterPassword}
+        setMasterPassword={setMasterPassword}
+        handleMasterLogin={handleMasterLogin}
         loginError={loginError}
       />
 
