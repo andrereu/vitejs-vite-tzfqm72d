@@ -22,6 +22,15 @@ export interface DoctorTenant {
   metodoPagamento?: 'pix' | 'cartao' | 'boleto';
   subdomainOrSlug?: string;
 }
+export interface ClinicSecretary {
+  id: string;
+  nome: string;
+  email: string;
+  senhaHash?: string;
+  doctorId: string; // ID do médico ou clínica ao qual está vinculada
+  clinicaNome: string;
+  ativo: boolean;
+}
 
 export interface SaaSMetrics {
   mrr: number;
