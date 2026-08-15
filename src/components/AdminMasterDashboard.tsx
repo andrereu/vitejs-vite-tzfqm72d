@@ -13,14 +13,15 @@ interface AdminMasterDashboardProps {
 }
 
 export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({ 
-  doctors, 
+  doctors = [], 
   onSaveDoctors, 
   onLogout 
 }) => {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [showAddModal, setShowAddModal] = useState(false);
-
+const doctorList = Array.isArray(doctors) ? doctors : [];
+  
   const [newDoc, setNewDoc] = useState({
     nome: '',
     email: '',
@@ -32,11 +33,11 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
   });
 
   const metrics: SaaSMetrics = {
-    mrr: doctors.reduce((acc, doc) => acc + (doc.status === 'active' ? (doc.valorMensalidade || 0) : 0), 0),
-    totalMedicos: doctors.length,
-    medicosAtivos: doctors.filter(d => d.status === 'active').length,
-    trialsEmCurso: doctors.filter(d => d.status === 'trialing').length,
-    totalGestantes: doctors.reduce((acc, d) => acc + (d.totalPacientes || 0), 0)
+    mrr: doctorList.reduce((acc, doc) => acc + (doc.status === 'active' ? (doc.valorMensalidade || 0) : 0), 0),
+    totalMedicos: doctorList.length,
+    medicosAtivos: doctorList.filter(d => d.status === 'active').length,
+    trialsEmCurso: doctorList.filter(d => d.status === 'trialing').length,
+    totalGestantes: doctorList.reduce((acc, d) => acc + (d.totalPacientes || 0), 0)
   };
 
   const handleCreateDoctor = async (e: React.FormEvent) => {
@@ -90,10 +91,10 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
     await onSaveDoctors(updated);
   };
 
-  const filteredDoctors = doctors.filter(d => {
-    const matchesSearch = d.nome.toLowerCase().includes(search.toLowerCase()) || 
-                          d.email.toLowerCase().includes(search.toLowerCase()) ||
-                          d.crm.toLowerCase().includes(search.toLowerCase());
+  const filteredDoctors = doctorList.filter(d => {
+    const matchesSearch = (d.nome || '').toLowerCase().includes(search.toLowerCase()) || 
+                          (d.email || '').toLowerCase().includes(search.toLowerCase()) ||
+                          (d.crm || '').toLowerCase().includes(search.toLowerCase());
     const matchesStatus = filterStatus === 'all' || d.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
