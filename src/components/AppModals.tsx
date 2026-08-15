@@ -63,6 +63,16 @@ interface AppModalsProps {
   newPatient: any;
   setNewPatient: (v: any) => void;
   handleCreatePatient: (e: React.FormEvent) => void;
+
+    // Super Admin Modal
+  showMasterLoginModal: boolean;
+  setShowMasterLoginModal: (v: boolean) => void;
+  masterEmail: string;
+  setMasterEmail: (v: string) => void;
+  masterPassword: string;
+  setMasterPassword: (v: string) => void;
+  handleMasterLogin: (e: React.FormEvent) => void;
+
   
   // Login Modals
   showPatientLoginModal: boolean;
@@ -847,6 +857,69 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
           </div>
         </div>
       )}
+            {/* MODAL LOGIN SUPER ADMIN / MASTER */}
+      {props.showMasterLoginModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 print:hidden">
+          <div className="bg-slate-900 border border-slate-700 p-6 rounded-3xl max-w-sm w-full space-y-4 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+              <h3 className="font-bold text-white text-base flex items-center gap-2">
+                ⚡ MaternaIA • Master Admin
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => props.setShowMasterLoginModal(false)} 
+                className="text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {props.loginError && (
+              <div className="p-3 bg-rose-950/80 border border-rose-800 text-rose-300 text-xs rounded-xl font-medium">
+                {props.loginError}
+              </div>
+            )}
+
+            <form onSubmit={props.handleMasterLogin} className="space-y-3">
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase tracking-wider">
+                  E-mail Super Admin
+                </label>
+                <input 
+                  type="email" 
+                  required
+                  placeholder="admin@maternaia.com.br" 
+                  value={props.masterEmail} 
+                  onChange={(e) => props.setMasterEmail(e.target.value)} 
+                  className="w-full text-xs p-3 border border-slate-700 rounded-xl bg-slate-800 text-white focus:outline-amber-500" 
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase tracking-wider">
+                  Senha Master
+                </label>
+                <input 
+                  type="password" 
+                  required
+                  placeholder="••••••••" 
+                  value={props.masterPassword} 
+                  onChange={(e) => props.setMasterPassword(e.target.value)} 
+                  className="w-full text-xs p-3 border border-slate-700 rounded-xl bg-slate-800 text-white focus:outline-amber-500" 
+                />
+              </div>
+
+              <button 
+                type="submit" 
+                className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black transition-all shadow-md cursor-pointer mt-2"
+              >
+                Acessar Painel Franqueador
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
     </>
   );
 };
