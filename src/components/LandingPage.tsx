@@ -1,21 +1,29 @@
 import React from 'react';
-import { 
-  Sparkles, Smartphone, CheckCircle2, 
-  ArrowRight
-} from 'lucide-react';
+import { Sparkles, Smartphone, CheckCircle2, ArrowRight } from 'lucide-react';
 import { AdBanner } from './AdBanner';
 
 interface LandingPageProps {
   onOpenPatientLogin: () => void;
   onOpenDoctorLogin: () => void;
+  onOpenTrialModal: () => void;
   onInstallPWA: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
   onOpenPatientLogin,
   onOpenDoctorLogin,
+  onOpenTrialModal,
   onInstallPWA
 }) => {
+  // Disparo direto para o seu WhatsApp comercial
+  const handleFalarComConsultor = () => {
+    const telefoneDestino = '5541998496940'; // Seu WhatsApp comercial
+    const texto = encodeURIComponent(
+      'Olá! Gostaria de falar com um consultor comercial sobre o plano Clínica Multi-Médicos do MaternaIA.'
+    );
+    window.open(`https://wa.me/${telefoneDestino}?text=${texto}`, '_blank');
+  };
+
   return (
     <div className="space-y-16 pb-16 print:hidden">
       
@@ -111,7 +119,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
       </section>
 
-      {/* 4. TABELA DE PLANOS & PREÇOS (SAAS MULTI-MÉDICOS) */}
+      {/* 4. TABELA DE PLANOS & PREÇOS */}
       <section className="max-w-5xl mx-auto px-4 space-y-8">
         <div className="text-center space-y-2">
           <span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest bg-amber-100 px-3 py-1 rounded-full">
@@ -126,7 +134,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* PLANO CONSULTÓRIO INDIVIDUAL */}
+          
+          {/* PLANO OBSTETRA PRO (TRIAL 14 DIAS) */}
           <div className="bg-white p-8 rounded-3xl border-2 border-gray-200 shadow-sm space-y-6 flex flex-col justify-between">
             <div className="space-y-4">
               <span className="bg-gray-100 text-gray-800 text-[10px] font-bold px-3 py-1 rounded-full uppercase">
@@ -144,14 +153,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </ul>
             </div>
             <button 
-              onClick={onOpenDoctorLogin}
+              onClick={onOpenTrialModal}
               className="w-full py-3 bg-[#2E482A] hover:bg-[#233820] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
             >
               Começar Teste de 14 Dias Grátis
             </button>
           </div>
 
-          {/* PLANO CLÍNICA / MATERNIDADE */}
+          {/* PLANO CLÍNICA MULTI-MÉDICOS (WHATSAPP COMERCIAL) */}
           <div className="bg-gradient-to-b from-[#2E482A]/5 to-[#2E482A]/15 p-8 rounded-3xl border-2 border-[#2E482A] shadow-md space-y-6 flex flex-col justify-between relative">
             <div className="absolute top-4 right-4 bg-[#D4AF37] text-gray-900 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
               Mais Popular
@@ -172,12 +181,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </ul>
             </div>
             <button 
-              onClick={onOpenDoctorLogin}
-              className="w-full py-3 bg-[#D4AF37] hover:bg-amber-400 text-gray-900 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer"
+              onClick={handleFalarComConsultor}
+              className="w-full py-3 bg-[#D4AF37] hover:bg-amber-400 text-gray-900 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5"
             >
-              Falar com Consultor Comercial
+              <span>Falar com Consultor Comercial</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
+
         </div>
       </section>
 
