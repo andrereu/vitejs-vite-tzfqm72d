@@ -1700,7 +1700,7 @@ export default function App() {
         />
       )}
 
-      {/* MODAIS DO SISTEMA */}
+      {      {/* MODAIS DO SISTEMA */}
       <AppModals
         showInstallModal={showInstallModal}
         setShowInstallModal={setShowInstallModal}
@@ -1768,7 +1768,7 @@ export default function App() {
         loginError={loginError}
       />
 
-          {/* CARTEIRINHA DE IMPRESSÃO */}
+      {/* CARTEIRINHA DE IMPRESSÃO */}
       {currentPatient && (
         <PrintableCarteirinha 
           patient={currentPatient} 
@@ -1779,4 +1779,3 @@ export default function App() {
     </div>
   );
 }
-
