@@ -7,68 +7,20 @@ import {
 import { DoctorTenant, SaaSMetrics } from '../types/saas';
 
 interface AdminMasterDashboardProps {
+  doctors: DoctorTenant[];
+  onSaveDoctors: (updatedList: DoctorTenant[]) => Promise<void>;
   onLogout: () => void;
-  onSelectDoctorToView?: (doctorId: string) => void;
 }
 
-const MOCK_DOCTORS: DoctorTenant[] = [
-  {
-    id: 'doc-01',
-    nome: 'Dra. Priscila Gapski',
-    email: 'dra.priscila@maternaia.com.br',
-    crm: '24734-PR',
-    telefone: '(41) 99999-8888',
-    clinicaNome: 'Consultório Gapski',
-    plano: 'individual_pro',
-    status: 'active',
-    trialEndsAt: '2026-12-31',
-    diasRestantes: 365,
-    totalPacientes: 42,
-    dataCadastro: '2026-01-10',
-    valorMensalidade: 89.00,
-    metodoPagamento: 'cartao'
-  },
-  {
-    id: 'doc-02',
-    nome: 'Dr. Roberto Silveira',
-    email: 'roberto@clinicafemina.med.br',
-    crm: '31200-SP',
-    telefone: '(11) 98877-6655',
-    clinicaNome: 'Clínica Fêmina Obstetrícia',
-    plano: 'clinica_multi',
-    status: 'active',
-    trialEndsAt: '2026-09-15',
-    diasRestantes: 32,
-    totalPacientes: 118,
-    dataCadastro: '2026-06-01',
-    valorMensalidade: 199.00,
-    metodoPagamento: 'pix'
-  },
-  {
-    id: 'doc-03',
-    nome: 'Dra. Mariana Costa',
-    email: 'mariana.costa@gmail.com',
-    crm: '19844-RJ',
-    telefone: '(21) 97711-2233',
-    clinicaNome: 'Mariana Obstetrícia',
-    plano: 'trial',
-    status: 'trialing',
-    trialEndsAt: '2026-08-25',
-    diasRestantes: 11,
-    totalPacientes: 5,
-    dataCadastro: '2026-08-10',
-    valorMensalidade: 0,
-    metodoPagamento: 'cartao'
-  }
-];
-
-export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({ onLogout }) => {
-  const [doctors, setDoctors] = useState<DoctorTenant[]>(MOCK_DOCTORS);
+export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({ 
+  doctors, 
+  onSaveDoctors, 
+  onLogout 
+}) => {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [showAddModal, setShowAddModal] = useState(false);
 
-  // Novo Médico Form State
   const [newDoc, setNewDoc] = useState({
     nome: '',
     email: '',
@@ -79,21 +31,20 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({ onLo
     diasTrial: 14
   });
 
-  // Métricas Calculadas
   const metrics: SaaSMetrics = {
-    mrr: doctors.reduce((acc, doc) => acc + (doc.status === 'active' ? doc.valorMensalidade : 0), 0),
+    mrr: doctors.reduce((acc, doc) => acc + (doc.status === 'active' ? (doc.valorMensalidade || 0) : 0), 0),
     totalMedicos: doctors.length,
     medicosAtivos: doctors.filter(d => d.status === 'active').length,
     trialsEmCurso: doctors.filter(d => d.status === 'trialing').length,
-    totalGestantes: doctors.reduce((acc, d) => acc + d.totalPacientes, 0)
+    totalGestantes: doctors.reduce((acc, d) => acc + (d.totalPacientes || 0), 0)
   };
 
-  const handleCreateDoctor = (e: React.FormEvent) => {
+  const handleCreateDoctor = async (e: React.FormEvent) => {
     e.preventDefault();
     const created: DoctorTenant = {
       id: `doc-${Date.now()}`,
       nome: newDoc.nome,
-      email: newDoc.email,
+      email: newDoc.email.toLowerCase().trim(),
       crm: newDoc.crm,
       telefone: newDoc.telefone,
       clinicaNome: newDoc.clinicaNome || newDoc.nome,
@@ -107,34 +58,36 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({ onLo
       metodoPagamento: 'pix'
     };
 
-    setDoctors([created, ...doctors]);
+    await onSaveDoctors([created, ...doctors]);
     setShowAddModal(false);
     setNewDoc({ nome: '', email: '', crm: '', telefone: '', clinicaNome: '', plano: 'individual_pro', diasTrial: 14 });
   };
 
-  const handleExtendTrial = (id: string, daysToAdd: number) => {
-    setDoctors(doctors.map(doc => {
+  const handleExtendTrial = async (id: string, daysToAdd: number) => {
+    const updated = doctors.map(doc => {
       if (doc.id === id) {
         return {
           ...doc,
           diasRestantes: doc.diasRestantes + daysToAdd,
-          status: 'trialing'
+          status: 'trialing' as const
         };
       }
       return doc;
-    }));
+    });
+    await onSaveDoctors(updated);
   };
 
-  const handleToggleStatus = (id: string) => {
-    setDoctors(doctors.map(doc => {
+  const handleToggleStatus = async (id: string) => {
+    const updated = doctors.map(doc => {
       if (doc.id === id) {
         return {
           ...doc,
-          status: doc.status === 'active' ? 'canceled' : 'active'
+          status: doc.status === 'active' ? ('canceled' as const) : ('active' as const)
         };
       }
       return doc;
-    }));
+    });
+    await onSaveDoctors(updated);
   };
 
   const filteredDoctors = doctors.filter(d => {
@@ -148,7 +101,7 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({ onLo
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 font-sans pb-16">
       
-      {/* CABEÇALHO MASTER */}
+      {/* HEADER MASTER */}
       <header className="bg-slate-950/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40 px-6 py-4 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center font-black text-slate-950 text-xl shadow-lg shadow-amber-500/20">
@@ -176,14 +129,14 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({ onLo
             onClick={onLogout}
             className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700 transition-all cursor-pointer"
           >
-            Sair do Admin
+            Sair do Painel
           </button>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-6 pt-8 space-y-8">
-
-        {/* CARDS DE MÉTRICAS SaaS */}
+        
+        {/* CARDS DE MÉTRICAS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="bg-slate-800/60 border border-slate-700/80 p-5 rounded-3xl space-y-1">
             <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">MRR Estimado</span>
@@ -199,9 +152,9 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({ onLo
           </div>
 
           <div className="bg-slate-800/60 border border-slate-700/80 p-5 rounded-3xl space-y-1">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Médicos Ativos</span>
-            <strong className="text-2xl font-black text-white">{metrics.medicosAtivos}</strong>
-            <span className="text-[10px] text-slate-400 block pt-1">De {metrics.totalMedicos} cadastrados</span>
+            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Médicos Cadastrados</span>
+            <strong className="text-2xl font-black text-white">{metrics.totalMedicos}</strong>
+            <span className="text-[10px] text-slate-400 block pt-1">{metrics.medicosAtivos} ativos</span>
           </div>
 
           <div className="bg-slate-800/60 border border-slate-700/80 p-5 rounded-3xl space-y-1">
@@ -217,15 +170,15 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({ onLo
           </div>
 
           <div className="bg-slate-800/60 border border-slate-700/80 p-5 rounded-3xl space-y-1">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Gateway de Pagamento</span>
-            <strong className="text-sm font-bold text-slate-200 block pt-1">Asaas / Stripe</strong>
+            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Status Gateway</span>
+            <strong className="text-sm font-bold text-slate-200 block pt-1">PIX & Cartão</strong>
             <span className="text-[9px] bg-slate-700/80 text-slate-300 px-2 py-0.5 rounded-md inline-block mt-1">
-              PIX / Cartão Automático
+              Pronto para Asaas/Stripe
             </span>
           </div>
         </div>
 
-        {/* TABELA DE MÉDICOS & CONTROLE */}
+        {/* TABELA DE MÉDICOS */}
         <div className="bg-slate-800/60 border border-slate-700/80 rounded-3xl p-6 space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-700/80 pb-4">
             <div>
@@ -304,12 +257,12 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({ onLo
                         }`}>
                           {doc.status === 'active' ? '● Ativo' : doc.status === 'trialing' ? `● Trial (${doc.diasRestantes} dias)` : '● Bloqueado'}
                         </span>
-                        <span className="text-[10px] text-slate-500 block">Até: {doc.trialEndsAt}</span>
+                        <span className="text-[10px] text-slate-500 block">Expira em: {doc.trialEndsAt}</span>
                       </div>
                     </td>
 
                     <td className="p-3.5">
-                      <span className="text-base font-bold text-pink-300">{doc.totalPacientes}</span>
+                      <span className="text-base font-bold text-pink-300">{doc.totalPacientes || 0}</span>
                       <span className="text-[10px] text-slate-500 block">gestantes ativas</span>
                     </td>
 
@@ -340,10 +293,9 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({ onLo
             </table>
           </div>
         </div>
-
       </main>
 
-      {/* MODAL CADASTRAR NOVO MÉDICO */}
+      {/* MODAL NOVO MÉDICO */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-700 p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl">
@@ -354,7 +306,7 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({ onLo
 
             <form onSubmit={handleCreateDoctor} className="space-y-3 text-xs">
               <div>
-                <label className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Nome Completo do Médico *</label>
+                <label className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Nome do Médico / Obstetra *</label>
                 <input 
                   type="text" 
                   required
@@ -436,14 +388,13 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({ onLo
                   type="submit" 
                   className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-900/30"
                 >
-                  Salvar Médico & Liberar Acesso
+                  Salvar & Liberar Acesso
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-
     </div>
   );
 };
