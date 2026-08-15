@@ -838,7 +838,7 @@ export default function App() {
                 const targetPat = patients.find(p => p.id === patientId);
                 if (!targetPat) return;
                 
-      {/* 2. PAINEL DO MÉDICO & SECRETARIA */}
+        {/* 2. PAINEL DO MÉDICO & SECRETARIA */}
       {currentScreen === 'doctor_panel' && (
         <div className="max-w-6xl mx-auto px-4 pt-6 space-y-6 print:hidden">
           
@@ -928,7 +928,6 @@ export default function App() {
               </div>
             </div>
           )}
-
           {/* ABA 2: CENTRAL DA AGENDA & RECEPÇÃO */}
           {doctorPanelTab === 'agenda_geral' && (
             <ClinicScheduleManager
@@ -948,6 +947,7 @@ export default function App() {
               }}
             />
           )}
+
 
         </div>
       )}
