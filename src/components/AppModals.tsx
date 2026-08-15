@@ -822,10 +822,10 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
         </div>
       )}
 
-            {/* MODAL LOGIN EQUIPE MÉDICA / SECRETARIA */}
+                  {/* MODAL LOGIN EQUIPE MÉDICA / SECRETÁRIA */}
       {props.showDoctorLoginModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in zoom-in duration-200">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-gray-800">
             
             <div className="flex justify-between items-center border-b pb-3">
               <div>
@@ -833,40 +833,43 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                 <p className="text-[11px] text-gray-500">Área restrita para médicos e secretárias</p>
               </div>
               <button 
+                type="button"
                 onClick={() => props.setShowDoctorLoginModal(false)}
-                className="text-gray-400 hover:text-gray-700 cursor-pointer"
+                className="text-gray-400 hover:text-gray-700 cursor-pointer p-1"
               >
                 ✕
               </button>
             </div>
 
-            {/* SELETOR DE PERFIL: MÉDICA OU SECRETÁRIA */}
-            {/* SELETOR DE PERFIL NO MODAL */}
-<div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-100 rounded-2xl mb-3">
-  <button
-    type="button"
-    onClick={() => props.setLoginRole && props.setLoginRole('medica')}
-    className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-      props.loginRole === 'medica' || !props.loginRole
-        ? 'bg-[#2E482A] text-white shadow-xs'
-        : 'text-gray-600 hover:text-gray-900'
-    }`}
-  >
-    🩺 Obstetra
-  </button>
-  <button
-    type="button"
-    onClick={() => props.setLoginRole && props.setLoginRole('secretaria')}
-    className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-      props.loginRole === 'secretaria'
-        ? 'bg-[#2E482A] text-white shadow-xs'
-        : 'text-gray-600 hover:text-gray-900'
-    }`}
-  >
-    📋 Secretária
-  </button>
-</div>
-
+            {/* SELETOR DE PERFIL INTERATIVO */}
+            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-100 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => {
+                  if (props.setLoginRole) props.setLoginRole('medica');
+                }}
+                className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                  (props.loginRole || 'medica') === 'medica'
+                    ? 'bg-[#2E482A] text-white shadow-xs'
+                    : 'text-gray-600 hover:text-gray-900 bg-transparent'
+                }`}
+              >
+                🩺 Obstetra
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (props.setLoginRole) props.setLoginRole('secretaria');
+                }}
+                className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                  props.loginRole === 'secretaria'
+                    ? 'bg-[#2E482A] text-white shadow-xs'
+                    : 'text-gray-600 hover:text-gray-900 bg-transparent'
+                }`}
+              >
+                📋 Secretária
+              </button>
+            </div>
 
             <form onSubmit={props.handleDoctorLogin} className="space-y-3 text-xs">
               <div>
@@ -910,9 +913,11 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                 {props.loginRole === 'secretaria' ? 'Entrar como Secretária' : 'Entrar como Obstetra'}
               </button>
             </form>
+
           </div>
         </div>
       )}
+
 
             {/* MODAL LOGIN SUPER ADMIN / MASTER */}
       {props.showMasterLoginModal && (
