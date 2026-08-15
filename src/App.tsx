@@ -1768,7 +1768,7 @@ export default function App() {
         loginError={loginError}
       />
 
-      {/* CARTEIRINHA DE IMPRESSÃO */}
+          {/* CARTEIRINHA DE IMPRESSÃO */}
       {currentPatient && (
         <PrintableCarteirinha 
           patient={currentPatient} 
@@ -1779,3 +1779,4 @@ export default function App() {
     </div>
   );
 }
+
