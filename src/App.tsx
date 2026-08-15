@@ -54,6 +54,7 @@ const LISTA_EXAMES_OFICIAIS = [
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'landing' | 'doctor_panel' | 'patient_app' | 'master_admin'>('landing');
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+const [loginRole, setLoginRole] = useState<'medica' | 'secretaria'>('medica');
 
   const [saasDoctors, setSaasDoctors] = useState<DoctorTenant[]>([]);
   const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
@@ -340,18 +341,27 @@ export default function App() {
     return list;
   }, [currentGest.weeks]);
 
-  const handleDoctorLogin = async (e: React.FormEvent) => {
+    const handleDoctorLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError("");
     try {
       await signInWithEmailAndPassword(auth, doctorEmail.trim(), doctorPassword);
-      setUserRole('medica');
+      
+      if (loginRole === 'secretaria') {
+        setUserRole('secretaria');
+        setDoctorPanelTab('agenda_geral'); // Secretária vai direto para a fila da agenda
+      } else {
+        setUserRole('medica');
+        setDoctorPanelTab('pacientes');
+      }
+      
       setCurrentScreen('doctor_panel');
       setShowDoctorLoginModal(false);
     } catch (err) {
       setLoginError("E-mail ou senha incorretos.");
     }
   };
+
 
   const handleMasterLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1657,6 +1667,8 @@ export default function App() {
         setMasterPassword={setMasterPassword}
         handleMasterLogin={handleMasterLogin}
         loginError={loginError}
+         loginRole={loginRole}
+        setLoginRole={setLoginRole}
       />
 
       {/* CARTEIRINHA DE IMPRESSÃO */}
