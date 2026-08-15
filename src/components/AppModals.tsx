@@ -81,7 +81,9 @@ interface AppModalsProps {
   setLoginCpf: (v: string) => void;
   handlePatientLogin: (e: React.FormEvent) => void;
   handleGooglePatientLogin: () => void;
-  
+  loginRole?: 'medica' | 'secretaria';
+setLoginRole?: (role: 'medica' | 'secretaria') => void;
+
   showDoctorLoginModal: boolean;
   setShowDoctorLoginModal: (v: boolean) => void;
   doctorEmail: string;
