@@ -1776,6 +1776,6 @@ export default function App() {
         />
       )}
 
-  );
+
 }
 
