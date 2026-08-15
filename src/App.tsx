@@ -5,14 +5,9 @@ import {
 } from 'lucide-react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, signInWithPopup } from 'firebase/auth';
-import { ClinicSecretary } from './types/saas';
-
-// Dentro do export default function App() {
-const [secretaries, setSecretaries] = useState<ClinicSecretary[]>([]);
-
 
 import { Patient, initialPatientsList, AgendaConsulta, HorarioBloqueado, UserRole } from './types/prenatal';
-import { DoctorTenant } from './types/saas';
+import { DoctorTenant, ClinicSecretary } from './types/saas';
 import { db, auth, googleProvider } from './firebase';
 
 import { AppModals } from './components/AppModals';
@@ -59,9 +54,10 @@ const LISTA_EXAMES_OFICIAIS = [
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'landing' | 'doctor_panel' | 'patient_app' | 'master_admin'>('landing');
   const [userRole, setUserRole] = useState<UserRole | null>(null);
-const [loginRole, setLoginRole] = useState<'medica' | 'secretaria'>('medica');
+  const [loginRole, setLoginRole] = useState<'medica' | 'secretaria'>('medica');
 
   const [saasDoctors, setSaasDoctors] = useState<DoctorTenant[]>([]);
+  const [secretaries, setSecretaries] = useState<ClinicSecretary[]>([]);
   const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
     id: 'doc-priscila',
     nome: 'Dra. Priscila Gapski',
@@ -346,27 +342,24 @@ const [loginRole, setLoginRole] = useState<'medica' | 'secretaria'>('medica');
     return list;
   }, [currentGest.weeks]);
 
-    const handleDoctorLogin = async (e: React.FormEvent) => {
+  const handleDoctorLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError("");
     try {
       await signInWithEmailAndPassword(auth, doctorEmail.trim(), doctorPassword);
-      
       if (loginRole === 'secretaria') {
         setUserRole('secretaria');
-        setDoctorPanelTab('agenda_geral'); // Secretária vai direto para a fila da agenda
+        setDoctorPanelTab('agenda_geral');
       } else {
         setUserRole('medica');
         setDoctorPanelTab('pacientes');
       }
-      
       setCurrentScreen('doctor_panel');
       setShowDoctorLoginModal(false);
     } catch (err) {
       setLoginError("E-mail ou senha incorretos.");
     }
   };
-
 
   const handleMasterLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -752,7 +745,6 @@ const [loginRole, setLoginRole] = useState<'medica' | 'secretaria'>('medica');
       {currentScreen === 'doctor_panel' && (
         <div className="max-w-6xl mx-auto px-4 pt-6 space-y-6 print:hidden">
           
-          {/* SELETOR DE ABAS DO PAINEL DA CLÍNICA */}
           <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
             <button
               onClick={() => setDoctorPanelTab('pacientes')}
@@ -772,7 +764,6 @@ const [loginRole, setLoginRole] = useState<'medica' | 'secretaria'>('medica');
             </button>
           </div>
 
-          {/* ABA 1: LISTA DE GESTANTES */}
           {doctorPanelTab === 'pacientes' && (
             <div className="space-y-6">
               <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -836,7 +827,6 @@ const [loginRole, setLoginRole] = useState<'medica' | 'secretaria'>('medica');
             </div>
           )}
 
-          {/* ABA 2: CENTRAL DA AGENDA & RECEPÇÃO */}
           {doctorPanelTab === 'agenda_geral' && (
             <ClinicScheduleManager
               patients={patients}
@@ -902,7 +892,6 @@ const [loginRole, setLoginRole] = useState<'medica' | 'secretaria'>('medica');
             </div>
           </div>
 
-          {/* LISTA DE ABAS */}
           <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-gray-200 flex overflow-x-auto gap-1 print:hidden">
             {[
               { id: 'resumo', label: 'Resumo', allowed: true },
@@ -1547,7 +1536,7 @@ const [loginRole, setLoginRole] = useState<'medica' | 'secretaria'>('medica');
         />
       )}
 
-            {/* MODAL CONFIGURAÇÕES DO CONSULTÓRIO (WHITE LABEL & SECRETÁRIAS) */}
+      {/* MODAL CONFIGURAÇÕES DO CONSULTÓRIO (WHITE LABEL & SECRETÁRIAS) */}
       <DoctorSettingsModal
         isOpen={showDoctorSettingsModal}
         onClose={() => setShowDoctorSettingsModal(false)}
@@ -1565,7 +1554,6 @@ const [loginRole, setLoginRole] = useState<'medica' | 'secretaria'>('medica');
           );
         }}
       />
-
 
       {/* MODAL TRIAL 14 DIAS */}
       <DoctorTrialSignupModal
@@ -1679,7 +1667,7 @@ const [loginRole, setLoginRole] = useState<'medica' | 'secretaria'>('medica');
         setMasterPassword={setMasterPassword}
         handleMasterLogin={handleMasterLogin}
         loginError={loginError}
-         loginRole={loginRole}
+        loginRole={loginRole}
         setLoginRole={setLoginRole}
       />
 
@@ -1694,3 +1682,4 @@ const [loginRole, setLoginRole] = useState<'medica' | 'secretaria'>('medica');
     </div>
   );
 }
+'
