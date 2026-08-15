@@ -32,7 +32,6 @@ import { AdminMasterDashboard } from './components/AdminMasterDashboard';
 import { DoctorSettingsModal } from './components/DoctorSettingsModal';
 import { DoctorTrialSignupModal } from './components/DoctorTrialSignupModal';
 
-
 const SUPER_ADMIN_EMAILS = [
   'admin@maternaia.com.br',
   'andrereu@gmail.com'
@@ -64,13 +63,12 @@ export default function App() {
   // SaaS Multi-Médicos & Master
   const [saasDoctors, setSaasDoctors] = useState<DoctorTenant[]>([]);
   const [showMasterLoginModal, setShowMasterLoginModal] = useState(false);
+  const [showDoctorTrialModal, setShowDoctorTrialModal] = useState(false);
   const [masterEmail, setMasterEmail] = useState("");
   const [masterPassword, setMasterPassword] = useState("");
 
-  // Configurações do Consultório da Médica
+  // Configurações do Consultório
   const [showDoctorSettingsModal, setShowDoctorSettingsModal] = useState(false);
-  const [showDoctorTrialModal, setShowDoctorTrialModal] = useState(false);
-
   const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
     id: 'doc-priscila',
     nome: 'Dra. Priscila Gapski',
@@ -736,6 +734,7 @@ export default function App() {
           <LandingPage
             onOpenPatientLogin={() => setShowPatientLoginModal(true)}
             onOpenDoctorLogin={() => setShowDoctorLoginModal(true)}
+            onOpenTrialModal={() => setShowDoctorTrialModal(true)}
             onInstallPWA={handleInstallPWA}
           />
           <div className="text-center pb-8 print:hidden">
@@ -1464,6 +1463,18 @@ export default function App() {
         }}
       />
 
+      {/* MODAL TRIAL 14 DIAS */}
+      <DoctorTrialSignupModal
+        isOpen={showDoctorTrialModal}
+        onClose={() => setShowDoctorTrialModal(false)}
+        onSuccess={async (newDoctor) => {
+          await saveSaasDoctorsToFirestore([newDoctor, ...saasDoctors]);
+          setCurrentDoctorProfile(newDoctor);
+          setUserRole('medica');
+          setCurrentScreen('doctor_panel');
+        }}
+      />
+
       {/* MODAIS DO SISTEMA */}
       <AppModals
         showInstallModal={showInstallModal}
@@ -1530,29 +1541,6 @@ export default function App() {
         setMasterPassword={setMasterPassword}
         handleMasterLogin={handleMasterLogin}
         loginError={loginError}
-      />
-      {/* 1. LANDING PAGE PRINCIPAL */}
-      {currentScreen === 'landing' && (
-        <div className="space-y-6">
-          <LandingPage
-            onOpenPatientLogin={() => setShowPatientLoginModal(true)}
-            onOpenDoctorLogin={() => setShowDoctorLoginModal(true)}
-            onOpenTrialModal={() => setShowDoctorTrialModal(true)}
-            onInstallPWA={handleInstallPWA}
-          />
-          {/* ... resto do rodapé ... */}
-        </div>
-      )}
-      {/* MODAL DE AUTO-CADASTRO TRIAL 14 DIAS */}
-      <DoctorTrialSignupModal
-        isOpen={showDoctorTrialModal}
-        onClose={() => setShowDoctorTrialModal(false)}
-        onSuccess={async (newDoctor) => {
-          await saveSaasDoctorsToFirestore([newDoctor, ...saasDoctors]);
-          setCurrentDoctorProfile(newDoctor);
-          setUserRole('medica');
-          setCurrentScreen('doctor_panel');
-        }}
       />
 
       {/* CARTEIRINHA DE IMPRESSÃO */}
