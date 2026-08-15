@@ -4,10 +4,9 @@ import {
   Plus, LogOut, Printer,
   Syringe, 
   UserPlus, Calculator, AlertCircle, Edit3, Bot,
-  MapPin, CalendarPlus, Calendar, Download, Smartphone, WifiOff, Share2, Send, Settings //
+  MapPin, CalendarPlus, Calendar, Download, Smartphone, WifiOff, Share2, Send,
+  Settings
 } from 'lucide-react';
-
-import { DoctorSettingsModal } from './components/DoctorSettingsModal'; //
 
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
@@ -31,7 +30,6 @@ import { LandingPage } from './components/LandingPage';
 import { MaternaLogo } from './components/MaternaLogo';
 import { AdminMasterDashboard } from './components/AdminMasterDashboard';
 import { DoctorSettingsModal } from './components/DoctorSettingsModal';
-
 
 const SUPER_ADMIN_EMAILS = [
   'admin@maternaia.com.br',
@@ -59,7 +57,16 @@ const LISTA_EXAMES_OFICIAIS = [
 ];
 
 export default function App() {
-    const [showDoctorSettingsModal, setShowDoctorSettingsModal] = useState(false);
+  const [currentScreen, setCurrentScreen] = useState<'landing' | 'doctor_panel' | 'patient_app' | 'master_admin'>('landing');
+
+  // SaaS Multi-Médicos & Master
+  const [saasDoctors, setSaasDoctors] = useState<DoctorTenant[]>([]);
+  const [showMasterLoginModal, setShowMasterLoginModal] = useState(false);
+  const [masterEmail, setMasterEmail] = useState("");
+  const [masterPassword, setMasterPassword] = useState("");
+
+  // Configurações do Consultório da Médica
+  const [showDoctorSettingsModal, setShowDoctorSettingsModal] = useState(false);
   const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
     id: 'doc-priscila',
     nome: 'Dra. Priscila Gapski',
@@ -73,19 +80,11 @@ export default function App() {
     status: 'active',
     trialEndsAt: '2027-12-31',
     diasRestantes: 365,
-    totalPacientes: patients.length,
+    totalPacientes: 42,
     dataCadastro: '2026-01-01',
     valorMensalidade: 89.0,
     metodoPagamento: 'pix'
   });
-
-  const [currentScreen, setCurrentScreen] = useState<'landing' | 'doctor_panel' | 'patient_app' | 'master_admin'>('landing');
-
-  // SaaS Multi-Médicos & Master
-  const [saasDoctors, setSaasDoctors] = useState<DoctorTenant[]>([]);
-  const [showMasterLoginModal, setShowMasterLoginModal] = useState(false);
-  const [masterEmail, setMasterEmail] = useState("");
-  const [masterPassword, setMasterPassword] = useState("");
 
   const [userRole, setUserRole] = useState<'paciente' | 'medica' | null>(null);
   const [patients, setPatients] = useState<Patient[]>(initialPatientsList);
@@ -133,26 +132,6 @@ export default function App() {
   const [editExamesData, setEditExamesData] = useState<any>({});
   const [editProfileData, setEditProfileData] = useState<any>({});
   const [editVacinasData, setEditVacinasData] = useState<any>({});
-
-  const [showDoctorSettingsModal, setShowDoctorSettingsModal] = useState(false);
-const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
-  id: 'doc-priscila',
-  nome: 'Dra. Priscila Gapski',
-  email: 'dra.priscila@maternaia.com.br',
-  crm: 'CRM 24734-PR',
-  telefone: '(41) 99999-8888',
-  clinicaNome: 'Consultório Dra. Priscila',
-  especialidade: 'Obstetrícia & Pré-Natal',
-  enderecoConsultorio: 'Curitiba - PR',
-  plano: 'individual_pro',
-  status: 'active',
-  trialEndsAt: '2027-12-31',
-  diasRestantes: 365,
-  totalPacientes: 42,
-  dataCadastro: '2026-01-01',
-  valorMensalidade: 89.0
-});
-
 
   const [newAgenda, setNewAgenda] = useState({
     data: new Date().toISOString().split('T')[0],
@@ -238,6 +217,8 @@ const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
       const unsubscribe = onSnapshot(docRef, (snapshot) => {
         if (snapshot.exists() && snapshot.data().lista) {
           setSaasDoctors(snapshot.data().lista);
+          const found = snapshot.data().lista.find((d: DoctorTenant) => d.id === 'doc-priscila');
+          if (found) setCurrentDoctorProfile(found);
         } else {
           const initialDoc: DoctorTenant[] = [
             {
@@ -246,7 +227,9 @@ const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
               email: 'dra.priscila@maternaia.com.br',
               crm: '24734-PR',
               telefone: '(41) 99999-8888',
-              clinicaNome: 'Consultório Dra. Priscila',
+              clinicaNome: 'Consultório Dra. Priscila Gapski',
+              especialidade: 'Ginecologia & Obstetrícia',
+              enderecoConsultorio: 'Curitiba - PR',
               plano: 'individual_pro',
               status: 'active',
               trialEndsAt: '2027-12-31',
@@ -479,7 +462,7 @@ const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
         fileData: base64Content,
         resumoIA: resultIA.resumoIA,
         notaDra: resultIA.notaDra,
-        enviadoPor: userRole === 'medica' ? "Dra. Priscila Gapski" : "Paciente"
+        enviadoPor: userRole === 'medica' ? currentDoctorProfile.nome : "Paciente"
       };
 
       let currentExamesTab = { ...(currentPatient.examesTabela || {}) };
@@ -550,7 +533,7 @@ const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
       data: newAgenda.data,
       horario: newAgenda.horario,
       tipo: newAgenda.tipo,
-      local: newAgenda.local,
+      local: newAgenda.local || currentDoctorProfile.enderecoConsultorio || 'Consultório Médico',
       observacoes: newAgenda.observacoes,
       status: 'agendada' as const
     };
@@ -563,7 +546,7 @@ const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
       data: new Date().toISOString().split('T')[0],
       horario: '14:00',
       tipo: 'Consulta Pré-Natal de Rotina',
-      local: 'Consultório Dra. Priscila Gapski',
+      local: currentDoctorProfile.enderecoConsultorio || 'Consultório Dra. Priscila Gapski',
       observacoes: ''
     });
   };
@@ -676,13 +659,17 @@ const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
               <MaternaLogo variant="full" theme="light" size="md" />
             ) : (
               <div className="flex items-center gap-3">
-                <MaternaLogo variant="icon" size="sm" />
+                {currentDoctorProfile.logoUrl ? (
+                  <img src={currentDoctorProfile.logoUrl} alt="Logo" className="w-9 h-9 rounded-xl object-contain bg-white/10 p-0.5 border border-white/20" />
+                ) : (
+                  <MaternaLogo variant="icon" size="sm" />
+                )}
                 <div>
                   <h1 className="font-serif text-base md:text-lg font-bold text-[#E8ECD8] leading-none">
-                    Dra. Priscila Gapski
+                    {currentDoctorProfile.nome}
                   </h1>
                   <p className="text-[9px] uppercase tracking-widest text-[#A3B18A] font-medium mt-0.5">
-                    Obstetra • CRM 24734
+                    {currentDoctorProfile.especialidade || 'OBSTETRA'} • CRM {currentDoctorProfile.crm}
                   </p>
                 </div>
               </div>
@@ -758,7 +745,7 @@ const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
         </div>
       )}
 
-            {/* 2. PAINEL DO MÉDICO */}
+      {/* 2. PAINEL DO MÉDICO */}
       {currentScreen === 'doctor_panel' && (
         <div className="max-w-6xl mx-auto px-4 pt-6 space-y-6 print:hidden">
           <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -776,7 +763,7 @@ const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
                 className="w-full sm:w-64 text-xs p-2.5 border rounded-xl"
               />
 
-              {/* BOTÃO CONFIGURAR CONSULTÓRIO */}
+              {/* BOTÃO CONFIGURAR CONSULTÓRIO (WHITE LABEL) */}
               <button 
                 onClick={() => setShowDoctorSettingsModal(true)} 
                 className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer border border-gray-200"
@@ -793,7 +780,6 @@ const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
               </button>
             </div>
           </div>
-
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredPatients.map(pat => (
@@ -902,7 +888,7 @@ const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
                 <blockquote className="font-serif italic text-lg leading-relaxed text-[#F4F6F0]">
                   "Antes de você existir eu já te queria, antes de você nascer eu já te amava, em menos de um minuto de nascido já daria minha vida por você."
                 </blockquote>
-                <p className="mt-3 text-xs font-bold text-[#E8ECD8]">Dra. Priscila Gapski • CRM 24734</p>
+                <p className="mt-3 text-xs font-bold text-[#E8ECD8]">{currentDoctorProfile.nome} • CRM {currentDoctorProfile.crm}</p>
               </div>
 
               {nextAppointment ? (
@@ -1451,18 +1437,6 @@ const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
 
         </div>
       )}
-  {/* MODAL CONFIGURAÇÕES WHITE LABEL */}
-  <DoctorSettingsModal
-    isOpen={showDoctorSettingsModal}
-    onClose={() => setShowDoctorSettingsModal(false)}
-    currentDoctor={currentDoctorProfile}
-    onSave={async (updated) => {
-      setCurrentDoctorProfile(updated);
-      await saveSaasDoctorsToFirestore(
-        saasDoctors.map(d => d.id === updated.id ? updated : d)
-      );
-    }}
-  />
 
       {/* 4. PAINEL SUPER ADMIN MASTER */}
       {currentScreen === 'master_admin' && (
@@ -1472,6 +1446,19 @@ const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
           onLogout={() => setCurrentScreen('landing')}
         />
       )}
+
+      {/* MODAL CONFIGURAÇÕES DO CONSULTÓRIO (WHITE LABEL) */}
+      <DoctorSettingsModal
+        isOpen={showDoctorSettingsModal}
+        onClose={() => setShowDoctorSettingsModal(false)}
+        currentDoctor={currentDoctorProfile}
+        onSave={async (updated) => {
+          setCurrentDoctorProfile(updated);
+          await saveSaasDoctorsToFirestore(
+            saasDoctors.map(d => d.id === updated.id ? updated : d)
+          );
+        }}
+      />
 
       {/* MODAIS DO SISTEMA */}
       <AppModals
@@ -1539,18 +1526,6 @@ const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
         setMasterPassword={setMasterPassword}
         handleMasterLogin={handleMasterLogin}
         loginError={loginError}
-      />
-      {/* MODAL CONFIGURAÇÕES DO CONSULTÓRIO (WHITE LABEL) */}
-      <DoctorSettingsModal
-        isOpen={showDoctorSettingsModal}
-        onClose={() => setShowDoctorSettingsModal(false)}
-        currentDoctor={currentDoctorProfile}
-        onSave={async (updated) => {
-          setCurrentDoctorProfile(updated);
-          await saveSaasDoctorsToFirestore(
-            saasDoctors.map(d => d.id === updated.id ? updated : d)
-          );
-        }}
       />
 
       {/* CARTEIRINHA DE IMPRESSÃO */}
