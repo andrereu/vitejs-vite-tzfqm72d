@@ -10,7 +10,7 @@ export interface DoctorTenant {
   clinicaNome?: string;
   plano: SubscriptionPlan;
   status: SubscriptionStatus;
-  trialEndsAt: string; // ISO date
+  trialEndsAt: string;
   diasRestantes: number;
   totalPacientes: number;
   dataCadastro: string;
@@ -20,7 +20,7 @@ export interface DoctorTenant {
 }
 
 export interface SaaSMetrics {
-  mrr: number; // Monthly Recurring Revenue
+  mrr: number;
   totalMedicos: number;
   medicosAtivos: number;
   trialsEmCurso: number;
