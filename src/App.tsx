@@ -717,7 +717,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* 1. LANDING PAGE PRINCIPAL */}
+            {/* 1. LANDING PAGE PRINCIPAL */}
       {currentScreen === 'landing' && (
         <div className="space-y-6">
           <LandingPage
@@ -739,6 +739,8 @@ export default function App() {
 
       {/* 2. PAINEL DO MÉDICO & SECRETARIA */}
       {currentScreen === 'doctor_panel' && (
+        <div className="max-w-6xl mx-auto px-4 pt-6 space-y-6 print:hidden">
+
         <div className="max-w-6xl mx-auto px-4 pt-6 space-y-6 print:hidden">
                     {/* SELETOR DE ABAS DA CLÍNICA */}
           <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
