@@ -195,12 +195,22 @@ export default function App() {
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
-        setUserRole('medica');
-        setCurrentScreen('doctor_panel');
+        const userEmail = currentUser.email?.toLowerCase().trim() || '';
+        
+        // Se for Super Admin, vai para o painel Master
+        if (SUPER_ADMIN_EMAILS.includes(userEmail)) {
+          setUserRole('medica');
+          setCurrentScreen('master_admin');
+        } else {
+          // Se for médico comum
+          setUserRole('medica');
+          setCurrentScreen('doctor_panel');
+        }
       }
     });
     return () => unsubscribeAuth();
   }, []);
+
 
   useEffect(() => {
     try {
