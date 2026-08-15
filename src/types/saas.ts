@@ -8,6 +8,10 @@ export interface DoctorTenant {
   crm: string;
   telefone: string;
   clinicaNome?: string;
+  especialidade?: string;
+  logoUrl?: string; // Logo em Base64 ou URL
+  enderecoConsultorio?: string;
+  whatsappPadraoMensagem?: string;
   plano: SubscriptionPlan;
   status: SubscriptionStatus;
   trialEndsAt: string;
