@@ -28,6 +28,8 @@ import { AdBanner } from './components/AdBanner';
 import { LandingPage } from './components/LandingPage';
 import { MaternaLogo } from './components/MaternaLogo';
 import { AdminMasterDashboard } from './components/AdminMasterDashboard';
+import { DoctorSettingsModal } from './components/DoctorSettingsModal';
+
 
 const SUPER_ADMIN_EMAILS = [
   'admin@maternaia.com.br',
@@ -109,6 +111,26 @@ export default function App() {
   const [editExamesData, setEditExamesData] = useState<any>({});
   const [editProfileData, setEditProfileData] = useState<any>({});
   const [editVacinasData, setEditVacinasData] = useState<any>({});
+
+  const [showDoctorSettingsModal, setShowDoctorSettingsModal] = useState(false);
+const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
+  id: 'doc-priscila',
+  nome: 'Dra. Priscila Gapski',
+  email: 'dra.priscila@maternaia.com.br',
+  crm: 'CRM 24734-PR',
+  telefone: '(41) 99999-8888',
+  clinicaNome: 'Consultório Dra. Priscila',
+  especialidade: 'Obstetrícia & Pré-Natal',
+  enderecoConsultorio: 'Curitiba - PR',
+  plano: 'individual_pro',
+  status: 'active',
+  trialEndsAt: '2027-12-31',
+  diasRestantes: 365,
+  totalPacientes: 42,
+  dataCadastro: '2026-01-01',
+  valorMensalidade: 89.0
+});
+
 
   const [newAgenda, setNewAgenda] = useState({
     data: new Date().toISOString().split('T')[0],
