@@ -26,6 +26,8 @@ import { db, auth, googleProvider, signInWithPopup } from './firebase';
 import { AdBanner } from './components/AdBanner';
 import { LandingPage } from './components/LandingPage';
 import { MaternaLogo } from './components/MaternaLogo';
+import { AdminMasterDashboard } from './components/AdminMasterDashboard';
+
 
 
 const LISTA_EXAMES_OFICIAIS = [
@@ -49,7 +51,8 @@ const LISTA_EXAMES_OFICIAIS = [
 ];
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'landing' | 'doctor_panel' | 'patient_app'>('landing');
+  const [currentScreen, setCurrentScreen] = useState<'landing' | 'doctor_panel' | 'patient_app' | 'master_admin'>('landing');
+
 
   const [userRole, setUserRole] = useState<'paciente' | 'medica' | null>(null);
   const [patients, setPatients] = useState<Patient[]>(initialPatientsList);
@@ -557,6 +560,17 @@ export default function App() {
               </div>
             )}
           </div>
+{/* ACESSO EXCLUSIVO SUPER ADMIN */}
+{currentScreen === 'landing' && (
+  <div className="text-center pt-4 print:hidden">
+    <button
+      onClick={() => setCurrentScreen('master_admin')}
+      className="text-[11px] text-gray-400 hover:text-gray-600 transition-all font-medium"
+    >
+      🔒 Painel do Franqueador / Master Admin
+    </button>
+  </div>
+)}
 
 
           {/* AÇÕES DO CABEÇALHO */}
@@ -606,7 +620,14 @@ export default function App() {
               </>
             )}
           </div>
-        </div>
+        </div>'
+                    {/* 4. PAINEL SUPER ADMIN (MASTER SAAS) */}
+      {currentScreen === 'master_admin' && (
+        <AdminMasterDashboard 
+          onLogout={() => setCurrentScreen('landing')}
+        />
+      )}
+
       </header>
 
 
