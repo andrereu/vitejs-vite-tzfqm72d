@@ -9,6 +9,9 @@ import { signInWithEmailAndPassword, signOut, onAuthStateChanged, signInWithPopu
 import { Patient, initialPatientsList, AgendaConsulta, UserRole } from './types/prenatal';
 import { DoctorTenant } from './types/saas';
 import { db, auth, googleProvider } from './firebase';
+import { ClinicScheduleManager } from './components/ClinicScheduleManager';
+import { HorarioBloqueado } from './types/prenatal';
+
 
 import { AppModals } from './components/AppModals';
 import { PrintableCarteirinha } from './components/PrintableCarteirinha';
@@ -49,6 +52,8 @@ const LISTA_EXAMES_OFICIAIS = [
   { id: 'urinaUrocultura', label: 'URINA / UROCULTURA', placeholder: 'Ex: Normal / Sem germes' },
   { id: 'gbs', label: 'GBS (35-37 sem)', placeholder: 'Ex: Negativo / Positivo' }
 ];
+const [blockedSlots, setBlockedSlots] = useState<HorarioBloqueado[]>([]);
+const [doctorPanelTab, setDoctorPanelTab] = useState<'pacientes' | 'agenda_geral'>('pacientes');
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'landing' | 'doctor_panel' | 'patient_app' | 'master_admin'>('landing');
@@ -732,6 +737,46 @@ export default function App() {
 
       {/* 2. PAINEL DO MÉDICO & SECRETARIA */}
       {currentScreen === 'doctor_panel' && (
+                {/* SELETOR DE ABAS DO PAINEL DA CLÍNICA */}
+          <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
+            <button
+              onClick={() => setDoctorPanelTab('pacientes')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                doctorPanelTab === 'pacientes' ? 'bg-[#2E482A] text-white shadow-xs' : 'bg-white text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              Gestantes Cadastradas ({patients.length})
+            </button>
+            <button
+              onClick={() => setDoctorPanelTab('agenda_geral')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                doctorPanelTab === 'agenda_geral' ? 'bg-[#2E482A] text-white shadow-xs' : 'bg-white text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              📅 Central da Agenda & Recepção
+            </button>
+          </div>
+
+          {/* RENDERIZAÇÃO DA CENTRAL DA AGENDA */}
+          {doctorPanelTab === 'agenda_geral' && (
+            <ClinicScheduleManager
+              patients={patients}
+              blockedSlots={blockedSlots}
+              onAddBlockedSlot={async (newSlot) => setBlockedSlots([...blockedSlots, newSlot])}
+              onRemoveBlockedSlot={async (id) => setBlockedSlots(blockedSlots.filter(b => b.id !== id))}
+              onOpenConfirmModal={(app, pat) => setSelectedAppointmentForConfirm({ app, pat })}
+              onQuickStatusChange={async (patientId, appointmentId, newStatus) => {
+                const targetPat = patients.find(p => p.id === patientId);
+                if (!targetPat) return;
+                const updatedAgenda = (targetPat.agendaConsultas || []).map(a => 
+                  a.id === appointmentId ? { ...a, status: newStatus } : a
+                );
+                const updated = { ...targetPat, agendaConsultas: updatedAgenda };
+                await saveToFirestore(patients.map(p => p.id === updated.id ? updated : p));
+              }}
+            />
+          )}
+
         <div className="max-w-6xl mx-auto px-4 pt-6 space-y-6 print:hidden">
           <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
