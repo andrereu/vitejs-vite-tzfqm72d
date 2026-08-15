@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
-  Heart, Sparkles, Smartphone, ShieldCheck, CheckCircle2, 
-  ArrowRight, Users, MessageSquare, FileText, Activity, Zap 
+  Sparkles, Smartphone, CheckCircle2, 
+  ArrowRight
 } from 'lucide-react';
 import { AdBanner } from './AdBanner';
 
@@ -23,15 +23,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <section className="relative overflow-hidden pt-8 px-4 max-w-6xl mx-auto text-center">
         <div className="bg-gradient-to-b from-[#2E482A] via-[#233820] to-[#172515] text-white p-8 md:p-14 rounded-3xl shadow-2xl space-y-6 relative border border-[#3D5C38]">
           <div className="inline-flex items-center gap-2 bg-white/10 text-[#E8ECD8] text-[11px] font-bold px-4 py-1.5 rounded-full uppercase border border-white/20 backdrop-blur-xs">
-            <Sparkles className="w-3.5 h-3.5 text-amber-300" /> Plataforma Inteligente de Pré-Natal & PWA
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" /> MaternaIA • Plataforma Inteligente de Pré-Natal
           </div>
           
           <h1 className="text-3xl md:text-5xl lg:text-6xl font-serif font-bold text-[#F4F6F0] leading-tight max-w-4xl mx-auto">
-            Acompanhamento gestacional com carinho, precisão e IA
+            Acompanhamento gestacional com carinho, precisão e Inteligência Artificial
           </h1>
           
           <p className="text-xs md:text-base text-[#A3B18A] max-w-2xl mx-auto leading-relaxed">
-            Substitua carteirinhas de papel por um ecossistema digital completo: leitura de laudos com Inteligência Artificial, curva de peso do MS, avisos por WhatsApp e acesso 100% seguro para obstetras e gestantes.
+            Substitua carteirinhas de papel por um ecossistema digital completo para obstetras e clínicas: leitura de laudos com IA Gemini, curva GPG do Ministério da Saúde, avisos por WhatsApp e PWA Offline.
           </p>
 
           <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center items-center">
@@ -39,13 +39,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               onClick={onOpenPatientLogin}
               className="w-full sm:w-auto px-7 py-3.5 bg-[#8A9A86] hover:bg-[#788874] text-white rounded-2xl font-bold text-xs shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
             >
-              <span>👶 Sou Gestante (Ver Minha Carteirinha)</span>
+              <span>👶 Sou Gestante (Ver Carteirinha)</span>
             </button>
             <button 
               onClick={onOpenDoctorLogin}
               className="w-full sm:w-auto px-7 py-3.5 bg-[#D4AF37] hover:bg-amber-400 text-gray-900 rounded-2xl font-bold text-xs shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
             >
-              <span>🩺 Acesso Médico / Consultório</span>
+              <span>🩺 Acesso do Obstetra / Clínica</span>
               <ArrowRight className="w-4 h-4" />
             </button>
             <button 
@@ -71,7 +71,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <section className="max-w-6xl mx-auto px-4 space-y-8">
         <div className="text-center space-y-2">
           <span className="text-[10px] font-bold text-[#2E482A] uppercase tracking-widest bg-emerald-100/60 px-3 py-1 rounded-full">
-            Tecnologia Médica
+            Tecnologia Médica Especializada
           </span>
           <h2 className="text-2xl md:text-3xl font-serif font-bold text-gray-900">
             Tudo o que obstetras e gestantes precisam em um só lugar
@@ -121,7 +121,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             Planos sob medida para seu consultório
           </h2>
           <p className="text-xs text-gray-500 max-w-lg mx-auto">
-            Modernize seu atendimento, fidelize suas gestantes e tenha seus prontuários sincronizados com alta segurança.
+            Modernize seu atendimento, encante suas gestantes e tenha os dados clínicos sincronizados em tempo real com alta segurança.
           </p>
         </div>
 
@@ -139,7 +139,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <ul className="space-y-2.5 text-xs text-gray-600">
                 <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> Gestantes Ilimitadas</li>
                 <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> Leitor de Laudos com IA Gemini</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> Carteirinha Digital PWA Personalizada</li>
+                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> Carteirinha Digital PWA com sua Marca</li>
                 <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> Disparos no WhatsApp (Lembretes e Consultas)</li>
               </ul>
             </div>
@@ -189,10 +189,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         />
       </div>
 
-      {/* 6. RODAPÉ */}
+      {/* 6. RODAPÉ INSTITUCIONAL */}
       <footer className="border-t border-gray-200 pt-8 text-center text-xs text-gray-500 space-y-2">
-        <p className="font-semibold text-gray-700">Plataforma de Acompanhamento Pré-Natal Digital</p>
-        <p className="text-[11px]">Desenvolvido com tecnologia e segurança para gestantes e médicos obstetras.</p>
+        <p className="font-semibold text-gray-800">MaternaIA • Ecossistema Digital de Saúde Materno-Infantil</p>
+        <p className="text-[11px]">Desenvolvido com tecnologia, segurança LGPD e IA para gestantes e obstetras.</p>
       </footer>
 
     </div>
