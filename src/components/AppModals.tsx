@@ -839,34 +839,32 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
             </div>
 
             {/* SELETOR DE PERFIL: MÉDICA OU SECRETÁRIA */}
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-100 rounded-2xl">
-              <button
-                type="button"
-                onClick={() => {
-                  if (props.setLoginRole) props.setLoginRole('medica');
-                }}
-                className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-                  props.loginRole === 'medica' || !props.loginRole 
-                    ? 'bg-[#2E482A] text-white shadow-xs' 
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                🩺 Obstetra
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (props.setLoginRole) props.setLoginRole('secretaria');
-                }}
-                className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-                  props.loginRole === 'secretaria' 
-                    ? 'bg-[#2E482A] text-white shadow-xs' 
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                📋 Secretária
-              </button>
-            </div>
+            {/* SELETOR DE PERFIL NO MODAL */}
+<div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-100 rounded-2xl mb-3">
+  <button
+    type="button"
+    onClick={() => props.setLoginRole && props.setLoginRole('medica')}
+    className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+      props.loginRole === 'medica' || !props.loginRole
+        ? 'bg-[#2E482A] text-white shadow-xs'
+        : 'text-gray-600 hover:text-gray-900'
+    }`}
+  >
+    🩺 Obstetra
+  </button>
+  <button
+    type="button"
+    onClick={() => props.setLoginRole && props.setLoginRole('secretaria')}
+    className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+      props.loginRole === 'secretaria'
+        ? 'bg-[#2E482A] text-white shadow-xs'
+        : 'text-gray-600 hover:text-gray-900'
+    }`}
+  >
+    📋 Secretária
+  </button>
+</div>
+
 
             <form onSubmit={props.handleDoctorLogin} className="space-y-3 text-xs">
               <div>
