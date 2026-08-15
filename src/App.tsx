@@ -1775,7 +1775,7 @@ export default function App() {
           weeks={currentGest.weeks} 
         />
       )}
-    </div>
+
   );
 }
 
