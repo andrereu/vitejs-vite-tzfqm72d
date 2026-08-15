@@ -26,15 +26,38 @@ export interface ConsultaEvolucao {
   conduta: string;
 }
 
+export type UserRole = 'paciente' | 'medica' | 'secretaria' | 'master_admin';
+
+export type AppointmentStatus = 
+  | 'solicitada'       // Paciente pediu pelo app (Pendente)
+  | 'confirmada'       // Secretária/Médica aprovou
+  | 'cancelada'        // Cancelada por qualquer parte
+  | 'encaixe_urgente'  // Encaixe prioritário criado pela clínica
+  | 'realizada';       // Consulta já concluída
+
 export interface AgendaConsulta {
   id: string;
-  data: string;
-  horario: string;
-  tipo: string;
+  data: string; // YYYY-MM-DD
+  horario: string; // HH:mm
+  tipo: string; // Ex: Pré-natal de Rotina, Retorno, Urgência
   local: string;
-  observacoes: string;
-  status: 'agendada' | 'concluida' | 'cancelada';
+  observacoes?: string;
+  status: AppointmentStatus;
+  solicitadoPor?: 'paciente' | 'clinica';
+  solicitadoEm?: string;
+  motivoCancelamento?: string;
+  notaSecretaria?: string;
 }
+
+export interface HorarioBloqueado {
+  id: string;
+  data: string;
+  horarioInicio?: string;
+  horarioFim?: string;
+  diaInteiro: boolean;
+  motivo: string; // Ex: Congresso, Feriado, Folga
+}
+
 
 export interface Patient {
   id: string;
