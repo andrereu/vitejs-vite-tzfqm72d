@@ -1700,7 +1700,7 @@ export default function App() {
         />
       )}
 
-      {      {/* MODAIS DO SISTEMA */}
+      {/* MODAIS DO SISTEMA */}
       <AppModals
         showInstallModal={showInstallModal}
         setShowInstallModal={setShowInstallModal}
@@ -1775,7 +1775,7 @@ export default function App() {
           weeks={currentGest.weeks} 
         />
       )}
-
     </div>
   );
 }
+
