@@ -4,18 +4,14 @@ import {
   Edit3, Bot, MapPin, CalendarPlus, Calendar, Smartphone, WifiOff, Share2, Send, Settings, Check 
 } from 'lucide-react';
 import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
-
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, signInWithPopup } from 'firebase/auth';
-  
+
 import { Patient, initialPatientsList, AgendaConsulta, HorarioBloqueado, UserRole } from './types/prenatal';
-import { DoctorTenant, ClinicSecretary } from './types/saas';
+import { DoctorTenant, ClinicSecretary, SaasGlobalConfig } from './types/saas';
 import { ClinicScheduleManager } from './components/ClinicScheduleManager';
 
 import { db, auth, googleProvider } from './firebase';
 import { SubscriptionPaywall } from './components/SubscriptionPaywall';
-import { SaasGlobalConfig } from './types/saas';
-
-
 
 import { AppModals } from './components/AppModals';
 import { PrintableCarteirinha } from './components/PrintableCarteirinha';
@@ -58,7 +54,6 @@ const LISTA_EXAMES_OFICIAIS = [
 ];
 
 export default function App() {
-    // Configuração global de pagamento (carregada do Firestore)
   const [globalConfig, setGlobalConfig] = useState<SaasGlobalConfig>({
     pixKey: '',
     pixKeyType: 'cpf',
@@ -66,7 +61,6 @@ export default function App() {
     nomeRecebedor: 'MaternaIA'
   });
 
-  // Carregar dados de cobrança do Firestore na inicialização
   useEffect(() => {
     const loadGlobalConfig = async () => {
       try {
@@ -82,7 +76,6 @@ export default function App() {
     loadGlobalConfig();
   }, []);
 
-  // Salvar alterações de PIX/WhatsApp feitas pelo Master Admin
   const handleSaveGlobalConfig = async (newConfig: SaasGlobalConfig) => {
     setGlobalConfig(newConfig);
     try {
@@ -113,7 +106,7 @@ export default function App() {
     status: 'active',
     trialEndsAt: '2027-12-31',
     diasRestantes: 365,
-    totalPacientes: 42,
+    totalPacientes: 1,
     dataCadastro: '2026-01-01',
     valorMensalidade: 89.0,
     metodoPagamento: 'pix'
@@ -266,7 +259,7 @@ export default function App() {
               status: 'active',
               trialEndsAt: '2027-12-31',
               diasRestantes: 365,
-              totalPacientes: 42,
+              totalPacientes: 1,
               dataCadastro: '2026-01-01',
               valorMensalidade: 89.0,
               metodoPagamento: 'pix'
@@ -680,11 +673,10 @@ export default function App() {
         </div>
       )}
 
-            {/* CABEÇALHO */}
+      {/* CABEÇALHO */}
       <header className="bg-[#2E482A] text-white shadow-md sticky top-0 z-40 border-b border-[#3D5C38] print:hidden">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           
-          {/* LOGO / NOME DO CONSULTÓRIO (Navegação contextual) */}
           <div 
             onClick={() => {
               if (currentScreen === 'landing') {
@@ -721,7 +713,6 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Botão de Início quando estiver navegando dentro do app */}
             {currentScreen !== 'landing' && currentScreen !== 'master_admin' && (
               <button
                 onClick={() => {
@@ -785,7 +776,6 @@ export default function App() {
         </div>
       </header>
 
-
       {/* 1. LANDING PAGE PRINCIPAL */}
       {currentScreen === 'landing' && (
         <div className="space-y-6">
@@ -806,89 +796,6 @@ export default function App() {
         </div>
       )}
 
-      {/* 2. PAINEL DO MÉDICO & SECRETARIA */}
-            {/* PAINEL MÉDICO */}
-      {currentScreen === 'doctor_panel' && (
-        <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-          
-          {/* TRAVA DE ASSINATURA (SE EXPIRADO OU BLOQUEADO) */}
-          {(currentDoctorProfile.status === 'blocked' || 
-            currentDoctorProfile.status === 'past_due' ||
-            (currentDoctorProfile.status === 'trial' && 
-             currentDoctorProfile.trialEndsAt && 
-             new Date(currentDoctorProfile.trialEndsAt) < new Date())) && (
-            <SubscriptionPaywall 
-              doctor={currentDoctorProfile}
-              pixKey={globalConfig.pixKey}
-              onRefreshStatus={() => window.location.reload()}
-            />
-          )}
-
-          {/* ...demais abas e listagens do painel médico... */}
-        </div>
-      )}
-
-          
-          {/* BANNER DE DEGUSTAÇÃO (TRIAL ATIVO) */}
-          {currentDoctorProfile.status === 'trial' && (
-            <div className="bg-amber-500 text-white px-4 py-3 rounded-2xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="text-base">⏳</span>
-                <span>
-                  Você está usando o <strong>Período de Degustação Gratuito</strong> até{' '}
-                  <strong>
-                    {currentDoctorProfile.trialEndsAt 
-                      ? new Date(currentDoctorProfile.trialEndsAt).toLocaleDateString('pt-BR') 
-                      : 'breve'}
-                  </strong>.
-                </span>
-              </div>
-              <a
-                href={`https://wa.me/5541998496940?text=${encodeURIComponent('Olá! Gostaria de ativar a assinatura do MaternaIA.')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-white text-amber-900 px-3 py-1.5 rounded-xl font-bold hover:bg-amber-50 transition-all whitespace-nowrap"
-              >
-                Garantir Assinatura Anual / Mensal
-              </a>
-            </div>
-          )}
-
-          {/* TRAVA / PAYWALL (CASO BLOQUEADO OU TRIAL EXPIRADO) */}
-          {(currentDoctorProfile.status === 'blocked' || 
-            currentDoctorProfile.status === 'past_due' ||
-            (currentDoctorProfile.status === 'trial' && 
-             currentDoctorProfile.trialEndsAt && 
-             new Date(currentDoctorProfile.trialEndsAt) < new Date())) && (
-            <SubscriptionPaywall 
-              doctor={currentDoctorProfile}
-              pixKey="020.255.429-50" // Seu CPF cadastrado
-              onRefreshStatus={() => window.location.reload()}
-            />
-          )}
-
-          {/* ...RESTANTE DO PAINEL DO MÉDICO (Abas, Lista de Pacientes, etc.)... */}
-        </div>
-      )}
-
-          {/* SELETOR DE ABAS DA CLÍNICA */}
-          <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
-            <button
-              onClick={() => setDoctorPanelTab('pacientes')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                doctorPanelTab === 'pacientes' ? 'bg-[#2E482A] text-white shadow-xs' : 'bg-white text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              Gestantes Cadastradas ({patients.length})
-            </button>
-            <button
-              onClick={() => setDoctorPanelTab('agenda_geral')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                doctorPanelTab === 'agenda_geral' ? 'bg-[#2E482A] text-white shadow-xs' : 'bg-white text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              📅 Central da Agenda & Recepção
-            </button>
       {/* 2. PAINEL DO MÉDICO & SECRETARIA */}
       {currentScreen === 'doctor_panel' && (
         <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
@@ -1041,7 +948,6 @@ export default function App() {
         </div>
       )}
 
-
       {/* 3. ÁREA DA PACIENTE */}
       {currentScreen === 'patient_app' && (
         <div className="max-w-5xl mx-auto px-4 pt-4 space-y-6 print:p-0 print:m-0 print:max-w-none">
@@ -1085,7 +991,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* LISTA DE ABAS */}
           <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-gray-200 flex overflow-x-auto gap-1 print:hidden">
             {[
               { id: 'resumo', label: 'Resumo', allowed: true },
@@ -1720,7 +1625,7 @@ export default function App() {
         </div>
       )}
 
-            {/* PAINEL MASTER ADMIN */}
+      {/* 4. PAINEL MASTER ADMIN */}
       {currentScreen === 'master_admin' && (
         <AdminMasterDashboard
           doctors={saasDoctors.map(doc => ({
@@ -1734,8 +1639,7 @@ export default function App() {
         />
       )}
 
-
-            {/* MODAL CONFIGURAÇÕES DO CONSULTÓRIO (WHITE LABEL) */}
+      {/* MODAL CONFIGURAÇÕES DO CONSULTÓRIO (WHITE LABEL) */}
       <DoctorSettingsModal
         isOpen={showDoctorSettingsModal}
         onClose={() => setShowDoctorSettingsModal(false)}
@@ -1756,7 +1660,6 @@ export default function App() {
           setShowDoctorSettingsModal(false);
         }}
       />
-
 
       {/* MODAL TRIAL 14 DIAS */}
       <DoctorTrialSignupModal
