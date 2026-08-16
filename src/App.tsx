@@ -9,6 +9,8 @@ import { signInWithEmailAndPassword, signOut, onAuthStateChanged, signInWithPopu
 import { Patient, initialPatientsList, AgendaConsulta, HorarioBloqueado, UserRole } from './types/prenatal';
 import { DoctorTenant, ClinicSecretary, SaasGlobalConfig } from './types/saas';
 import { ClinicScheduleManager } from './components/ClinicScheduleManager';
+import { PatientFinancialTab } from './components/PatientFinancialTab';
+
 
 import { db, auth, googleProvider } from './firebase';
 import { SubscriptionPaywall } from './components/SubscriptionPaywall';
@@ -1003,6 +1005,8 @@ export default function App() {
               { id: 'chatIA', label: '💬 Assistente Pré-Natal (IA)', allowed: hasPermission(userRole, 'canUseMedicalAI') },
               { id: 'consultas', label: 'Consultas', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
               { id: 'examesCentral', label: 'Central de Exames + IA', allowed: hasPermission(userRole, 'canViewExamReports') }
+                        { id: 'financeiro', label: '💳 Financeiro & Convênio', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
+
             ]
             .filter(t => t.allowed)
             .map((tab) => (
@@ -1115,6 +1119,17 @@ export default function App() {
                 </div>
               </div>
             </div>
+          )}
+          {/* TAB FINANCEIRO & CONVÊNIO */}
+          {activeTab === 'financeiro' && hasPermission(userRole, 'canViewClinicalHistory') && (
+            <PatientFinancialTab
+              patient={currentPatient}
+              canEdit={hasPermission(userRole, 'canManageSchedule')}
+              onUpdatePatient={async (updatedPatient) => {
+                const updatedList = patients.map(p => p.id === updatedPatient.id ? updatedPatient : p);
+                await saveToFirestore(updatedList);
+              }}
+            />
           )}
 
           {/* TAB 2: DADOS CLÍNICOS */}
