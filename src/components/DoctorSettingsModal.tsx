@@ -116,8 +116,6 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
   const handleRemoveSecretary = (id: string) => {
     setSecList(secList.filter(s => s.id !== id));
   };
-// Adicione 'seguranca' nas abas
-const [activeTab, setActiveTab] = useState<'perfil' | 'secretarias' | 'seguranca'>('perfil');
 
 // Estado do 2FA
 const [twoFactorConfig, setTwoFactorConfig] = useState<TwoFactorConfig>(
