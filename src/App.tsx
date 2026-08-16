@@ -1064,6 +1064,7 @@ export default function App() {
             </div>
           </div>
 
+                    {/* LISTA DE ABAS */}
           <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-gray-200 flex overflow-x-auto gap-1 print:hidden">
             {[
               { id: 'resumo', label: 'Resumo', allowed: true },
@@ -1075,9 +1076,8 @@ export default function App() {
               { id: 'calculadora', label: 'Calculadora Gestacional', allowed: true },
               { id: 'chatIA', label: '💬 Assistente Pré-Natal (IA)', allowed: hasPermission(userRole, 'canUseMedicalAI') },
               { id: 'consultas', label: 'Consultas', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
-              { id: 'examesCentral', label: 'Central de Exames + IA', allowed: hasPermission(userRole, 'canViewExamReports') }
-                        { id: 'financeiro', label: '💳 Financeiro & Convênio', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
-
+              { id: 'examesCentral', label: 'Central de Exames + IA', allowed: hasPermission(userRole, 'canViewExamReports') },
+              { id: 'financeiro', label: '💳 Financeiro & Convênio', allowed: hasPermission(userRole, 'canViewClinicalHistory') }
             ]
             .filter(t => t.allowed)
             .map((tab) => (
@@ -1092,6 +1092,7 @@ export default function App() {
               </button>
             ))}
           </div>
+
 
           <AdBanner 
             placeholderTitle="Dicas & Cuidados"
