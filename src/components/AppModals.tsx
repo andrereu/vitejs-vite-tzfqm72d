@@ -3,7 +3,6 @@ import {
   X, User, Syringe, CalendarPlus, Bot, Loader2, Smartphone, Share 
 } from 'lucide-react';
 import { auth, googleProvider, signInWithPopup } from '../firebase';
-setSelectedFile: (file: File | null) => void;
 
 
 interface AppModalsProps {
@@ -11,7 +10,7 @@ interface AppModalsProps {
   showInstallModal: boolean;
   setShowInstallModal: (v: boolean) => void;
   isIOS: boolean;
-  
+  setSelectedFile: (file: File | null) => void;
   // Profile Modal
   showEditProfileModal: boolean;
   setShowEditProfileModal: (v: boolean) => void;
