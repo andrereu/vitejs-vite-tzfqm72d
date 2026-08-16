@@ -58,7 +58,16 @@ export interface HorarioBloqueado {
   motivo: string; // Ex: Congresso, Feriado, Folga
 }
 
-
+export interface PatientFinancialRecord {
+  id: string;
+  data: string;
+  descricao: string; // Ex: "Consulta Pré-Natal", "Procedimento / Parto", "Exame Cardiotoco"
+  valor: number;
+  tipoAtendimento: 'particular' | 'convenio';
+  convenioNome?: string; // Ex: "Unimed", "Bradesco Saúde", "SulAmérica", "Paraná Clínicas"
+  statusPagamento: 'pago' | 'pendente' | 'glosado';
+  formaPagamento?: 'pix' | 'cartao_credito' | 'cartao_debito' | 'dinheiro' | 'faturamento_guia';
+}
 export interface Patient {
   id: string;
   cpf: string;
@@ -84,6 +93,11 @@ export interface Patient {
   consultasEvolucao: ConsultaEvolucao[];
   agendaConsultas: AgendaConsulta[];
   examesEnviados?: any[];
+   // Novos campos financeiros da paciente
+  tipoAtendimentoPadrao?: 'particular' | 'convenio';
+  convenioNome?: string;
+  numeroCarteirinhaConvenio?: string;
+  historicoFinanceiro?: PatientFinancialRecord[];
 }
 
 export const initialPatientsList: Patient[] = [
