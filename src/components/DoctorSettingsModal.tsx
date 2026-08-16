@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Building, Upload, Trash2, Save, X, Plus, Users, ShieldCheck, Image as ImageIcon } from 'lucide-react';
-import { DoctorTenant, ClinicSecretary, TwoFactorConfig } from '../types/saas';
+import { 
+  Settings, Building, Upload, Save, X, Plus, Users, 
+  ShieldCheck, Image as ImageIcon, CreditCard, Copy, Check, 
+  MessageSquare, Clock, CheckCircle2, AlertTriangle, ArrowUpRight
+} from 'lucide-react';
+import { DoctorTenant, ClinicSecretary, TwoFactorConfig, SaasGlobalConfig } from '../types/saas';
 
 interface DoctorSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentDoctor: DoctorTenant;
+  globalConfig?: SaasGlobalConfig;
   secretaries?: ClinicSecretary[];
   onSaveSecretaries?: (secretaries: ClinicSecretary[]) => Promise<void> | void;
   onSave: (updated: DoctorTenant) => Promise<void> | void;
@@ -15,18 +20,19 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
   isOpen,
   onClose,
   currentDoctor,
+  globalConfig,
   secretaries = [],
   onSaveSecretaries,
   onSave
 }) => {
-  const [activeTab, setActiveTab] = useState<'perfil' | 'secretarias' | 'seguranca'>('perfil');
+  const [activeTab, setActiveTab] = useState<'perfil' | 'secretarias' | 'seguranca' | 'assinatura'>('perfil');
   const [formData, setFormData] = useState<DoctorTenant>(currentDoctor);
   const [secList, setSecList] = useState<ClinicSecretary[]>(secretaries);
   const [newSec, setNewSec] = useState({ nome: '', email: '', telefone: '' });
   const [isSaving, setIsSaving] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
+  const [copiedPix, setCopiedPix] = useState(false);
 
-  // Estado local para A2F com fallback seguro
   const [twoFactorConfig, setTwoFactorConfig] = useState<TwoFactorConfig>({
     enabled: currentDoctor?.twoFactor?.enabled || false,
     method: currentDoctor?.twoFactor?.method || 'whatsapp',
@@ -49,7 +55,20 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Redimensionamento do Logo para Base64 compacto (máx 200x200)
+  const pixKey = globalConfig?.pixKey || '000.000.000-00';
+  const valorMensal = formData.valorMensalidade || (formData.plano === 'clinica_multi' ? 179 : 89);
+  const suporteWhats = globalConfig?.suporteWhatsapp || '5541999999999';
+
+  const handleCopyPix = () => {
+    navigator.clipboard.writeText(pixKey);
+    setCopiedPix(true);
+    setTimeout(() => setCopiedPix(false), 3000);
+  };
+
+  const whatsappMsg = encodeURIComponent(
+    `Olá! Sou a(o) ${formData.nome} (CRM ${formData.crm}). Gostaria de enviar o comprovante de renovação do plano ${formData.plano === 'clinica_multi' ? 'Clínica Multi' : 'Individual Pro'} (R$ ${valorMensal.toFixed(2)}) no MaternaIA.`
+  );
+
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -147,7 +166,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-gray-900 text-base">Configurações do Consultório</h3>
-              <p className="text-xs text-gray-500">Personalize dados de atendimento, logo, equipe e segurança</p>
+              <p className="text-xs text-gray-500">Personalize dados, equipe, segurança e assinatura</p>
             </div>
           </div>
           <button 
@@ -159,8 +178,8 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
           </button>
         </div>
 
-        {/* ABAS */}
-        <div className="flex gap-2 border-b border-gray-100 pb-2">
+        {/* SELETOR DE ABAS */}
+        <div className="flex flex-wrap gap-2 border-b border-gray-100 pb-2">
           <button
             type="button"
             onClick={() => setActiveTab('perfil')}
@@ -171,6 +190,16 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
             <Building className="w-4 h-4" /> Dados & Logo
           </button>
           
+          <button
+            type="button"
+            onClick={() => setActiveTab('assinatura')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'assinatura' ? 'bg-[#2E482A] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <CreditCard className="w-4 h-4" /> Minha Assinatura
+          </button>
+
           <button
             type="button"
             onClick={() => setActiveTab('secretarias')}
@@ -192,11 +221,9 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
           </button>
         </div>
 
-        {/* CONTEÚDO DA ABA 1: DADOS & LOGO */}
+        {/* ABA 1: DADOS & LOGO */}
         {activeTab === 'perfil' && (
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-            
-            {/* UPLOAD DO LOGO */}
             <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3">
               <label className="font-bold text-gray-700 uppercase text-[10px] block">
                 Logotipo da Clínica / Médica
@@ -329,7 +356,105 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
           </form>
         )}
 
-        {/* CONTEÚDO DA ABA 2: SECRETÁRIAS */}
+        {/* ABA 2: MINHA ASSINATURA DO CONSULTÓRIO (NOVA) */}
+        {activeTab === 'assinatura' && (
+          <div className="space-y-4 text-xs">
+            
+            {/* CARDS DE STATUS E PLANO */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-1">
+                <span className="text-[10px] font-bold text-gray-400 uppercase block">Plano Contratado</span>
+                <strong className="text-base text-gray-900 block">
+                  {formData.plano === 'clinica_multi' ? 'Clínica Multi (Até 5 Médicos)' : 'Individual Pro'}
+                </strong>
+                <span className="text-xs text-emerald-700 font-bold block">
+                  R$ {valorMensal.toFixed(2)} / mês
+                </span>
+              </div>
+
+              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-1">
+                <span className="text-[10px] font-bold text-gray-400 uppercase block">Status da Assinatura</span>
+                <div>
+                  {formData.status === 'active' && (
+                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full font-bold text-[10px] inline-flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> ATIVO
+                    </span>
+                  )}
+                  {formData.status === 'trial' && (
+                    <span className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full font-bold text-[10px] inline-flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> DEGUSTAÇÃO
+                    </span>
+                  )}
+                  {(formData.status === 'past_due' || formData.status === 'blocked') && (
+                    <span className="px-2.5 py-1 bg-rose-100 text-rose-800 rounded-full font-bold text-[10px] inline-flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" /> PENDENTE
+                    </span>
+                  )}
+                </div>
+                <span className="text-[11px] text-gray-500 block pt-1">
+                  Vencimento: <strong>
+                    {formData.status === 'active' 
+                      ? (formData.validadeAssinatura ? new Date(formData.validadeAssinatura).toLocaleDateString('pt-BR') : 'Mensal recorrente')
+                      : (formData.trialEndsAt ? new Date(formData.trialEndsAt).toLocaleDateString('pt-BR') : 'Em breve')}
+                  </strong>
+                </span>
+              </div>
+            </div>
+
+            {/* SEÇÃO PIX E RENOVAÇÃO */}
+            <div className="p-4 bg-[#2E482A]/5 rounded-2xl border border-[#2E482A]/20 space-y-3">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h4 className="font-bold text-gray-900 text-xs flex items-center gap-1.5">
+                    <ArrowUpRight className="w-4 h-4 text-emerald-700" />
+                    Chave PIX para Renovação
+                  </h4>
+                  <p className="text-[11px] text-gray-500">Transfira o valor da mensalidade e envie o comprovante para liberação imediata</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 bg-white p-2 rounded-xl border border-gray-300">
+                <input
+                  type="text"
+                  readOnly
+                  value={pixKey}
+                  className="bg-transparent text-xs font-mono font-bold text-gray-800 flex-1 px-2 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleCopyPix}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                    copiedPix ? 'bg-emerald-600 text-white' : 'bg-[#2E482A] text-white hover:bg-[#233820]'
+                  }`}
+                >
+                  {copiedPix ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedPix ? 'Copiado!' : 'Copiar'}</span>
+                </button>
+              </div>
+
+              <a
+                href={`https://wa.me/${suporteWhats.replace(/\D/g, '')}?text=${whatsappMsg}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-all"
+              >
+                <MessageSquare className="w-4 h-4" /> Enviar Comprovante de Pagamento (WhatsApp)
+              </a>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl cursor-pointer"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ABA 3: SECRETÁRIAS */}
         {activeTab === 'secretarias' && (
           <div className="space-y-4 text-xs">
             <form onSubmit={handleAddSecretary} className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3">
@@ -374,7 +499,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
 
               {secList.length === 0 ? (
                 <div className="p-4 text-center text-gray-400 bg-gray-50 rounded-2xl border border-dashed text-xs">
-                  Nenhuma secretária vinculada. Use o formulário acima para adicionar.
+                  Nenhuma secretária vinculada.
                 </div>
               ) : (
                 secList.map((sec) => (
@@ -389,7 +514,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
                       className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl cursor-pointer"
                       title="Remover acesso"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      Remover
                     </button>
                   </div>
                 ))
@@ -416,14 +541,14 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
           </div>
         )}
 
-        {/* CONTEÚDO DA ABA 3: SEGURANÇA & A2F */}
+        {/* ABA 4: SEGURANÇA & A2F */}
         {activeTab === 'seguranca' && (
           <div className="space-y-4 text-xs">
             <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3">
               <div className="flex justify-between items-center">
                 <div>
                   <strong className="text-gray-900 block text-xs">Autenticação em Duas Etapas (A2F / 2FA)</strong>
-                  <p className="text-gray-500 text-[11px]">Exige verificação adicional a cada login para proteger os prontuários das gestantes</p>
+                  <p className="text-gray-500 text-[11px]">Exige verificação adicional a cada login para proteger os prontuários</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -450,7 +575,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
                       <span className="text-base">📱</span>
                       <div>
                         <strong className="block text-gray-900">WhatsApp</strong>
-                        <span className="text-[10px] text-gray-500">Código enviado por mensagem</span>
+                        <span className="text-[10px] text-gray-500">Código por mensagem</span>
                       </div>
                     </button>
 
@@ -464,14 +589,14 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
                       <span className="text-base">🔑</span>
                       <div>
                         <strong className="block text-gray-900">Google Authenticator</strong>
-                        <span className="text-[10px] text-gray-500">App de senhas temporárias</span>
+                        <span className="text-[10px] text-gray-500">App de senhas</span>
                       </div>
                     </button>
                   </div>
 
                   {twoFactorConfig.method === 'whatsapp' && (
                     <div>
-                      <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">WhatsApp para Receber o Código (com DDI e DDD)</label>
+                      <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">WhatsApp para Receber o Código</label>
                       <input
                         type="text"
                         placeholder="Ex: 5541999999999"
