@@ -12,18 +12,24 @@ export interface DoctorTenant {
   enderecoConsultorio: string;
   logoUrl?: string;
   plano: 'individual_pro' | 'clinica_multi';
+  limiteMedicos?: number; // 1 para individual, 5 para multi
   status: 'active' | 'trial' | 'past_due' | 'blocked';
   trialEndsAt: string;
-  diasRestantes?: number;
   totalPacientes: number;
   dataCadastro: string;
   valorMensalidade: number;
-  metodoPagamento?: 'pix' | 'cartao';
-  customDomain?: string;
-  slug?: string;
+  
+  // Módulos Opcionais / Add-ons
+  customDomainEnabled?: boolean; // Domínio Próprio ativo (+R$49)
+  customDomain?: string;        // ex: 'drapriscila.com.br'
+  autoWhatsappEnabled?: boolean;// WhatsApp automático (+R$39)
+  extraDoctorsCount?: number;   // Quantidade de médicos extras (+R$29 cada)
+  
+  // Financeiro PIX
   ultimoPagamento?: string;
   validadeAssinatura?: string;
 }
+
 
 export interface ClinicSecretary {
   id: string;
