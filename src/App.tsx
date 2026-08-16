@@ -788,7 +788,7 @@ export default function App() {
                 </span>
               </div>
               <a
-                href={`https://wa.me/5541999999999?text=${encodeURIComponent('Olá! Gostaria de ativar a assinatura do MaternaIA.')}`}
+                href={`https://wa.me/5541998496940?text=${encodeURIComponent('Olá! Gostaria de ativar a assinatura do MaternaIA.')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-white text-amber-900 px-3 py-1.5 rounded-xl font-bold hover:bg-amber-50 transition-all whitespace-nowrap"
@@ -806,7 +806,7 @@ export default function App() {
              new Date(currentDoctorProfile.trialEndsAt) < new Date())) && (
             <SubscriptionPaywall 
               doctor={currentDoctorProfile}
-              pixKey="000.000.000-00" // Seu CPF cadastrado
+              pixKey="020.255.429-50" // Seu CPF cadastrado
               onRefreshStatus={() => window.location.reload()}
             />
           )}
