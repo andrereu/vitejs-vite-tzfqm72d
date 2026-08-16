@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { 
-  Users, DollarSign, Clock, ShieldCheck, ShieldAlert, 
-  Search, CheckCircle2, AlertCircle, Ban, Calendar, 
-  Edit3, LogOut, ArrowUpRight, Copy, Check
+  Users, DollarSign, Clock, ShieldCheck, 
+  Search, CheckCircle2, Ban, Plus, X, 
+  Save, LogOut, ArrowUpRight, UserPlus
 } from 'lucide-react';
 import { DoctorTenant } from '../types/saas';
 
@@ -18,9 +18,21 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
   onLogout
 }) => {
   const [search, setSearch] = useState('');
-  const [selectedDoctor, setSelectedDoctor] = useState<DoctorTenant | null>(null);
-  const [pixChave] = useState('000.000.000-00'); // Insira seu CPF ou edite na tela
-  const [copied, setCopied] = useState(false);
+  const [showNewDoctorModal, setShowNewDoctorModal] = useState(false);
+  const [pixChave, setPixChave] = useState('000.000.000-00'); // Seu CPF
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Form State para Novo Médico
+  const [newDoctor, setNewDoctor] = useState({
+    nome: '',
+    email: '',
+    crm: '',
+    telefone: '',
+    clinicaNome: '',
+    especialidade: 'Obstetrícia e Ginecologia',
+    plano: 'individual_pro' as 'individual_pro' | 'clinica_multi',
+    trialDays: 7
+  });
 
   // Cálculos em tempo real
   const totalDoctors = doctors.length;
@@ -67,10 +79,58 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
     await onSaveDoctors(updated);
   };
 
+  const handleCreateDoctor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDoctor.nome || !newDoctor.email || !newDoctor.crm) return;
+
+    setIsSaving(true);
+    try {
+      const hoje = new Date();
+      const trialEnds = new Date(hoje.getTime() + Number(newDoctor.trialDays) * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+      const createdDoctor: DoctorTenant = {
+        id: `doc-${Date.now()}`,
+        nome: newDoctor.nome,
+        email: newDoctor.email.toLowerCase().trim(),
+        crm: newDoctor.crm.trim(),
+        telefone: newDoctor.telefone,
+        clinicaNome: newDoctor.clinicaNome || `Consultório ${newDoctor.nome}`,
+        especialidade: newDoctor.especialidade,
+        enderecoConsultorio: '',
+        plano: newDoctor.plano,
+        status: 'trial',
+        trialEndsAt: trialEnds,
+        totalPacientes: 0,
+        dataCadastro: hoje.toISOString().split('T')[0],
+        valorMensalidade: newDoctor.plano === 'clinica_multi' ? 179 : 89
+      };
+
+      const updated = [...doctors, createdDoctor];
+      await onSaveDoctors(updated);
+
+      setShowNewDoctorModal(false);
+      setNewDoctor({
+        nome: '',
+        email: '',
+        crm: '',
+        telefone: '',
+        clinicaNome: '',
+        especialidade: 'Obstetrícia e Ginecologia',
+        plano: 'individual_pro',
+        trialDays: 7
+      });
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao cadastrar novo médico.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const filteredDoctors = doctors.filter(d => 
-    d.nome.toLowerCase().includes(search.toLowerCase()) ||
-    d.email.toLowerCase().includes(search.toLowerCase()) ||
-    d.crm.includes(search)
+    (d.nome || '').toLowerCase().includes(search.toLowerCase()) ||
+    (d.email || '').toLowerCase().includes(search.toLowerCase()) ||
+    (d.crm || '').includes(search)
   );
 
   return (
@@ -92,7 +152,7 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
         </button>
       </div>
 
-      {/* CARDS DE MÉTRICAS (MRR, MÉDICOS, PACIENTES) */}
+      {/* CARDS DE MÉTRICAS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs space-y-1">
           <div className="flex justify-between items-center text-gray-400">
@@ -139,23 +199,32 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
         </div>
       </div>
 
-      {/* LISTAGEM DE MÉDICOS & AÇÕES DE ASSINATURA */}
+      {/* LISTAGEM DE MÉDICOS & AÇÕES */}
       <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-4">
           <div>
             <h3 className="font-bold text-gray-900 text-base">Controle de Assinaturas</h3>
-            <p className="text-xs text-gray-500">Libere acessos após conferência do PIX ou amplie trials</p>
+            <p className="text-xs text-gray-500">Libere acessos após conferência do PIX ou cadastre novas contas</p>
           </div>
 
-          <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Buscar por médico, CRM ou e-mail..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs bg-gray-50 border rounded-xl"
-            />
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-64">
+              <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar médico, CRM ou e-mail..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-xs bg-gray-50 border rounded-xl"
+              />
+            </div>
+
+            <button
+              onClick={() => setShowNewDoctorModal(true)}
+              className="px-4 py-2 bg-[#2E482A] hover:bg-[#233820] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm transition-all whitespace-nowrap"
+            >
+              <UserPlus className="w-4 h-4" /> Novo Médico
+            </button>
           </div>
         </div>
 
@@ -254,7 +323,7 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
                         <button
                           onClick={() => handleStatusChange(doc.id, 'blocked')}
                           className="px-2 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-bold text-[10px] cursor-pointer"
-                          title="Suspender acesso por falta de pagamento"
+                          title="Suspender acesso"
                         >
                           Bloquear
                         </button>
@@ -267,6 +336,138 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
           </table>
         </div>
       </div>
+
+      {/* MODAL CADASTRAR NOVO MÉDICO */}
+      {showNewDoctorModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-gray-800">
+            
+            <div className="flex justify-between items-center border-b pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-[#2E482A]/10 text-[#2E482A] rounded-xl">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-base">Cadastrar Novo Médico</h3>
+                  <p className="text-xs text-gray-500">Crie a conta e libere o período de testes</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setShowNewDoctorModal(false)}
+                className="text-gray-400 hover:text-gray-700 cursor-pointer p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateDoctor} className="space-y-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">Nome Completo *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: Dr. Lucas Silveira"
+                    value={newDoctor.nome}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, nome: e.target.value })}
+                    className="w-full p-2.5 bg-gray-50 border rounded-xl"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">CRM com UF *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: 34567-PR"
+                    value={newDoctor.crm}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, crm: e.target.value })}
+                    className="w-full p-2.5 bg-gray-50 border rounded-xl"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">E-mail de Acesso *</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="medico@clinica.com.br"
+                    value={newDoctor.email}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, email: e.target.value })}
+                    className="w-full p-2.5 bg-gray-50 border rounded-xl"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">WhatsApp / Telefone</label>
+                  <input
+                    type="text"
+                    placeholder="(41) 99999-9999"
+                    value={newDoctor.telefone}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, telefone: e.target.value })}
+                    className="w-full p-2.5 bg-gray-50 border rounded-xl"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">Nome da Clínica / Consultório</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Clínica Materno Fetal"
+                    value={newDoctor.clinicaNome}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, clinicaNome: e.target.value })}
+                    className="w-full p-2.5 bg-gray-50 border rounded-xl"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">Plano Inicial</label>
+                  <select
+                    value={newDoctor.plano}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, plano: e.target.value as any })}
+                    className="w-full p-2.5 bg-gray-50 border rounded-xl font-bold"
+                  >
+                    <option value="individual_pro">Individual Pro (R$ 89/mês)</option>
+                    <option value="clinica_multi">Clínica Multi (R$ 179/mês)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">Dias de Degustação</label>
+                  <select
+                    value={newDoctor.trialDays}
+                    onChange={(e) => setNewDoctor({ ...newDoctor, trialDays: Number(e.target.value) })}
+                    className="w-full p-2.5 bg-gray-50 border rounded-xl font-bold"
+                  >
+                    <option value={7}>7 dias grátis</option>
+                    <option value={14}>14 dias grátis</option>
+                    <option value={30}>30 dias grátis</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowNewDoctorModal(false)}
+                  className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="px-5 py-2.5 bg-[#2E482A] hover:bg-[#233820] text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-sm"
+                >
+                  <Save className="w-4 h-4" /> {isSaving ? 'Cadastrando...' : 'Cadastrar Médico'}
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
