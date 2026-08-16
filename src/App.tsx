@@ -12,6 +12,8 @@ import { ClinicScheduleManager } from './components/ClinicScheduleManager';
 
 import { db, auth, googleProvider } from './firebase';
 import { SubscriptionPaywall } from './components/SubscriptionPaywall';
+import { SaasGlobalConfig } from './types/saas';
+
 
 
 import { AppModals } from './components/AppModals';
@@ -55,6 +57,40 @@ const LISTA_EXAMES_OFICIAIS = [
 ];
 
 export default function App() {
+    // Configuração global de pagamento (carregada do Firestore)
+  const [globalConfig, setGlobalConfig] = useState<SaasGlobalConfig>({
+    pixKey: '',
+    pixKeyType: 'cpf',
+    suporteWhatsapp: '',
+    nomeRecebedor: 'MaternaIA'
+  });
+
+  // Carregar dados de cobrança do Firestore na inicialização
+  useEffect(() => {
+    const loadGlobalConfig = async () => {
+      try {
+        const docRef = doc(db, "saas_config", "financeiro");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setGlobalConfig(docSnap.data() as SaasGlobalConfig);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar dados financeiros:", err);
+      }
+    };
+    loadGlobalConfig();
+  }, []);
+
+  // Salvar alterações de PIX/WhatsApp feitas pelo Master Admin
+  const handleSaveGlobalConfig = async (newConfig: SaasGlobalConfig) => {
+    setGlobalConfig(newConfig);
+    try {
+      await setDoc(doc(db, "saas_config", "financeiro"), newConfig);
+    } catch (err) {
+      console.error("Erro ao salvar configuração global:", err);
+    }
+  };
+
   const [currentScreen, setCurrentScreen] = useState<'landing' | 'doctor_panel' | 'patient_app' | 'master_admin'>('landing');
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [loginRole, setLoginRole] = useState<'medica' | 'secretaria'>('medica');
@@ -770,8 +806,27 @@ export default function App() {
       )}
 
       {/* 2. PAINEL DO MÉDICO & SECRETARIA */}
+            {/* PAINEL MÉDICO */}
       {currentScreen === 'doctor_panel' && (
-        <div className="max-w-6xl mx-auto px-4 pt-6 space-y-6 print:hidden"
+        <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+          
+          {/* TRAVA DE ASSINATURA (SE EXPIRADO OU BLOQUEADO) */}
+          {(currentDoctorProfile.status === 'blocked' || 
+            currentDoctorProfile.status === 'past_due' ||
+            (currentDoctorProfile.status === 'trial' && 
+             currentDoctorProfile.trialEndsAt && 
+             new Date(currentDoctorProfile.trialEndsAt) < new Date())) && (
+            <SubscriptionPaywall 
+              doctor={currentDoctorProfile}
+              pixKey={globalConfig.pixKey}
+              onRefreshStatus={() => window.location.reload()}
+            />
+          )}
+
+          {/* ...demais abas e listagens do painel médico... */}
+        </div>
+      )}
+
           
           {/* BANNER DE DEGUSTAÇÃO (TRIAL ATIVO) */}
           {currentDoctorProfile.status === 'trial' && (
@@ -1602,14 +1657,20 @@ export default function App() {
         </div>
       )}
 
-      {/* 4. PAINEL SUPER ADMIN MASTER */}
+            {/* PAINEL MASTER ADMIN */}
       {currentScreen === 'master_admin' && (
-        <AdminMasterDashboard 
-          doctors={saasDoctors}
+        <AdminMasterDashboard
+          doctors={saasDoctors.map(doc => ({
+            ...doc,
+            totalPacientes: doc.id === currentDoctorProfile.id ? patients.length : (doc.totalPacientes || 0)
+          }))}
+          globalConfig={globalConfig}
           onSaveDoctors={saveSaasDoctorsToFirestore}
-          onLogout={() => setCurrentScreen('landing')}
+          onSaveGlobalConfig={handleSaveGlobalConfig}
+          onLogout={handleLogout}
         />
       )}
+
 
             {/* MODAL CONFIGURAÇÕES DO CONSULTÓRIO (WHITE LABEL) */}
       <DoctorSettingsModal
