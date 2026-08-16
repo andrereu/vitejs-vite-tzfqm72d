@@ -8,7 +8,12 @@ export interface SaasGlobalConfig {
   nomeRecebedor: string;
 }
 
-
+export interface TwoFactorConfig {
+  enabled: boolean;
+  method: 'whatsapp' | 'authenticator';
+  secret?: string;       // Chave TOTP para Google Authenticator
+  whatsappPhone?: string; // Número para envio do código
+}
 export interface DoctorTenant {
   id: string;
   nome: string;
@@ -26,6 +31,8 @@ export interface DoctorTenant {
   totalPacientes: number;
   dataCadastro: string;
   valorMensalidade: number;
+   // Configuração de Segurança A2F
+  twoFactor?: TwoFactorConfig;
   
   // Módulos Opcionais / Add-ons
   customDomainEnabled?: boolean; // Domínio Próprio ativo (+R$49)
@@ -47,6 +54,7 @@ export interface ClinicSecretary {
   telefone?: string;
   status: 'active' | 'inactive';
   criadoEm: string;
+  twoFactor?: TwoFactorConfig;
 }
 
 
