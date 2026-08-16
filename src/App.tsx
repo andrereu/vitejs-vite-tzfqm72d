@@ -974,7 +974,9 @@ export default function App() {
                 const updated = { ...targetPat, agendaConsultas: updatedAgenda };
                 await saveToFirestore(patients.map(p => p.id === updated.id ? updated : p));
               }}
-            />
+                      />
+          )}
+
         </div>
       )}
 
