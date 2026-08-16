@@ -462,6 +462,77 @@ export default function App() {
       setLoginError("CPF não encontrado.");
     }
   };
+  // Estados para 2FA no Login
+  const [showTwoFactorModal, setShowTwoFactorModal] = useState(false);
+  const [pendingTwoFactorUser, setPendingTwoFactorUser] = useState<{
+    role: 'medica' | 'secretaria';
+    profile: DoctorTenant;
+    config: TwoFactorConfig;
+  } | null>(null);
+
+  // Login com Google para Médicas e Secretárias
+  const handleGoogleDoctorLogin = async () => {
+    setLoginError("");
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const userEmail = result.user.email?.toLowerCase().trim() || '';
+
+      // Verifica se é o Super Admin
+      if (SUPER_ADMIN_EMAILS.includes(userEmail)) {
+        setUserRole('medica');
+        setCurrentScreen('master_admin');
+        setShowDoctorLoginModal(false);
+        return;
+      }
+
+      // Verifica se é uma Médica cadastrada
+      const matchedDoctor = saasDoctors.find(d => d.email.toLowerCase().trim() === userEmail);
+      if (matchedDoctor) {
+        if (matchedDoctor.twoFactor?.enabled) {
+          setPendingTwoFactorUser({
+            role: 'medica',
+            profile: matchedDoctor,
+            config: matchedDoctor.twoFactor
+          });
+          setShowTwoFactorModal(true);
+          setShowDoctorLoginModal(false);
+        } else {
+          setCurrentDoctorProfile(matchedDoctor);
+          setUserRole('medica');
+          setCurrentScreen('doctor_panel');
+          setShowDoctorLoginModal(false);
+        }
+        return;
+      }
+
+      // Verifica se é uma Secretária cadastrada
+      const matchedSecretary = secretaries.find(s => s.email.toLowerCase().trim() === userEmail);
+      if (matchedSecretary) {
+        if (matchedSecretary.twoFactor?.enabled) {
+          setPendingTwoFactorUser({
+            role: 'secretaria',
+            profile: currentDoctorProfile,
+            config: matchedSecretary.twoFactor
+          });
+          setShowTwoFactorModal(true);
+          setShowDoctorLoginModal(false);
+        } else {
+          setUserRole('secretaria');
+          setCurrentScreen('doctor_panel');
+          setShowDoctorLoginModal(false);
+        }
+        return;
+      }
+
+      setLoginError(`O e-mail ${userEmail} não possui cadastro profissional ativo no MaternaIA.`);
+      await signOut(auth);
+    } catch (err: any) {
+      console.error(err);
+      if (err.code !== 'auth/popup-closed-by-user') {
+        setLoginError("Erro ao autenticar com o Google.");
+      }
+    }
+  };
 
   const handleFileUpload = async (e: React.FormEvent) => {
     e.preventDefault();
