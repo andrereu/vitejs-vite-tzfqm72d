@@ -1862,6 +1862,25 @@ export default function App() {
         handleMasterLogin={handleMasterLogin}
         loginError={loginError}
       />
+      {/* MODAL DE VALIDAÇÃO DE DOIS FATORES (A2F) */}
+      {pendingTwoFactorUser && (
+        <TwoFactorVerifyModal
+          isOpen={showTwoFactorModal}
+          onClose={() => {
+            setShowTwoFactorModal(false);
+            setPendingTwoFactorUser(null);
+          }}
+          twoFactorConfig={pendingTwoFactorUser.config}
+          userEmail={pendingTwoFactorUser.profile.email}
+          onSuccess={() => {
+            setCurrentDoctorProfile(pendingTwoFactorUser.profile);
+            setUserRole(pendingTwoFactorUser.role);
+            setCurrentScreen('doctor_panel');
+            setShowTwoFactorModal(false);
+            setPendingTwoFactorUser(null);
+          }}
+        />
+      )}
 
       {/* CARTEIRINHA DE IMPRESSÃO */}
       {currentPatient && (
