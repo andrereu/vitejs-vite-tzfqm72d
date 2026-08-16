@@ -1736,6 +1736,7 @@ if (loginRole === 'secretaria') {
         isOpen={showDoctorSettingsModal}
         onClose={() => setShowDoctorSettingsModal(false)}
         currentDoctor={currentDoctorProfile}
+        globalConfig={globalConfig}
         secretaries={secretaries}
         onSaveSecretaries={async (updatedSecs) => {
           setSecretaries(updatedSecs);
