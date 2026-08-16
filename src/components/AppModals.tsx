@@ -3,6 +3,8 @@ import {
   X, User, Syringe, CalendarPlus, Bot, Loader2, Smartphone, Share 
 } from 'lucide-react';
 import { auth, googleProvider, signInWithPopup } from '../firebase';
+setSelectedFile: (file: File | null) => void;
+
 
 interface AppModalsProps {
   // PWA Modal
