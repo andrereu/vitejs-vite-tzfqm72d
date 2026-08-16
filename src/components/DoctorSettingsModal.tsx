@@ -19,7 +19,8 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
   onSaveSecretaries,
   onSave
 }) => {
-  const [activeTab, setActiveTab] = useState<'perfil' | 'secretarias'>('perfil');
+  const [activeTab, setActiveTab] = useState<'perfil' | 'secretarias' | 'seguranca'>('perfil');
+
   const [formData, setFormData] = useState<DoctorTenant>(currentDoctor);
   const [secList, setSecList] = useState<ClinicSecretary[]>(secretaries);
   const [newSec, setNewSec] = useState({ nome: '', email: '', telefone: '', senha: '' });
