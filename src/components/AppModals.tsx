@@ -841,13 +841,11 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
               </button>
             </div>
 
-            {/* SELETOR DE PERFIL INTERATIVO */}
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-100 rounded-2xl">
+                        {/* SELETOR DE PERFIL INTERATIVO */}
+            <div className="grid grid-cols-2 gap-1.5 p-1 bg-gray-100 rounded-2xl mb-3">
               <button
                 type="button"
-                onClick={() => {
-                  if (props.setLoginRole) props.setLoginRole('medica');
-                }}
+                onClick={() => props.setLoginRole && props.setLoginRole('medica')}
                 className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 ${
                   (props.loginRole || 'medica') === 'medica'
                     ? 'bg-[#2E482A] text-white shadow-xs'
@@ -858,9 +856,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  if (props.setLoginRole) props.setLoginRole('secretaria');
-                }}
+                onClick={() => props.setLoginRole && props.setLoginRole('secretaria')}
                 className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 ${
                   props.loginRole === 'secretaria'
                     ? 'bg-[#2E482A] text-white shadow-xs'
@@ -870,6 +866,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                 📋 Secretária
               </button>
             </div>
+
 
             <form onSubmit={props.handleDoctorLogin} className="space-y-3 text-xs">
               <div>
