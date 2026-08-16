@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Building, Upload, Trash2, Save, X, Plus, Users, Image as ImageIcon } from 'lucide-react';
-import { DoctorTenant, ClinicSecretary } from '../types/saas';
+import { Settings, Building, Upload, Trash2, Save, X, Plus, Users, ShieldCheck, Image as ImageIcon } from 'lucide-react';
+import { DoctorTenant, ClinicSecretary, TwoFactorConfig } from '../types/saas';
 
 interface DoctorSettingsModalProps {
   isOpen: boolean;
@@ -20,23 +20,36 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
   onSave
 }) => {
   const [activeTab, setActiveTab] = useState<'perfil' | 'secretarias' | 'seguranca'>('perfil');
-
   const [formData, setFormData] = useState<DoctorTenant>(currentDoctor);
   const [secList, setSecList] = useState<ClinicSecretary[]>(secretaries);
-  const [newSec, setNewSec] = useState({ nome: '', email: '', telefone: '', senha: '' });
+  const [newSec, setNewSec] = useState({ nome: '', email: '', telefone: '' });
   const [isSaving, setIsSaving] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
 
+  // Estado local para A2F com fallback seguro
+  const [twoFactorConfig, setTwoFactorConfig] = useState<TwoFactorConfig>({
+    enabled: currentDoctor?.twoFactor?.enabled || false,
+    method: currentDoctor?.twoFactor?.method || 'whatsapp',
+    whatsappPhone: currentDoctor?.twoFactor?.whatsappPhone || currentDoctor?.telefone || '',
+    secret: currentDoctor?.twoFactor?.secret || 'MATERNA-' + Math.random().toString(36).substring(2, 8).toUpperCase()
+  });
+
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && currentDoctor) {
       setFormData(currentDoctor);
-      setSecList(secretaries);
+      setSecList(secretaries || []);
+      setTwoFactorConfig({
+        enabled: currentDoctor.twoFactor?.enabled || false,
+        method: currentDoctor.twoFactor?.method || 'whatsapp',
+        whatsappPhone: currentDoctor.twoFactor?.whatsappPhone || currentDoctor.telefone || '',
+        secret: currentDoctor.twoFactor?.secret || 'MATERNA-' + Math.random().toString(36).substring(2, 8).toUpperCase()
+      });
     }
   }, [isOpen, currentDoctor, secretaries]);
 
   if (!isOpen) return null;
 
-  // Redimensiona a imagem para no máximo 200x200px em formato Base64 limpo
+  // Redimensionamento do Logo para Base64 compacto (máx 200x200)
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -82,7 +95,12 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
     e.preventDefault();
     setIsSaving(true);
     try {
-      await onSave(formData);
+      const updatedDoctor: DoctorTenant = {
+        ...formData,
+        twoFactor: twoFactorConfig
+      };
+
+      await onSave(updatedDoctor);
       if (onSaveSecretaries) {
         await onSaveSecretaries(secList);
       }
@@ -110,17 +128,12 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
     };
 
     setSecList([...secList, secretary]);
-    setNewSec({ nome: '', email: '', telefone: '', senha: '' });
+    setNewSec({ nome: '', email: '', telefone: '' });
   };
 
   const handleRemoveSecretary = (id: string) => {
     setSecList(secList.filter(s => s.id !== id));
   };
-
-// Estado do 2FA
-const [twoFactorConfig, setTwoFactorConfig] = useState<TwoFactorConfig>(
-  currentDoctor.twoFactor || { enabled: false, method: 'whatsapp', whatsappPhone: currentDoctor.telefone || '' }
-);
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in zoom-in duration-200">
@@ -134,7 +147,7 @@ const [twoFactorConfig, setTwoFactorConfig] = useState<TwoFactorConfig>(
             </div>
             <div>
               <h3 className="font-bold text-gray-900 text-base">Configurações do Consultório</h3>
-              <p className="text-xs text-gray-500">Personalize os dados de atendimento, logo e equipe</p>
+              <p className="text-xs text-gray-500">Personalize dados de atendimento, logo, equipe e segurança</p>
             </div>
           </div>
           <button 
@@ -151,28 +164,39 @@ const [twoFactorConfig, setTwoFactorConfig] = useState<TwoFactorConfig>(
           <button
             type="button"
             onClick={() => setActiveTab('perfil')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'perfil' ? 'bg-[#2E482A] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            <Building className="w-4 h-4" /> Dados do Consultório
+            <Building className="w-4 h-4" /> Dados & Logo
           </button>
+          
           <button
             type="button"
             onClick={() => setActiveTab('secretarias')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'secretarias' ? 'bg-[#2E482A] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            <Users className="w-4 h-4" /> Secretárias & Recepção ({secList.length})
+            <Users className="w-4 h-4" /> Secretárias ({secList.length})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('seguranca')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'seguranca' ? 'bg-[#2E482A] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" /> Segurança (A2F)
           </button>
         </div>
 
-        {/* CONTEÚDO DA ABA 1: DADOS */}
+        {/* CONTEÚDO DA ABA 1: DADOS & LOGO */}
         {activeTab === 'perfil' && (
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
             
-            {/* UPLOAD E PREVIEW DO LOGO */}
+            {/* UPLOAD DO LOGO */}
             <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3">
               <label className="font-bold text-gray-700 uppercase text-[10px] block">
                 Logotipo da Clínica / Médica
@@ -216,7 +240,7 @@ const [twoFactorConfig, setTwoFactorConfig] = useState<TwoFactorConfig>(
                     )}
                   </div>
                   <p className="text-[11px] text-gray-500">
-                    Formatos: PNG, JPG ou WebP. Redimensionado automaticamente para o cabeçalho.
+                    PNG, JPG ou WebP. Redimensionado automaticamente para o cabeçalho.
                   </p>
                 </div>
               </div>
@@ -277,7 +301,7 @@ const [twoFactorConfig, setTwoFactorConfig] = useState<TwoFactorConfig>(
             </div>
 
             <div>
-              <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">Endereço de Atendimento (Aparece nos lembretes)</label>
+              <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">Endereço de Atendimento (Lembretes)</label>
               <input
                 type="text"
                 value={formData.enderecoConsultorio || ''}
@@ -304,105 +328,6 @@ const [twoFactorConfig, setTwoFactorConfig] = useState<TwoFactorConfig>(
             </div>
           </form>
         )}
-        {/* ABA SEGURANÇA E A2F */}
-        {activeTab === 'seguranca' && (
-          <div className="space-y-4 text-xs">
-            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3">
-              <div className="flex justify-between items-center">
-                <div>
-                  <strong className="text-gray-900 block text-xs">Autenticação em Duas Etapas (A2F / 2FA)</strong>
-                  <p className="text-gray-500 text-[11px]">Exige uma confirmação adicional a cada login para proteger os prontuários das gestantes</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={twoFactorConfig.enabled}
-                    onChange={(e) => setTwoFactorConfig({ ...twoFactorConfig, enabled: e.target.checked })}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2E482A]"></div>
-                </label>
-              </div>
-
-              {twoFactorConfig.enabled && (
-                <div className="pt-3 border-t border-gray-200 space-y-3">
-                  <label className="font-bold text-gray-700 uppercase text-[10px] block">Método de Verificação</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setTwoFactorConfig({ ...twoFactorConfig, method: 'whatsapp' })}
-                      className={`p-3 rounded-xl border text-left flex items-center gap-2 cursor-pointer ${
-                        twoFactorConfig.method === 'whatsapp' ? 'border-[#2E482A] bg-[#2E482A]/5 font-bold' : 'bg-white'
-                      }`}
-                    >
-                      <span className="text-base">📱</span>
-                      <div>
-                        <strong className="block text-gray-900">WhatsApp</strong>
-                        <span className="text-[10px] text-gray-500">Código enviado por mensagem</span>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setTwoFactorConfig({ ...twoFactorConfig, method: 'authenticator', secret: twoFactorConfig.secret || 'MATERNA-' + Math.random().toString(36).substring(2, 8).toUpperCase() })}
-                      className={`p-3 rounded-xl border text-left flex items-center gap-2 cursor-pointer ${
-                        twoFactorConfig.method === 'authenticator' ? 'border-[#2E482A] bg-[#2E482A]/5 font-bold' : 'bg-white'
-                      }`}
-                    >
-                      <span className="text-base">🔑</span>
-                      <div>
-                        <strong className="block text-gray-900">Google Authenticator</strong>
-                        <span className="text-[10px] text-gray-500">App de senhas temporárias</span>
-                      </div>
-                    </button>
-                  </div>
-
-                  {twoFactorConfig.method === 'whatsapp' && (
-                    <div>
-                      <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">WhatsApp de Recebimento do Código</label>
-                      <input
-                        type="text"
-                        placeholder="Ex: 5541999999999"
-                        value={twoFactorConfig.whatsappPhone || ''}
-                        onChange={(e) => setTwoFactorConfig({ ...twoFactorConfig, whatsappPhone: e.target.value })}
-                        className="w-full p-2 bg-white border rounded-xl"
-                      />
-                    </div>
-                  )}
-
-                  {twoFactorConfig.method === 'authenticator' && (
-                    <div className="p-3 bg-white rounded-xl border border-gray-200 space-y-1">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase block">Chave Secreta para o App</span>
-                      <strong className="text-sm font-mono text-[#2E482A] tracking-wider block">{twoFactorConfig.secret}</strong>
-                      <p className="text-[10px] text-gray-500">Copie e cole essa chave no Google Authenticator ou 1Password.</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2 border-t">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 bg-gray-100 text-gray-700 font-bold rounded-xl cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  const updatedDoc = { ...formData, twoFactor: twoFactorConfig };
-                  await onSave(updatedDoc);
-                  onClose();
-                }}
-                className="px-5 py-2 bg-[#2E482A] text-white font-bold rounded-xl cursor-pointer shadow-xs"
-              >
-                Salvar Configurações de Segurança
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* CONTEÚDO DA ABA 2: SECRETÁRIAS */}
         {activeTab === 'secretarias' && (
@@ -428,7 +353,7 @@ const [twoFactorConfig, setTwoFactorConfig] = useState<TwoFactorConfig>(
                 />
                 <input
                   type="text"
-                  placeholder="Telefone / WhatsApp"
+                  placeholder="WhatsApp"
                   value={newSec.telefone}
                   onChange={(e) => setNewSec({ ...newSec, telefone: e.target.value })}
                   className="p-2 bg-white border rounded-xl text-xs"
@@ -475,17 +400,114 @@ const [twoFactorConfig, setTwoFactorConfig] = useState<TwoFactorConfig>(
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl cursor-pointer"
+                className="px-4 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl cursor-pointer"
               >
                 Fechar
               </button>
               <button
-                type="submit"
+                type="button"
                 onClick={handleSubmit}
                 disabled={isSaving}
                 className="px-5 py-2.5 bg-[#2E482A] hover:bg-[#233820] text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-sm"
               >
                 <Save className="w-4 h-4" /> {isSaving ? 'Salvando...' : 'Salvar Secretárias'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* CONTEÚDO DA ABA 3: SEGURANÇA & A2F */}
+        {activeTab === 'seguranca' && (
+          <div className="space-y-4 text-xs">
+            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3">
+              <div className="flex justify-between items-center">
+                <div>
+                  <strong className="text-gray-900 block text-xs">Autenticação em Duas Etapas (A2F / 2FA)</strong>
+                  <p className="text-gray-500 text-[11px]">Exige verificação adicional a cada login para proteger os prontuários das gestantes</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={twoFactorConfig.enabled}
+                    onChange={(e) => setTwoFactorConfig({ ...twoFactorConfig, enabled: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2E482A]"></div>
+                </label>
+              </div>
+
+              {twoFactorConfig.enabled && (
+                <div className="pt-3 border-t border-gray-200 space-y-3">
+                  <label className="font-bold text-gray-700 uppercase text-[10px] block">Método de Verificação</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTwoFactorConfig({ ...twoFactorConfig, method: 'whatsapp' })}
+                      className={`p-3 rounded-xl border text-left flex items-center gap-2 cursor-pointer ${
+                        twoFactorConfig.method === 'whatsapp' ? 'border-[#2E482A] bg-[#2E482A]/5 font-bold' : 'bg-white'
+                      }`}
+                    >
+                      <span className="text-base">📱</span>
+                      <div>
+                        <strong className="block text-gray-900">WhatsApp</strong>
+                        <span className="text-[10px] text-gray-500">Código enviado por mensagem</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setTwoFactorConfig({ ...twoFactorConfig, method: 'authenticator' })}
+                      className={`p-3 rounded-xl border text-left flex items-center gap-2 cursor-pointer ${
+                        twoFactorConfig.method === 'authenticator' ? 'border-[#2E482A] bg-[#2E482A]/5 font-bold' : 'bg-white'
+                      }`}
+                    >
+                      <span className="text-base">🔑</span>
+                      <div>
+                        <strong className="block text-gray-900">Google Authenticator</strong>
+                        <span className="text-[10px] text-gray-500">App de senhas temporárias</span>
+                      </div>
+                    </button>
+                  </div>
+
+                  {twoFactorConfig.method === 'whatsapp' && (
+                    <div>
+                      <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">WhatsApp para Receber o Código (com DDI e DDD)</label>
+                      <input
+                        type="text"
+                        placeholder="Ex: 5541999999999"
+                        value={twoFactorConfig.whatsappPhone || ''}
+                        onChange={(e) => setTwoFactorConfig({ ...twoFactorConfig, whatsappPhone: e.target.value })}
+                        className="w-full p-2 bg-white border rounded-xl"
+                      />
+                    </div>
+                  )}
+
+                  {twoFactorConfig.method === 'authenticator' && (
+                    <div className="p-3 bg-white rounded-xl border border-gray-200 space-y-1">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase block">Chave Secreta para o App</span>
+                      <strong className="text-sm font-mono text-[#2E482A] tracking-wider block">{twoFactorConfig.secret}</strong>
+                      <p className="text-[10px] text-gray-500">Copie e cole essa chave no Google Authenticator ou 1Password.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 bg-gray-100 text-gray-700 font-bold rounded-xl cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={isSaving}
+                className="px-5 py-2 bg-[#2E482A] hover:bg-[#233820] text-white font-bold rounded-xl cursor-pointer shadow-xs"
+              >
+                Salvar Configurações de Segurança
               </button>
             </div>
           </div>
