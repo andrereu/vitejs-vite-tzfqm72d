@@ -1645,6 +1645,8 @@ export default function App() {
         loginCpf={loginCpf}
         setLoginCpf={setLoginCpf}
         handlePatientLogin={handlePatientLogin}
+        loginRole={loginRole}
+        setLoginRole={setLoginRole}
         showDoctorLoginModal={showDoctorLoginModal}
         setShowDoctorLoginModal={setShowDoctorLoginModal}
         doctorEmail={doctorEmail}
