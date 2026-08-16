@@ -1566,18 +1566,28 @@ export default function App() {
         />
       )}
 
-      {/* MODAL CONFIGURAÇÕES DO CONSULTÓRIO (WHITE LABEL) */}
+            {/* MODAL CONFIGURAÇÕES DO CONSULTÓRIO (WHITE LABEL) */}
       <DoctorSettingsModal
         isOpen={showDoctorSettingsModal}
         onClose={() => setShowDoctorSettingsModal(false)}
         currentDoctor={currentDoctorProfile}
-        onSave={async (updated) => {
-          setCurrentDoctorProfile(updated);
-          await saveSaasDoctorsToFirestore(
-            saasDoctors.map(d => d.id === updated.id ? updated : d)
-          );
+        secretaries={secretaries}
+        onSaveSecretaries={async (updatedSecs) => {
+          setSecretaries(updatedSecs);
+          try {
+            await setDoc(doc(db, "saas_config", `secretarias_${currentDoctorProfile.id}`), { lista: updatedSecs });
+          } catch (err) {
+            console.error("Erro ao salvar secretárias:", err);
+          }
+        }}
+        onSave={async (updatedDoctor) => {
+          setCurrentDoctorProfile(updatedDoctor);
+          const updatedList = saasDoctors.map(d => d.id === updatedDoctor.id ? updatedDoctor : d);
+          await saveSaasDoctorsToFirestore(updatedList);
+          setShowDoctorSettingsModal(false);
         }}
       />
+
 
       {/* MODAL TRIAL 14 DIAS */}
       <DoctorTrialSignupModal
