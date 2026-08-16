@@ -1706,7 +1706,34 @@ if (loginRole === 'secretaria') {
                         <span className="text-[10px] text-gray-500 uppercase font-bold">{ex.tipo} • {ex.dataUpload}</span>
                       </div>
                     </div>
-                    {ex.fileData && <img src={ex.fileData} alt={ex.nome} className="max-h-68 rounded-xl object-contain border bg-black/5 p-1" />}
+                                        {/* PREVIEW: IMAGEM OU PDF */}
+                    {ex.fileData && (
+                      ex.fileData.startsWith('data:application/pdf') ? (
+                        <div className="flex items-center justify-between p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">📄</span>
+                            <div>
+                              <strong className="text-rose-900 block font-bold">Documento Laudo em PDF</strong>
+                              <span className="text-[10px] text-rose-700">Arquivo processado pelo Gemini IA</span>
+                            </div>
+                          </div>
+                          <a
+                            href={ex.fileData}
+                            download={`${ex.nome || 'laudo'}.pdf`}
+                            className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold text-[10px] transition-all cursor-pointer"
+                          >
+                            Baixar PDF
+                          </a>
+                        </div>
+                      ) : (
+                        <img 
+                          src={ex.fileData} 
+                          alt={ex.nome} 
+                          className="max-h-68 rounded-xl object-contain border bg-black/5 p-1" 
+                        />
+                      )
+                    )}
+
                     <div className="bg-pink-50/80 p-3.5 rounded-xl text-xs text-gray-800 whitespace-pre-line border border-pink-200">{ex.resumoIA}</div>
                     <div className="bg-emerald-50/80 p-3.5 rounded-xl text-xs text-gray-900 whitespace-pre-line border border-emerald-200">{ex.notaDra}</div>
                   </div>
