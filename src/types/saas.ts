@@ -1,6 +1,14 @@
 export type SubscriptionPlan = 'trial' | 'individual_pro' | 'clinica_multi';
 export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'canceled';
 
+export interface SaasGlobalConfig {
+  pixKey: string;
+  pixKeyType: 'cpf' | 'cnpj' | 'email' | 'telefone' | 'aleatoria';
+  suporteWhatsapp: string; // Ex: '5541999999999'
+  nomeRecebedor: string;
+}
+
+
 export interface DoctorTenant {
   id: string;
   nome: string;
