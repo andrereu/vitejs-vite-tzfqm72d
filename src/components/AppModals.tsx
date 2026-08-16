@@ -590,7 +590,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
         </div>
       )}
 
-      {/* MODAL UPLOAD EXAME & IA */}
+            {/* MODAL UPLOAD EXAME & IA */}
       {props.showUploadExamModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
           <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-3">
@@ -599,75 +599,77 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
               Anexar Laudo / Ecografia com IA
             </h3>
             
-            <div>
-              <label className="text-[10px] text-gray-400 font-bold uppercase block mb-1">Título do Exame</label>
-              <input 
-                type="text" 
-                placeholder="Ex: Hemograma 1º Trimestre" 
-                value={props.examName} 
-                onChange={(e) => props.setExamName(e.target.value)} 
-                className="w-full text-xs p-2.5 border rounded-xl" 
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] text-gray-400 font-bold uppercase block mb-1">Tipo de Exame</label>
-              <select 
-                value={props.examCategory} 
-                onChange={(e) => props.setExamCategory(e.target.value)} 
-                className="w-full text-xs p-2.5 border rounded-xl bg-white"
-              >
-                <option value="Ecografia">Ecografia / Ultrassom</option>
-                <option value="Laboratorial">Exame Laboratorial / Sangue</option>
-                <option value="Outro">Outro Documento</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-[10px] text-gray-400 font-bold uppercase block mb-1">Selecione o Arquivo</label>
-          <div>
-  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
-    Selecione o Arquivo (PDF ou Imagem) *
-  </label>
-  <input
-    type="file"
-    required
-    accept="application/pdf,image/png,image/jpeg,image/jpg,image/webp,.pdf"
-    onChange={(e) => {
-      if (e.target.files && e.target.files.length > 0) {
-        props.setSelectedFile(e.target.files[0]);
-      }
-    }}
-    className="w-full text-xs p-2 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer"
-  />
-</div>
-="w-full p-2 bg-gray-50 border rounded-xl text-xs"
-/>
-
-            </div>
-
-            {props.isUploading && (
-              <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200 text-xs text-emerald-900 flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
-                <span>Gemini IA analisando foto do laudo...</span>
+            <form onSubmit={props.handleFileUpload} className="space-y-3">
+              <div>
+                <label className="text-[10px] text-gray-400 font-bold uppercase block mb-1">Título do Exame</label>
+                <input 
+                  type="text" 
+                  placeholder="Ex: Hemograma 1º Trimestre" 
+                  value={props.examName} 
+                  onChange={(e) => props.setExamName(e.target.value)} 
+                  className="w-full text-xs p-2.5 border rounded-xl" 
+                />
               </div>
-            )}
 
-            <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => props.setShowUploadExamModal(false)} className="px-3 py-1.5 text-xs text-gray-500" disabled={props.isUploading}>
-                Cancelar
-              </button>
-              <button 
-                onClick={props.handleFileUpload} 
-                disabled={props.isUploading} 
-                className="px-4 py-1.5 bg-[#2E482A] text-white font-bold text-xs rounded-xl flex items-center gap-1.5"
-              >
-                {props.isUploading ? "Processando..." : "Analisar com IA & Salvar"}
-              </button>
-            </div>
+              <div>
+                <label className="text-[10px] text-gray-400 font-bold uppercase block mb-1">Tipo de Exame</label>
+                <select 
+                  value={props.examCategory} 
+                  onChange={(e) => props.setExamCategory(e.target.value)} 
+                  className="w-full text-xs p-2.5 border rounded-xl bg-white"
+                >
+                  <option value="Ecografia">Ecografia / Ultrassom</option>
+                  <option value="Laboratorial">Exame Laboratorial / Sangue</option>
+                  <option value="Outro">Outro Documento</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                  Selecione o Arquivo (PDF ou Imagem) *
+                </label>
+                <input
+                  type="file"
+                  required
+                  accept="application/pdf,image/png,image/jpeg,image/jpg,image/webp,.pdf"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      props.setSelectedFile(e.target.files[0]);
+                    }
+                  }}
+                  className="w-full text-xs p-2 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer"
+                />
+              </div>
+
+              {props.isUploading && (
+                <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200 text-xs text-emerald-900 flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
+                  <span>Gemini IA analisando arquivo do laudo...</span>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                <button 
+                  type="button"
+                  onClick={() => props.setShowUploadExamModal(false)} 
+                  className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 cursor-pointer" 
+                  disabled={props.isUploading}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  disabled={props.isUploading} 
+                  className="px-4 py-1.5 bg-[#2E482A] hover:bg-[#233820] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer transition-all disabled:opacity-50"
+                >
+                  {props.isUploading ? "Processando..." : "Analisar com IA & Salvar"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
+
 
       {/* MODAL ADICIONAR CONSULTA */}
       {props.showAddConsultaModal && (
