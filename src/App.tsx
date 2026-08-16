@@ -388,6 +388,16 @@ export default function App() {
     } catch (err) {
       setLoginError("E-mail ou senha incorretos.");
     }
+
+    // No handleDoctorLogin do App.tsx:
+if (loginRole === 'secretaria') {
+  setUserRole('secretaria');
+  setDoctorPanelTab('agenda_geral'); // Abre direto na Central da Agenda
+} else {
+  setUserRole('medica');
+  setDoctorPanelTab('pacientes');
+}
+
   };
 
   const handleMasterLogin = async (e: React.FormEvent) => {
@@ -1064,20 +1074,20 @@ export default function App() {
             </div>
           </div>
 
-                    {/* LISTA DE ABAS */}
+                              {/* LISTA DE ABAS COM RESTRIÇÃO RBAC */}
           <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-gray-200 flex overflow-x-auto gap-1 print:hidden">
             {[
               { id: 'resumo', label: 'Resumo', allowed: true },
+              { id: 'agenda', label: '📅 Agenda & Lembretes', allowed: hasPermission(userRole, 'canManageSchedule') },
+              { id: 'financeiro', label: '💳 Financeiro & Convênio', allowed: hasPermission(userRole, 'canManageFinancial') },
               { id: 'dados', label: 'Dados Clínicos & GPCA', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
-              { id: 'vacinas', label: 'Vacinas', allowed: true },
+              { id: 'vacinas', label: 'Vacinas', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
               { id: 'examesTabela', label: 'Exames Laboratoriais', allowed: hasPermission(userRole, 'canViewExamReports') },
-              { id: 'agenda', label: 'Agenda & Lembretes', allowed: true },
-              { id: 'graficos', label: 'Gráfico GPG (MS)', allowed: true },
+              { id: 'graficos', label: 'Gráfico GPG (MS)', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
               { id: 'calculadora', label: 'Calculadora Gestacional', allowed: true },
               { id: 'chatIA', label: '💬 Assistente Pré-Natal (IA)', allowed: hasPermission(userRole, 'canUseMedicalAI') },
-              { id: 'consultas', label: 'Consultas', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
-              { id: 'examesCentral', label: 'Central de Exames + IA', allowed: hasPermission(userRole, 'canViewExamReports') },
-              { id: 'financeiro', label: '💳 Financeiro & Convênio', allowed: hasPermission(userRole, 'canViewClinicalHistory') }
+              { id: 'consultas', label: 'Evolução Clínica', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
+              { id: 'examesCentral', label: 'Central de Exames + IA', allowed: hasPermission(userRole, 'canViewExamReports') }
             ]
             .filter(t => t.allowed)
             .map((tab) => (
