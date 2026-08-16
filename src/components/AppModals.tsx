@@ -623,12 +623,18 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
 
             <div>
               <label className="text-[10px] text-gray-400 font-bold uppercase block mb-1">Selecione o Arquivo</label>
-              <input 
-                type="file" 
-                accept="image/*"
-                onChange={(e) => props.setSelectedFile(e.target.files?.[0] || null)} 
-                className="w-full text-xs p-2 border bg-gray-50 rounded-xl" 
-              />
+          <input
+  type="file"
+  required
+  accept="application/pdf,image/png,image/jpeg,image/jpg,image/webp"
+  onChange={(e) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  }}
+  className="w-full p-2 bg-gray-50 border rounded-xl text-xs"
+/>
+
             </div>
 
             {props.isUploading && (
