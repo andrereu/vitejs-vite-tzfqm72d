@@ -3,9 +3,10 @@ import {
   Heart, Upload, Plus, LogOut, Printer, Syringe, UserPlus, Calculator, AlertCircle, 
   Edit3, Bot, MapPin, CalendarPlus, Calendar, Smartphone, WifiOff, Share2, Send, Settings, Check 
 } from 'lucide-react';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
-import { signInWithEmailAndPassword, signOut, onAuthStateChanged, signInWithPopup } from 'firebase/auth';
+import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged, signInWithPopup } from 'firebase/auth';
+  
 import { Patient, initialPatientsList, AgendaConsulta, HorarioBloqueado, UserRole } from './types/prenatal';
 import { DoctorTenant, ClinicSecretary } from './types/saas';
 import { ClinicScheduleManager } from './components/ClinicScheduleManager';
@@ -888,6 +889,66 @@ export default function App() {
             >
               📅 Central da Agenda & Recepção
             </button>
+      {/* 2. PAINEL DO MÉDICO & SECRETARIA */}
+      {currentScreen === 'doctor_panel' && (
+        <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+          
+          {/* BANNER DE DEGUSTAÇÃO (TRIAL ATIVO) */}
+          {currentDoctorProfile.status === 'trial' && (
+            <div className="bg-amber-500 text-white px-4 py-3 rounded-2xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-base">⏳</span>
+                <span>
+                  Você está usando o <strong>Período de Degustação Gratuito</strong> até{' '}
+                  <strong>
+                    {currentDoctorProfile.trialEndsAt 
+                      ? new Date(currentDoctorProfile.trialEndsAt).toLocaleDateString('pt-BR') 
+                      : 'breve'}
+                  </strong>.
+                </span>
+              </div>
+              <a
+                href={`https://wa.me/5541998496940?text=${encodeURIComponent('Olá! Gostaria de ativar a assinatura do MaternaIA.')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-white text-amber-900 px-3 py-1.5 rounded-xl font-bold hover:bg-amber-50 transition-all whitespace-nowrap"
+              >
+                Garantir Assinatura Anual / Mensal
+              </a>
+            </div>
+          )}
+
+          {/* TRAVA / PAYWALL (CASO BLOQUEADO OU TRIAL EXPIRADO) */}
+          {(currentDoctorProfile.status === 'blocked' || 
+            currentDoctorProfile.status === 'past_due' ||
+            (currentDoctorProfile.status === 'trial' && 
+             currentDoctorProfile.trialEndsAt && 
+             new Date(currentDoctorProfile.trialEndsAt) < new Date())) && (
+            <SubscriptionPaywall 
+              doctor={currentDoctorProfile}
+              pixKey={globalConfig.pixKey || "020.255.429-50"}
+              onRefreshStatus={() => window.location.reload()}
+            />
+          )}
+
+          {/* SELETOR DE ABAS DA CLÍNICA */}
+          <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
+            <button
+              onClick={() => setDoctorPanelTab('pacientes')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                doctorPanelTab === 'pacientes' ? 'bg-[#2E482A] text-white shadow-xs' : 'bg-white text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              Gestantes Cadastradas ({patients.length})
+            </button>
+            <button
+              onClick={() => setDoctorPanelTab('agenda_geral')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                doctorPanelTab === 'agenda_geral' ? 'bg-[#2E482A] text-white shadow-xs' : 'bg-white text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              📅 Central da Agenda & Recepção
+            </button>
           </div>
 
           {/* ABA 1: LISTA DE GESTANTES */}
@@ -974,11 +1035,12 @@ export default function App() {
                 const updated = { ...targetPat, agendaConsultas: updatedAgenda };
                 await saveToFirestore(patients.map(p => p.id === updated.id ? updated : p));
               }}
-                      />
+            />
           )}
 
         </div>
       )}
+
 
       {/* 3. ÁREA DA PACIENTE */}
       {currentScreen === 'patient_app' && (
