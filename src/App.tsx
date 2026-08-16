@@ -544,7 +544,7 @@ if (loginRole === 'secretaria') {
     }
   };
 
-    const handleFileUpload = async (e: React.FormEvent) => {
+      const handleFileUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile) {
       alert("Por favor, selecione um arquivo.");
@@ -560,20 +560,20 @@ if (loginRole === 'secretaria') {
       // 1. Processa no Gemini
       const resultIA = await processExamWithGeminiIA(base64Content, mimeType, examCategory, examName);
 
-      // 2. Cria o registro do exame
+      // 2. Cria o registro do exame (SEM salvar o Base64 gigante no Firestore para não estourar o limite de 1MB)
       const novoExame = {
         id: `ex-${Date.now()}`,
         nome: examName || selectedFile.name,
         tipo: examCategory,
         dataUpload: new Date().toISOString().split('T')[0],
-        // Guarda o Base64 apenas se for menor que 500KB para evitar travar o Firestore
-        fileData: base64Content.length < 700000 ? base64Content : '',
+        // Se for imagem pequena (< 300KB) guarda o preview; se for PDF de 20 páginas, não incha o banco
+        fileData: (mimeType.includes('image') && base64Content.length < 400000) ? base64Content : '',
         resumoIA: resultIA.resumoIA,
         notaDra: resultIA.notaDra,
         enviadoPor: userRole === 'medica' ? currentDoctorProfile.nome : "Paciente"
       };
 
-      // 3. Atualiza os campos da Tabela de Exames Laboratoriais (1º ou 3º Tri)
+      // 3. Atualiza os campos da Tabela de Exames Laboratoriais
       const currentExamesTab = { ...(currentPatient.examesTabela || {}) };
       const todayStr = new Date().toISOString().split('T')[0];
 
@@ -581,7 +581,6 @@ if (loginRole === 'secretaria') {
         Object.entries(resultIA.examesExtraidos).forEach(([k, val]: any) => {
           if (val && typeof val === 'string' && val.trim() !== '') {
             const existing = currentExamesTab[k] || { d1: '', r1: '', d2: '', r2: '' };
-            // Se o 1º tri já tiver preenchido e estamos em fase mais avançada, salva no 2º campo
             if (existing.r1 && currentGest.weeks > 24) {
               currentExamesTab[k] = {
                 ...existing,
@@ -606,7 +605,7 @@ if (loginRole === 'secretaria') {
         examesEnviados: [novoExame, ...(currentPatient.examesEnviados || [])]
       };
 
-      // 5. Atualiza estado e salva no Firestore
+      // 5. Salva na lista e sincroniza com o Firestore
       const novaLista = patients.map(p => p.id === updated.id ? updated : p);
       setPatients(novaLista);
       await saveToFirestore(novaLista);
@@ -615,13 +614,13 @@ if (loginRole === 'secretaria') {
       setShowUploadExamModal(false);
       setSelectedFile(null);
       setExamName("");
-      alert("Exame analisado pela IA e salvo com sucesso!");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro no processamento:", err);
-      alert("Erro ao processar e salvar o arquivo.");
+      alert("Erro ao processar o arquivo. Verifique o console para mais detalhes.");
       setIsUploading(false);
     }
   };
+
 
 
   const handleSaveTabelaExames = () => {
