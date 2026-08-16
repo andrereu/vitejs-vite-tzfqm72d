@@ -1109,15 +1109,9 @@ if (loginRole === 'secretaria') {
             placeholderSubtitle="Enxoval, amamentação e cuidados no pós-parto"
           />
 
-          {/* TAB 1: RESUMO */}
+                    {/* TAB 1: RESUMO */}
           {activeTab === 'resumo' && (
             <div className="space-y-4 print:hidden">
-              <div className="bg-gradient-to-br from-[#2E482A] to-[#1E311B] text-white p-6 rounded-3xl shadow-md">
-                <blockquote className="font-serif italic text-lg leading-relaxed text-[#F4F6F0]">
-                  "Antes de você existir eu já te queria, antes de você nascer eu já te amava, em menos de um minuto de nascido já daria minha vida por você."
-                </blockquote>
-                <p className="mt-3 text-xs font-bold text-[#E8ECD8]">{currentDoctorProfile.nome} • CRM {currentDoctorProfile.crm}</p>
-              </div>
 
               {nextAppointment ? (
                 <div className="bg-[#2E482A]/10 border border-[#2E482A]/30 p-5 rounded-3xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -1202,6 +1196,7 @@ if (loginRole === 'secretaria') {
               </div>
             </div>
           )}
+
           {/* TAB FINANCEIRO & CONVÊNIO */}
           {activeTab === 'financeiro' && hasPermission(userRole, 'canViewClinicalHistory') && (
             <PatientFinancialTab
