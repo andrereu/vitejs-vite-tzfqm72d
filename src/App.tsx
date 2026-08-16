@@ -641,11 +641,25 @@ export default function App() {
         </div>
       )}
 
-      {/* CABEÇALHO */}
+            {/* CABEÇALHO */}
       <header className="bg-[#2E482A] text-white shadow-md sticky top-0 z-40 border-b border-[#3D5C38] print:hidden">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           
-          <div onClick={() => setCurrentScreen('landing')} className="cursor-pointer">
+          {/* LOGO / NOME DO CONSULTÓRIO (Navegação contextual) */}
+          <div 
+            onClick={() => {
+              if (currentScreen === 'landing') {
+                setCurrentScreen('landing');
+              } else if (currentScreen === 'master_admin') {
+                setCurrentScreen('master_admin');
+              } else if (userRole === 'medica' || userRole === 'secretaria') {
+                setCurrentScreen('doctor_panel');
+              } else if (userRole === 'paciente') {
+                setCurrentScreen('patient_app');
+              }
+            }} 
+            className="cursor-pointer"
+          >
             {currentScreen === 'landing' || currentScreen === 'master_admin' ? (
               <MaternaLogo variant="full" theme="light" size="md" />
             ) : (
@@ -668,6 +682,22 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Botão de Início quando estiver navegando dentro do app */}
+            {currentScreen !== 'landing' && currentScreen !== 'master_admin' && (
+              <button
+                onClick={() => {
+                  if (userRole === 'medica' || userRole === 'secretaria') {
+                    setCurrentScreen('doctor_panel');
+                  } else {
+                    setCurrentScreen('patient_app');
+                  }
+                }}
+                className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-all cursor-pointer"
+              >
+                🏠 Início
+              </button>
+            )}
+
             <button
               onClick={handleInstallPWA}
               className="bg-[#D4AF37] hover:bg-amber-400 text-gray-900 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
@@ -681,7 +711,7 @@ export default function App() {
                 {(userRole === 'medica' || userRole === 'secretaria') && currentScreen !== 'master_admin' && (
                   <button
                     onClick={() => setCurrentScreen('doctor_panel')}
-                    className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 text-white hover:bg-white/20 cursor-pointer"
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 text-white hover:bg-white/20 cursor-pointer hidden md:inline-block"
                   >
                     Lista de Pacientes
                   </button>
@@ -708,13 +738,14 @@ export default function App() {
                   onClick={() => setShowDoctorLoginModal(true)} 
                   className="bg-[#D4AF37] hover:bg-amber-400 text-gray-900 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
                 >
-                  🩺 Acesso Médico
+                  🩺 Acesso Profissional
                 </button>
               </>
             )}
           </div>
         </div>
       </header>
+
 
       {/* 1. LANDING PAGE PRINCIPAL */}
       {currentScreen === 'landing' && (
