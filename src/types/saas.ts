@@ -7,30 +7,34 @@ export interface DoctorTenant {
   email: string;
   crm: string;
   telefone: string;
-  clinicaNome?: string;
-  especialidade?: string;
-  logoUrl?: string; // Logo em Base64 ou URL
-  enderecoConsultorio?: string;
-  whatsappPadraoMensagem?: string;
-  plano: SubscriptionPlan;
-  status: SubscriptionStatus;
+  clinicaNome: string;
+  especialidade: string;
+  enderecoConsultorio: string;
+  logoUrl?: string;
+  plano: 'individual_pro' | 'clinica_multi';
+  status: 'active' | 'trial' | 'past_due' | 'blocked';
   trialEndsAt: string;
-  diasRestantes: number;
+  diasRestantes?: number;
   totalPacientes: number;
   dataCadastro: string;
   valorMensalidade: number;
-  metodoPagamento?: 'pix' | 'cartao' | 'boleto';
-  subdomainOrSlug?: string;
+  metodoPagamento?: 'pix' | 'cartao';
+  customDomain?: string;
+  slug?: string;
+  ultimoPagamento?: string;
+  validadeAssinatura?: string;
 }
+
 export interface ClinicSecretary {
   id: string;
+  doctorId: string;
   nome: string;
   email: string;
-  senhaHash?: string;
-  doctorId: string; // ID do médico ou clínica ao qual está vinculada
-  clinicaNome: string;
-  ativo: boolean;
+  telefone?: string;
+  status: 'active' | 'inactive';
+  criadoEm: string;
 }
+
 
 export interface SaaSMetrics {
   mrr: number;
