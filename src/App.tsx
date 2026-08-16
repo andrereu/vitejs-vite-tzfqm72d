@@ -11,6 +11,8 @@ import { DoctorTenant, ClinicSecretary } from './types/saas';
 import { ClinicScheduleManager } from './components/ClinicScheduleManager';
 
 import { db, auth, googleProvider } from './firebase';
+import { SubscriptionPaywall } from './components/SubscriptionPaywall';
+
 
 import { AppModals } from './components/AppModals';
 import { PrintableCarteirinha } from './components/PrintableCarteirinha';
@@ -769,7 +771,50 @@ export default function App() {
 
       {/* 2. PAINEL DO MÉDICO & SECRETARIA */}
       {currentScreen === 'doctor_panel' && (
-        <div className="max-w-6xl mx-auto px-4 pt-6 space-y-6 print:hidden">
+        <div className="max-w-6xl mx-auto px-4 pt-6 space-y-6 print:hidden"
+          
+          {/* BANNER DE DEGUSTAÇÃO (TRIAL ATIVO) */}
+          {currentDoctorProfile.status === 'trial' && (
+            <div className="bg-amber-500 text-white px-4 py-3 rounded-2xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-base">⏳</span>
+                <span>
+                  Você está usando o <strong>Período de Degustação Gratuito</strong> até{' '}
+                  <strong>
+                    {currentDoctorProfile.trialEndsAt 
+                      ? new Date(currentDoctorProfile.trialEndsAt).toLocaleDateString('pt-BR') 
+                      : 'breve'}
+                  </strong>.
+                </span>
+              </div>
+              <a
+                href={`https://wa.me/5541999999999?text=${encodeURIComponent('Olá! Gostaria de ativar a assinatura do MaternaIA.')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-white text-amber-900 px-3 py-1.5 rounded-xl font-bold hover:bg-amber-50 transition-all whitespace-nowrap"
+              >
+                Garantir Assinatura Anual / Mensal
+              </a>
+            </div>
+          )}
+
+          {/* TRAVA / PAYWALL (CASO BLOQUEADO OU TRIAL EXPIRADO) */}
+          {(currentDoctorProfile.status === 'blocked' || 
+            currentDoctorProfile.status === 'past_due' ||
+            (currentDoctorProfile.status === 'trial' && 
+             currentDoctorProfile.trialEndsAt && 
+             new Date(currentDoctorProfile.trialEndsAt) < new Date())) && (
+            <SubscriptionPaywall 
+              doctor={currentDoctorProfile}
+              pixKey="000.000.000-00" // Seu CPF cadastrado
+              onRefreshStatus={() => window.location.reload()}
+            />
+          )}
+
+          {/* ...RESTANTE DO PAINEL DO MÉDICO (Abas, Lista de Pacientes, etc.)... */}
+        </div>
+      )}
+
           {/* SELETOR DE ABAS DA CLÍNICA */}
           <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
             <button
