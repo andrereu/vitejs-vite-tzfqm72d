@@ -13,102 +13,125 @@ export async function processExamWithGeminiIA(
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (window as any).__GEMINI_API_KEY__ || "";
 
   if (!apiKey) {
-    console.warn("Chave VITE_GEMINI_API_KEY não configurada.");
+    console.error("VITE_GEMINI_API_KEY não foi encontrada nas variáveis de ambiente.");
     return {
-      resumoIA: "Laudo anexado com sucesso. (Configure a chave VITE_GEMINI_API_KEY na Vercel para ativar o resumo automático por IA).",
+      resumoIA: "Laudo anexado com sucesso. (Configure a chave VITE_GEMINI_API_KEY na Vercel para ativar a extração por IA).",
       notaDra: `Arquivo recebido (${examName || examCategory}). Aguardando validação médica.`,
       examesExtraidos: {}
     };
   }
 
-  // Remove qualquer prefixo data:*/*;base64, caso venha junto
-  const cleanBase64 = base64Content.includes('base64,')
-    ? base64Content.split('base64,')[1]
-    : base64Content;
+  // Limpeza estrita da string Base64 e MIME type
+  let cleanBase64 = base64Content;
+  let finalMime = mimeType || "application/pdf";
 
-  const prompt = `Você é um assistente médico especialista em Obstetrícia e Medicina Fetal integrado à plataforma MaternaIA.
-Analise este arquivo anexado (${examCategory}: ${examName}).
+  if (base64Content.includes(';base64,')) {
+    const parts = base64Content.split(';base64,');
+    finalMime = parts[0].replace('data:', '') || finalMime;
+    cleanBase64 = parts[1];
+  }
+  cleanBase64 = cleanBase64.replace(/\s/g, '');
 
-Identifique se é uma Ecografia/Ultrassom ou Exame de Sangue/Urina e retorne OBRIGATORIAMENTE um JSON com esta estrutura exata:
+  const prompt = `Você é um médico obstetra especialista analisando este documento médico (${examCategory}: ${examName}).
 
+Tarefa:
+1. Leia todos os resultados de exames de sangue, sorologias, urina ou ecografia contidos no arquivo.
+2. Escreva um resumo acolhedor e simples para a mãe gestante ("resumoIA").
+3. Escreva um resumo técnico objetivo para a médica obstetra ("notaDra").
+4. Extraia os valores encontrados para cada um destes exames (deixe em branco/omita os que não existirem no laudo):
+   - hbVg (Ex: "12.4 g/dL / 37%")
+   - plaquetas (Ex: "220.000 /mm³")
+   - glicemiaTotg (Ex: "82 mg/dL")
+   - htlv (Ex: "Não Reagente")
+   - hiv (Ex: "Não Reagente")
+   - sifilis (Ex: "Não Reagente (VDRL)")
+   - hbsag (Ex: "Não Reagente")
+   - tsh (Ex: "1.95 mIU/L")
+   - antiHcv (Ex: "Não Reagente")
+   - rubeola (Ex: "IgG Reagente / IgM Não Reagente")
+   - cmv (Ex: "IgG+ / IgM-")
+   - toxo (Ex: "IgG+ / IgM-")
+   - vitD (Ex: "32 ng/mL")
+   - ferritina (Ex: "45 ng/mL")
+   - vitB12 (Ex: "390 pg/mL")
+   - urinaUrocultura (Ex: "Normal / Cultura Negativa")
+   - gbs (Ex: "Negativo")
+
+Retorne EXCLUSIVAMENTE um objeto JSON válido com este formato:
 {
-  "resumoIA": "Texto humanizado e acolhedor explicando para a mãe em termos simples o que foi encontrado de forma clara e reconfortante.",
-  "notaDra": "Resumo técnico objetivo com termos médicos para a médica obstetra (ex: peso estimado, percentil, ILA, valores laboratoriais alterados ou normais).",
+  "resumoIA": "texto explicativo para a gestante",
+  "notaDra": "texto técnico para o prontuário",
   "examesExtraidos": {
-    "hbVg": "valor se presente no laudo, senão omitir",
-    "plaquetas": "valor se presente",
-    "glicemiaTotg": "valor se presente",
-    "htlv": "valor se presente",
-    "hiv": "valor se presente",
-    "sifilis": "valor se presente",
-    "hbsag": "valor se presente",
-    "tsh": "valor se presente",
-    "antiHcv": "valor se presente",
-    "rubeola": "valor se presente",
-    "cmv": "valor se presente",
-    "toxo": "valor se presente",
-    "vitD": "valor se presente",
-    "ferritina": "valor se presente",
-    "vitB12": "valor se presente",
-    "urinaUrocultura": "valor se presente",
-    "gbs": "valor se presente"
+    "hbVg": "valor",
+    "plaquetas": "valor",
+    "glicemiaTotg": "valor",
+    "tsh": "valor",
+    "urinaUrocultura": "valor"
   }
-}
+}`;
 
-Importante: Responda SOMENTE o JSON puro, sem textos adicionais e sem blocos markdown.`;
+  // Lista de modelos suportados para fallback automático
+  const models = ['gemini-2.5-flash', 'gemini-1.5-flash'];
 
-  try {
-    const response = await fetch(
-      `[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$){apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { text: prompt },
-                {
-                  inlineData: {
-                    mimeType: mimeType.includes('pdf') ? 'application/pdf' : mimeType,
-                    data: cleanBase64
+  for (const model of models) {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { text: prompt },
+                  {
+                    inlineData: {
+                      mimeType: finalMime.includes('pdf') ? 'application/pdf' : finalMime,
+                      data: cleanBase64
+                    }
                   }
-                }
-              ]
+                ]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.1
             }
-          ],
-          generationConfig: {
-            temperature: 0.2,
-            responseMimeType: "application/json"
-          }
-        })
+          })
+        }
+      );
+
+      if (!response.ok) {
+        const errorDetails = await response.text();
+        console.warn(`Tentativa com ${model} retornou status ${response.status}:`, errorDetails);
+        continue; // Tenta o próximo modelo
       }
-    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Erro na API do Gemini:", errorText);
-      throw new Error(`API Gemini respondeu com status ${response.status}`);
+      const data = await response.json();
+      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+
+      // Limpeza de blocos de código Markdown
+      const jsonText = rawText
+        .replace(/```json/gi, '')
+        .replace(/```/g, '')
+        .trim();
+
+      const parsed: ExamIAResponse = JSON.parse(jsonText);
+
+      return {
+        resumoIA: parsed.resumoIA || "Exame analisado com sucesso pela inteligência artificial.",
+        notaDra: parsed.notaDra || "Exame conferido e registrado no prontuário.",
+        examesExtraidos: parsed.examesExtraidos || {}
+      };
+    } catch (modelError) {
+      console.warn(`Erro no modelo ${model}:`, modelError);
     }
-
-    const data = await response.json();
-    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-
-    // Remove eventuais tags ```json ... ``` se o modelo retornar
-    const cleanedText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
-    const parsed: ExamIAResponse = JSON.parse(cleanedText);
-
-    return {
-      resumoIA: parsed.resumoIA || "Exame analisado com sucesso.",
-      notaDra: parsed.notaDra || "Exame registrado no prontuário.",
-      examesExtraidos: parsed.examesExtraidos || {}
-    };
-  } catch (err) {
-    console.error("Falha ao analisar exame com Gemini:", err);
-    return {
-      resumoIA: "Documento anexado à carteirinha da paciente. A análise automática por IA não pôde interpretar todos os campos.",
-      notaDra: `Arquivo anexado: ${examName || examCategory}. Verificar laudo original.`,
-      examesExtraidos: {}
-    };
   }
+
+  // Fallback caso todas as tentativas falhem
+  return {
+    resumoIA: "Documento anexado à carteirinha. Não foi possível interpretar automaticamente os dados deste arquivo no momento.",
+    notaDra: `Arquivo anexado: ${examName || examCategory}. Favor conferir o laudo manualmente.`,
+    examesExtraidos: {}
+  };
 }
