@@ -360,8 +360,17 @@ export default function App() {
     }
   };
 
+  // Placeholder seguro: evita que a tela quebre quando a médica ainda não tem
+  // nenhuma paciente cadastrada (comum logo após o cadastro/trial).
+  const EMPTY_PATIENT: Patient = {
+    id: '', doctorId: '', cpf: '', nome: '', idade: '', pai: '', nomeBebe: '',
+    dum: '', dpp: '', g: '0', p: '0', c: '0', a: '0',
+    pesoInicial: '60', altura: '1.65', tipoSanguineo: '', doencasPrevias: '',
+    vacinas: {}, examesTabela: {}, consultasEvolucao: [], agendaConsultas: [], examesEnviados: []
+  };
+
   const currentPatient = useMemo(() => {
-    return patients.find(p => p.id === selectedPatientId) || patients[0];
+    return patients.find(p => p.id === selectedPatientId) || patients[0] || EMPTY_PATIENT;
   }, [patients, selectedPatientId]);
 
   const currentGest = calculateWeeksAndDays(currentPatient.dum);
@@ -1067,6 +1076,12 @@ if (loginRole === 'secretaria') {
                   )}
                 </div>
               </div>
+
+              {filteredPatients.length === 0 && (
+                <div className="bg-white p-8 rounded-3xl border border-dashed border-gray-300 text-center text-sm text-gray-500">
+                  Nenhuma gestante cadastrada ainda. Clique em "+ Cadastrar Gestante" para começar.
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filteredPatients.map((pat) => (
