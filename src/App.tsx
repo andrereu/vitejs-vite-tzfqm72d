@@ -614,11 +614,12 @@ if (loginRole === 'secretaria') {
       setShowUploadExamModal(false);
       setSelectedFile(null);
       setExamName("");
-    } catch (err: any) {
-      console.error("Erro no processamento:", err);
-      alert("Erro ao processar o arquivo. Verifique o console para mais detalhes.");
+     } catch (err: any) {
+      console.error("Erro detalhado no processamento:", err);
+      alert(`Falha no processamento:\n${err.message || JSON.stringify(err)}`);
       setIsUploading(false);
     }
+
   };
 
 
