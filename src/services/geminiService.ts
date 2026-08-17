@@ -16,7 +16,7 @@ export async function processExamWithGeminiIA(
     throw new Error("A variável de ambiente VITE_GEMINI_API_KEY não foi encontrada.");
   }
 
-  // Extrai apenas a string Base64 limpa
+  // Extrai apenas a string Base64 pura
   let cleanBase64 = base64Content;
   if (cleanBase64.includes(',')) {
     cleanBase64 = cleanBase64.split(',')[1];
@@ -69,66 +69,65 @@ Retorne ESTRITAMENTE um objeto JSON válido no seguinte formato:
   }
 }`;
 
-  // 1. Descobre dinamicamente os modelos disponíveis para esta chave
-  let targetModel = "models/gemini-2.0-flash";
-  try {
-    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-    if (listRes.ok) {
-      const listData = await listRes.json();
-      const validModel = listData.models?.find((m: any) => 
-        m.supportedGenerationMethods?.includes("generateContent") &&
-        (m.name.includes("flash") || m.name.includes("pro") || m.name.includes("gemini"))
-      );
-      if (validModel && validModel.name) {
-        targetModel = validModel.name;
-      }
-    }
-  } catch (e) {
-    console.warn("Não foi possível listar modelos dinamicamente, usando fallback.", e);
-  }
+  // Lista ordenada de modelos oficiais para tentar em sequência
+  const priorityModels = [
+    'gemini-2.0-flash',
+    'gemini-2.0-flash-lite',
+    'gemini-1.5-flash-8b',
+    'gemini-1.5-pro-latest'
+  ];
 
-  // 2. Executa a requisição com o modelo detectado
-  const endpoint = targetModel.startsWith("models/") 
-    ? `https://generativelanguage.googleapis.com/v1beta/${targetModel}:generateContent`
-    : `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent`;
+  let lastError = '';
 
-  const response = await fetch(`${endpoint}?key=${apiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [
+  for (const modelName of priorityModels) {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
         {
-          parts: [
-            { text: prompt },
-            {
-              inlineData: {
-                mimeType: mimeType.includes('pdf') ? 'application/pdf' : 'image/jpeg',
-                data: cleanBase64
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { text: prompt },
+                  {
+                    inlineData: {
+                      mimeType: mimeType.includes('pdf') ? 'application/pdf' : 'image/jpeg',
+                      data: cleanBase64
+                    }
+                  }
+                ]
               }
+            ],
+            generationConfig: {
+              temperature: 0.1,
+              responseMimeType: "application/json"
             }
-          ]
+          })
         }
-      ],
-      generationConfig: {
-        temperature: 0.1,
-        responseMimeType: "application/json"
-      }
-    })
-  });
+      );
 
-  if (!response.ok) {
-    const errorDetails = await response.text();
-    throw new Error(`Erro na API Gemini (${response.status}) no modelo ${targetModel}:\n${errorDetails}`);
+      if (!response.ok) {
+        lastError = await response.text();
+        console.warn(`Modelo ${modelName} falhou (${response.status}), tentando próximo...`);
+        continue;
+      }
+
+      const data = await response.json();
+      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+      const cleanedText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const parsed: ExamIAResponse = JSON.parse(cleanedText);
+
+      return {
+        resumoIA: parsed.resumoIA || "Exame analisado com sucesso.",
+        notaDra: parsed.notaDra || "Resultados conferidos.",
+        examesExtraidos: parsed.examesExtraidos || {}
+      };
+    } catch (err: any) {
+      lastError = err.message || JSON.stringify(err);
+    }
   }
 
-  const data = await response.json();
-  const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-  const cleanedText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
-  const parsed: ExamIAResponse = JSON.parse(cleanedText);
-
-  return {
-    resumoIA: parsed.resumoIA || "Exame analisado com sucesso.",
-    notaDra: parsed.notaDra || "Resultados conferidos.",
-    examesExtraidos: parsed.examesExtraidos || {}
-  };
+  throw new Error(`Nenhum modelo respondeu com sucesso. Detalhes: ${lastError}`);
 }
