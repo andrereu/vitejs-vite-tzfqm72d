@@ -10,124 +10,180 @@ export async function processExamWithGeminiIA(
   examCategory: string,
   examName: string
 ): Promise<ExamIAResponse> {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (window as any).__GEMINI_API_KEY__ || "";
+
+  const apiKey =
+    import.meta.env.VITE_GEMINI_API_KEY ||
+    (window as any).__GEMINI_API_KEY__ ||
+    "";
 
   if (!apiKey) {
-    throw new Error("A variável de ambiente VITE_GEMINI_API_KEY não foi encontrada.");
+    throw new Error(
+      "A variável de ambiente VITE_GEMINI_API_KEY não foi encontrada."
+    );
   }
 
-  // Extrai apenas a string Base64 pura
+  // Remove prefixo data:application/pdf;base64,...
   let cleanBase64 = base64Content;
-  if (cleanBase64.includes(',')) {
-    cleanBase64 = cleanBase64.split(',')[1];
+
+  if (cleanBase64.includes(",")) {
+    cleanBase64 = cleanBase64.split(",")[1];
   }
-  cleanBase64 = cleanBase64.replace(/[\r\n\s]/g, '');
 
-  const prompt = `Você é um médico obstetra especialista integrado ao software MaternaIA.
-Analise este laudo laboratorial anexado (${examCategory}: ${examName}).
+  cleanBase64 = cleanBase64.replace(/[\r\n\s]/g, "");
 
-1. "resumoIA": Explicação em tom acolhedor e linguagem simples para a mãe gestante sobre os resultados do laudo.
-2. "notaDra": Resumo técnico para o prontuário obstétrico (hemograma, glicose, TSH, sorologias, vitaminas).
-3. "examesExtraidos": Extraia com precisão os valores numéricos e resultados encontrados para cada item existente:
-   - hbVg
-   - plaquetas
-   - glicemiaTotg
-   - tsh
-   - ferritina
-   - vitD
-   - vitB12
-   - hiv
-   - sifilis
-   - hbsag
-   - antiHcv
-   - toxo
-   - rubeola
-   - cmv
-   - urinaUrocultura
-   - gbs
+  const prompt = `
+Você é um assistente especializado em análise de exames obstétricos
+integrado ao software MaternaIA.
 
-Retorne ESTRITAMENTE um objeto JSON válido no seguinte formato:
+Analise cuidadosamente o laudo anexado.
+
+Categoria do exame: ${examCategory}
+Nome do exame: ${examName}
+
+OBJETIVOS:
+
+1. resumoIA
+Explique os resultados para a gestante em linguagem simples, acolhedora
+e sem alarmismo.
+
+2. notaDra
+Produza um resumo técnico objetivo para o prontuário obstétrico.
+
+3. examesExtraidos
+Extraia SOMENTE os valores efetivamente encontrados no documento.
+
+Campos possíveis:
+
+- hbVg
+- plaquetas
+- glicemiaTotg
+- tsh
+- ferritina
+- vitD
+- vitB12
+- hiv
+- sifilis
+- hbsag
+- antiHcv
+- toxo
+- rubeola
+- cmv
+- urinaUrocultura
+- gbs
+
+REGRAS IMPORTANTES:
+
+- Não invente valores.
+- Não preencha um campo se ele não estiver presente no exame.
+- Preserve unidades.
+- Preserve "Reagente", "Não Reagente", "Positivo",
+  "Negativo", "Indeterminado" etc.
+- Se houver dois valores para um mesmo exame, mantenha ambos.
+- Leia também tabelas e imagens presentes no PDF.
+- Não faça diagnóstico definitivo.
+- Não altere os valores encontrados no documento.
+
+Retorne SOMENTE JSON válido:
+
 {
-  "resumoIA": "texto explicativo para a gestante",
-  "notaDra": "texto técnico para o prontuário",
+  "resumoIA": "...",
+  "notaDra": "...",
   "examesExtraidos": {
-    "hbVg": "12.2 g/dL / 34.9%",
-    "plaquetas": "281.000 /mm³",
-    "glicemiaTotg": "78.6 mg/dL",
-    "tsh": "1.30 µUI/mL",
-    "ferritina": "31.7 ng/mL",
-    "vitD": "33.5 ng/mL",
-    "vitB12": "394 pg/mL",
-    "hiv": "Não Reagente",
-    "sifilis": "Não Reagente",
-    "hbsag": "Não Reagente",
-    "antiHcv": "Não Reagente",
-    "toxo": "IgG Reagente / IgM Não Reagente",
-    "rubeola": "IgG Reagente / IgM Indeterminado",
-    "cmv": "IgG Reagente / IgM Não Reagente",
-    "urinaUrocultura": "Normal / Ausência de crescimento bacteriano"
+    "hbVg": "...",
+    "plaquetas": "...",
+    "glicemiaTotg": "...",
+    "tsh": "..."
   }
-}`;
+}
+`;
 
-  // Lista ordenada de modelos oficiais para tentar em sequência
-  const priorityModels = [
-    'gemini-2.0-flash',
-    'gemini-2.0-flash-lite',
-    'gemini-1.5-flash-8b',
-    'gemini-1.5-pro-latest'
-  ];
+  const modelName = "gemini-3.6-flash";
 
-  let lastError = '';
+  try {
 
-  for (const modelName of priorityModels) {
-    try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  { text: prompt },
-                  {
-                    inlineData: {
-                      mimeType: mimeType.includes('pdf') ? 'application/pdf' : 'image/jpeg',
-                      data: cleanBase64
-                    }
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt
+                },
+                {
+                  inlineData: {
+                    mimeType: mimeType || "application/pdf",
+                    data: cleanBase64
                   }
-                ]
-              }
-            ],
-            generationConfig: {
-              temperature: 0.1,
-              responseMimeType: "application/json"
+                }
+              ]
             }
-          })
-        }
-      );
+          ],
 
-      if (!response.ok) {
-        lastError = await response.text();
-        console.warn(`Modelo ${modelName} falhou (${response.status}), tentando próximo...`);
-        continue;
+          generationConfig: {
+            responseMimeType: "application/json"
+          }
+        })
       }
+    );
 
-      const data = await response.json();
-      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-      const cleanedText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
-      const parsed: ExamIAResponse = JSON.parse(cleanedText);
+    if (!response.ok) {
 
-      return {
-        resumoIA: parsed.resumoIA || "Exame analisado com sucesso.",
-        notaDra: parsed.notaDra || "Resultados conferidos.",
-        examesExtraidos: parsed.examesExtraidos || {}
-      };
-    } catch (err: any) {
-      lastError = err.message || JSON.stringify(err);
+      const errorText = await response.text();
+
+      console.error("Erro Gemini:", {
+        status: response.status,
+        model: modelName,
+        error: errorText
+      });
+
+      throw new Error(
+        `Gemini API retornou ${response.status}: ${errorText}`
+      );
     }
-  }
 
-  throw new Error(`Nenhum modelo respondeu com sucesso. Detalhes: ${lastError}`);
+    const data = await response.json();
+
+    const rawText =
+      data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!rawText) {
+      console.error("Resposta inesperada do Gemini:", data);
+
+      throw new Error(
+        "O Gemini não retornou conteúdo válido."
+      );
+    }
+
+    const parsed: ExamIAResponse = JSON.parse(rawText);
+
+    return {
+      resumoIA:
+        parsed.resumoIA ||
+        "Exame analisado com sucesso.",
+
+      notaDra:
+        parsed.notaDra ||
+        "Resultados conferidos.",
+
+      examesExtraidos:
+        parsed.examesExtraidos || {}
+    };
+
+  } catch (error: any) {
+
+    console.error("Erro ao processar exame com Gemini:", error);
+
+    throw new Error(
+      error?.message ||
+      "Não foi possível processar o exame."
+    );
+  }
 }
