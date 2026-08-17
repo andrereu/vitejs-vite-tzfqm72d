@@ -3,7 +3,7 @@ import {
   Heart, Upload, Plus, LogOut, Printer, Syringe, UserPlus, Calculator, AlertCircle, 
   Edit3, Bot, MapPin, CalendarPlus, Calendar, Smartphone, WifiOff, Share2, Send, Settings, Check 
 } from 'lucide-react';
-import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, getDoc, getDocs, deleteDoc, collection, collectionGroup, query, where } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, signInWithPopup } from 'firebase/auth';
 
 import { Patient, initialPatientsList, AgendaConsulta, HorarioBloqueado, UserRole } from './types/prenatal';
@@ -116,6 +116,7 @@ export default function App() {
 
   const [patients, setPatients] = useState<Patient[]>(initialPatientsList);
   const [selectedPatientId, setSelectedPatientId] = useState("gestante-01");
+  const [selectedPatientDoctorId, setSelectedPatientDoctorId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState('resumo');
 
@@ -222,65 +223,96 @@ export default function App() {
     return () => unsubscribeAuth();
   }, []);
 
+  // Diretório de médicos/clínicas (tenants). Cada médico é um documento próprio em
+  // "doctors/{doctorId}" — não mais um array único, para não estourar o limite de 1MB
+  // do Firestore e para permitir regras de segurança por tenant.
   useEffect(() => {
     try {
-      const docRef = doc(db, "prenatal", "lista_pacientes");
-      const unsubscribe = onSnapshot(docRef, (snapshot) => {
-        if (snapshot.exists() && snapshot.data().lista) {
-          setPatients(snapshot.data().lista);
-        } else {
-          setDoc(docRef, { lista: initialPatientsList }).catch(console.error);
+      const unsubscribe = onSnapshot(collection(db, "doctors"), (snapshot) => {
+        if (snapshot.empty) {
+          const initialDoctor: DoctorTenant = {
+            id: 'doc-priscila',
+            nome: 'Dra. Priscila Gapski',
+            email: 'dra.priscila@maternaia.com.br',
+            crm: '24734-PR',
+            telefone: '(41) 99999-8888',
+            clinicaNome: 'Consultório Dra. Priscila Gapski',
+            especialidade: 'Ginecologia & Obstetrícia',
+            enderecoConsultorio: 'Curitiba - PR',
+            plano: 'individual_pro',
+            status: 'active',
+            trialEndsAt: '2027-12-31',
+            diasRestantes: 365,
+            totalPacientes: 1,
+            dataCadastro: '2026-01-01',
+            valorMensalidade: 89.0,
+            metodoPagamento: 'pix'
+          };
+          setDoc(doc(db, "doctors", initialDoctor.id), initialDoctor).catch(console.error);
+          return;
         }
-      });
-      return () => unsubscribe();
-    } catch (err) {
-      console.warn("Modo offline:", err);
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      const docRef = doc(db, "saas_config", "medicos_cadastrados");
-      const unsubscribe = onSnapshot(docRef, (snapshot) => {
-        if (snapshot.exists() && snapshot.data().lista) {
-          setSaasDoctors(snapshot.data().lista);
-          const found = snapshot.data().lista.find((d: DoctorTenant) => d.id === 'doc-priscila');
-          if (found) setCurrentDoctorProfile(found);
-        } else {
-          const initialDoc: DoctorTenant[] = [
-            {
-              id: 'doc-priscila',
-              nome: 'Dra. Priscila Gapski',
-              email: 'dra.priscila@maternaia.com.br',
-              crm: '24734-PR',
-              telefone: '(41) 99999-8888',
-              clinicaNome: 'Consultório Dra. Priscila Gapski',
-              especialidade: 'Ginecologia & Obstetrícia',
-              enderecoConsultorio: 'Curitiba - PR',
-              plano: 'individual_pro',
-              status: 'active',
-              trialEndsAt: '2027-12-31',
-              diasRestantes: 365,
-              totalPacientes: 1,
-              dataCadastro: '2026-01-01',
-              valorMensalidade: 89.0,
-              metodoPagamento: 'pix'
-            }
-          ];
-          setDoc(docRef, { lista: initialDoc }).catch(console.error);
-        }
-      });
+        const list = snapshot.docs.map((d) => d.data() as DoctorTenant);
+        setSaasDoctors(list);
+        const found = list.find((d) => d.id === 'doc-priscila');
+        if (found) setCurrentDoctorProfile(found);
+      }, (err) => console.warn("Modo offline SaaS:", err));
       return () => unsubscribe();
     } catch (err) {
       console.warn("Modo offline SaaS:", err);
     }
   }, []);
 
+  // Pacientes de cada médico ficam em "doctors/{doctorId}/patients/{patientId}" —
+  // uma subcoleção isolada por tenant, em vez de uma lista global compartilhada por
+  // todos os médicos (o que vazava dados entre clínicas diferentes).
+  useEffect(() => {
+    if (!currentDoctorProfile.id || (userRole !== 'medica' && userRole !== 'secretaria')) return;
+    try {
+      const colRef = collection(db, "doctors", currentDoctorProfile.id, "patients");
+      const unsubscribe = onSnapshot(colRef, (snapshot) => {
+        setPatients(snapshot.docs.map((d) => d.data() as Patient));
+      }, (err) => console.warn("Modo offline:", err));
+      return () => unsubscribe();
+    } catch (err) {
+      console.warn("Modo offline:", err);
+    }
+  }, [currentDoctorProfile.id, userRole]);
+
+  // Sessão de paciente: assina só o próprio documento (não a subcoleção inteira).
+  useEffect(() => {
+    if (userRole !== 'paciente' || !selectedPatientDoctorId || !selectedPatientId) return;
+    const ref = doc(db, "doctors", selectedPatientDoctorId, "patients", selectedPatientId);
+    const unsubscribe = onSnapshot(ref, (snapshot) => {
+      if (snapshot.exists()) setPatients([snapshot.data() as Patient]);
+    }, (err) => console.warn("Modo offline:", err));
+    return () => unsubscribe();
+  }, [userRole, selectedPatientDoctorId, selectedPatientId]);
+
+  // Equipe (secretárias) de cada médico: "doctors/{doctorId}/secretaries/{email}".
+  // O ID do documento é o e-mail da secretária para permitir checagem rápida de
+  // permissão nas regras do Firestore (exists() em vez de uma query).
+  useEffect(() => {
+    if (!currentDoctorProfile.id || (userRole !== 'medica' && userRole !== 'secretaria')) return;
+    const colRef = collection(db, "doctors", currentDoctorProfile.id, "secretaries");
+    const unsubscribe = onSnapshot(colRef, (snapshot) => {
+      setSecretaries(snapshot.docs.map((d) => d.data() as ClinicSecretary));
+    }, (err) => console.warn("Erro ao carregar secretárias:", err));
+    return () => unsubscribe();
+  }, [currentDoctorProfile.id, userRole]);
+
+  // Mantém a assinatura de "saveSaasDoctorsToFirestore(listaCompleta)" usada pelas
+  // telas (Admin Master, cadastro de trial) para não precisar mexer nelas: por
+  // dentro, grava só os documentos de médico que realmente mudaram.
   const saveSaasDoctorsToFirestore = async (updatedList: DoctorTenant[]) => {
+    const previous = saasDoctors;
     setSaasDoctors(updatedList);
     try {
-      const docRef = doc(db, "saas_config", "medicos_cadastrados");
-      await setDoc(docRef, { lista: updatedList }, { merge: true });
+      const prevMap = new Map(previous.map((d) => [d.id, d]));
+      await Promise.all(
+        updatedList
+          .filter((d) => prevMap.get(d.id) !== d)
+          .map((d) => setDoc(doc(db, "doctors", d.id), d, { merge: true }))
+      );
     } catch (err) {
       console.error("Erro ao salvar médicos no Firestore:", err);
     }
@@ -299,11 +331,30 @@ export default function App() {
     }
   };
 
+  // Mesma assinatura de sempre (recebe a lista inteira do médico atual), mas por
+  // dentro só grava/apaga os pacientes que de fato mudaram, em documentos
+  // individuais dentro de "doctors/{doctorId}/patients/{patientId}".
   const saveToFirestore = async (updatedList: Patient[]) => {
+    const previous = patients;
     setPatients(updatedList);
     try {
-      const docRef = doc(db, "prenatal", "lista_pacientes");
-      await setDoc(docRef, { lista: updatedList }, { merge: true });
+      const prevMap = new Map(previous.map((p) => [p.id, p]));
+      const nextIds = new Set(updatedList.map((p) => p.id));
+
+      const writes = updatedList
+        .filter((p) => prevMap.get(p.id) !== p)
+        .map((p) => {
+          const doctorId = p.doctorId || currentDoctorProfile.id;
+          const cpfDigits = (p.cpf || '').replace(/\D/g, '');
+          const emailLower = (p.email || '').toLowerCase().trim();
+          return setDoc(doc(db, "doctors", doctorId, "patients", p.id), { ...p, doctorId, cpfDigits, emailLower }, { merge: true });
+        });
+
+      const deletes = previous
+        .filter((p) => !nextIds.has(p.id))
+        .map((p) => deleteDoc(doc(db, "doctors", p.doctorId || currentDoctorProfile.id, "patients", p.id)));
+
+      await Promise.all([...writes, ...deletes]);
     } catch (err) {
       console.error("Erro ao salvar no Firestore:", err);
     }
@@ -432,12 +483,12 @@ if (loginRole === 'secretaria') {
         return;
       }
 
-      const matched = patients.find(
-        (p) => p.email && p.email.toLowerCase().trim() === userEmail
-      );
+      const snap = await getDocs(query(collectionGroup(db, 'patients'), where('emailLower', '==', userEmail)));
 
-      if (matched) {
-        setSelectedPatientId(matched.id);
+      if (!snap.empty) {
+        const matchedDoc = snap.docs[0];
+        setSelectedPatientId(matchedDoc.id);
+        setSelectedPatientDoctorId(matchedDoc.ref.parent.parent!.id);
         setUserRole('paciente');
         setCurrentScreen('patient_app');
         setShowPatientLoginModal(false);
@@ -460,16 +511,25 @@ if (loginRole === 'secretaria') {
     setCurrentScreen('landing');
   };
 
-  const handlePatientLogin = (e: React.FormEvent) => {
+  const handlePatientLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const matched = patients.find(p => p.cpf.replace(/\D/g, '') === loginCpf.replace(/\D/g, ''));
-    if (matched) {
-      setSelectedPatientId(matched.id);
-      setUserRole('paciente');
-      setCurrentScreen('patient_app');
-      setShowPatientLoginModal(false);
-    } else {
-      setLoginError("CPF não encontrado.");
+    setLoginError("");
+    const cpfDigits = loginCpf.replace(/\D/g, '');
+    try {
+      const snap = await getDocs(query(collectionGroup(db, 'patients'), where('cpfDigits', '==', cpfDigits)));
+      if (!snap.empty) {
+        const matchedDoc = snap.docs[0];
+        setSelectedPatientId(matchedDoc.id);
+        setSelectedPatientDoctorId(matchedDoc.ref.parent.parent!.id);
+        setUserRole('paciente');
+        setCurrentScreen('patient_app');
+        setShowPatientLoginModal(false);
+      } else {
+        setLoginError("CPF não encontrado.");
+      }
+    } catch (err) {
+      console.error("Erro ao buscar paciente:", err);
+      setLoginError("Erro ao buscar cadastro. Tente novamente.");
     }
   };
   // Estados para 2FA no Login
@@ -515,18 +575,24 @@ if (loginRole === 'secretaria') {
         return;
       }
 
-      // Verifica se é uma Secretária cadastrada
-      const matchedSecretary = secretaries.find(s => s.email.toLowerCase().trim() === userEmail);
-      if (matchedSecretary) {
+      // Verifica se é uma Secretária cadastrada (busca em todas as clínicas)
+      const secSnap = await getDocs(query(collectionGroup(db, 'secretaries'), where('email', '==', userEmail)));
+      if (!secSnap.empty) {
+        const secDoc = secSnap.docs[0];
+        const matchedSecretary = secDoc.data() as ClinicSecretary;
+        const secretaryDoctorId = secDoc.ref.parent.parent!.id;
+        const secretaryDoctorProfile = saasDoctors.find(d => d.id === secretaryDoctorId);
+
         if (matchedSecretary.twoFactor?.enabled) {
           setPendingTwoFactorUser({
             role: 'secretaria',
-            profile: currentDoctorProfile,
+            profile: secretaryDoctorProfile || currentDoctorProfile,
             config: matchedSecretary.twoFactor
           });
           setShowTwoFactorModal(true);
           setShowDoctorLoginModal(false);
         } else {
+          if (secretaryDoctorProfile) setCurrentDoctorProfile(secretaryDoctorProfile);
           setUserRole('secretaria');
           setCurrentScreen('doctor_panel');
           setShowDoctorLoginModal(false);
@@ -686,6 +752,7 @@ if (loginRole === 'secretaria') {
 
     const novoObjetoPaciente: Patient = {
       id: `gestante-${Date.now()}`,
+      doctorId: currentDoctorProfile.id,
       cpf: newPatient.cpf || "000.000.000-00",
       telefone: newPatient.telefone || "",
       senhaAcc: "1234",
@@ -1787,9 +1854,19 @@ if (loginRole === 'secretaria') {
         globalConfig={globalConfig}
         secretaries={secretaries}
         onSaveSecretaries={async (updatedSecs) => {
+          const previousSecs = secretaries;
           setSecretaries(updatedSecs);
           try {
-            await setDoc(doc(db, "saas_config", `secretarias_${currentDoctorProfile.id}`), { lista: updatedSecs });
+            const prevMap = new Map(previousSecs.map((s) => [s.id, s]));
+            const nextIds = new Set(updatedSecs.map((s) => s.id));
+            await Promise.all([
+              ...updatedSecs
+                .filter((s) => prevMap.get(s.id) !== s)
+                .map((s) => setDoc(doc(db, "doctors", currentDoctorProfile.id, "secretaries", s.email), s, { merge: true })),
+              ...previousSecs
+                .filter((s) => !nextIds.has(s.id))
+                .map((s) => deleteDoc(doc(db, "doctors", currentDoctorProfile.id, "secretaries", s.email)))
+            ]);
           } catch (err) {
             console.error("Erro ao salvar secretárias:", err);
           }

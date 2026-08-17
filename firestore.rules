@@ -1,0 +1,80 @@
+rules_version = '2';
+
+// Regras de acesso ao banco (Firestore) do MaternaIA.
+//
+// Modelo de dados (multi-tenant por médico/clínica):
+//   doctors/{doctorId}                         -> perfil e assinatura do médico/clínica
+//   doctors/{doctorId}/patients/{patientId}     -> prontuários das gestantes daquele médico
+//   doctors/{doctorId}/secretaries/{email}      -> equipe (secretárias) daquele médico
+//   saas_config/financeiro                      -> configuração global (chave PIX, etc.)
+//
+// IMPORTANTE: a lista de super admins abaixo precisa ficar igual à constante
+// SUPER_ADMIN_EMAILS em src/App.tsx. Se um endereço mudar em um lugar, mude no outro.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn() &&
+        request.auth.token.email in ['admin@maternaia.com.br', 'andrereu@gmail.com'];
+    }
+
+    function doctorDoc(doctorId) {
+      return get(/databases/$(database)/documents/doctors/$(doctorId)).data;
+    }
+
+    function isOwnerDoctor(doctorId) {
+      return isSignedIn() && request.auth.token.email == doctorDoc(doctorId).email;
+    }
+
+    function isSecretaryOfDoctor(doctorId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/doctors/$(doctorId)/secretaries/$(request.auth.token.email));
+    }
+
+    function isStaffOfDoctor(doctorId) {
+      return isSuperAdmin() || isOwnerDoctor(doctorId) || isSecretaryOfDoctor(doctorId);
+    }
+
+    match /doctors/{doctorId} {
+      // Precisa ser legível por qualquer usuário autenticado: é o "diretório" usado
+      // para reconhecer, no login com Google, se o e-mail pertence a um médico
+      // cadastrado, e para o painel do Super Admin listar todas as clínicas.
+      allow read: if isSignedIn();
+      allow write: if isSuperAdmin() || isOwnerDoctor(doctorId);
+
+      match /patients/{patientId} {
+        // O portal da paciente (login por CPF/e-mail) ainda não usa Firebase Auth
+        // próprio — por isso a leitura aqui continua aberta, igual ao comportamento
+        // atual em produção. É uma limitação conhecida, não resolvida nesta mudança:
+        // uma correção completa exige um mecanismo de autenticação dedicado para a
+        // paciente (ex.: Cloud Function que valida CPF/senha e emite um token).
+        allow read: if true;
+        allow write: if isStaffOfDoctor(doctorId);
+      }
+
+      match /secretaries/{secretaryEmail} {
+        allow read: if isStaffOfDoctor(doctorId);
+        allow write: if isSuperAdmin() || isOwnerDoctor(doctorId);
+      }
+    }
+
+    match /saas_config/{configId} {
+      allow read: if isSignedIn();
+      allow write: if isSuperAdmin();
+    }
+
+    // Documentos antigos (modelo anterior, de um único array global). Mantidos
+    // apenas para leitura durante a migração (scripts/migrate-to-multitenant.mjs
+    // usa o Admin SDK e ignora estas regras); depois de migrar e conferir os
+    // dados, apague "prenatal/lista_pacientes" e "saas_config/medicos_cadastrados"
+    // manualmente no console do Firebase.
+    match /prenatal/{docId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+  }
+}

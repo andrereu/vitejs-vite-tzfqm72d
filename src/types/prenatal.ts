@@ -70,6 +70,7 @@ export interface PatientFinancialRecord {
 }
 export interface Patient {
   id: string;
+  doctorId: string;
   cpf: string;
   telefone?: string;
   email?: string;
@@ -103,6 +104,7 @@ export interface Patient {
 export const initialPatientsList: Patient[] = [
   {
     id: "gestante-01",
+    doctorId: "doc-priscila",
     cpf: "123.456.789-00",
     telefone: "(41) 99999-8888",
     senhaAcc: "1234",
