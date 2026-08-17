@@ -79,3 +79,37 @@ igual ao comportamento atual em produção. Fechar isso por completo exige um
 mecanismo de autenticação dedicado para a paciente (ex.: Cloud Function que
 valida CPF/senha e emite um token), que é um próximo passo recomendado, mas
 não está incluído nesta mudança.
+
+## IA (Gemini) sem expor a chave no navegador
+
+`api/analyze-exam.ts` (análise de exames) e `api/prenatal-chat.ts` (chat da
+paciente) rodam no servidor da Vercel e usam a variável de ambiente
+`GEMINI_API_KEY` (sem o prefixo `VITE_` — esse prefixo é o que faz o Vite
+empacotar uma variável dentro do código enviado ao navegador; sem ele, a
+chave nunca sai do servidor). Configure em **Settings → Environment
+Variables** na Vercel, em Production e Preview, com o mesmo valor que estava
+em `VITE_GEMINI_API_KEY` — essa variável antiga pode ser removida depois.
+
+## Pagamento automático (Mercado Pago)
+
+A tela de assinatura pendente (`SubscriptionPaywall`) tem um botão "Pagar com
+Pix ou Cartão" que gera um link de pagamento pelo Mercado Pago
+(`api/create-subscription-payment.ts`). Quando o pagamento é aprovado, o
+Mercado Pago avisa `api/mercadopago-webhook.ts`, que confirma o pagamento
+direto na API do Mercado Pago (nunca confia apenas no aviso recebido) e
+libera a assinatura automaticamente no Firestore — sem conferência manual de
+comprovante. A opção de PIX manual + comprovante por WhatsApp continua
+disponível como alternativa.
+
+### Variáveis de ambiente necessárias (Vercel → Environment Variables)
+
+| Variável | Onde conseguir |
+|---|---|
+| `MERCADOPAGO_ACCESS_TOKEN` | [developers.mercadopago.com](https://developers.mercadopago.com) → Suas integrações → crie uma aplicação → "Credenciais de produção" (use as "credenciais de teste" primeiro, para testar sem cobrar de verdade) |
+| `MERCADOPAGO_WEBHOOK_SECRET` | Na mesma aplicação, em "Webhooks" → chave secreta gerada ao configurar a notificação. Sem essa variável, o webhook ainda funciona, mas sem checar a assinatura do aviso — configure assim que possível |
+| `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` | Firebase Console → Configurações do projeto → Contas de serviço → Gerar nova chave privada (o mesmo JSON usado no script de migração). Copie os campos `project_id`, `client_email` e `private_key` do arquivo baixado — o `private_key` inclui `\n`, mantenha como está ao colar |
+
+Depois de configurar `MERCADOPAGO_ACCESS_TOKEN`, cadastre a URL de notificação
+no painel do Mercado Pago (Suas integrações → Webhooks):
+`https://<seu-domínio>/api/mercadopago-webhook`, escutando o evento
+`payments`.
