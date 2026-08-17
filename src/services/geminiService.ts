@@ -16,7 +16,7 @@ export async function processExamWithGeminiIA(
     throw new Error("A variável de ambiente VITE_GEMINI_API_KEY não foi encontrada.");
   }
 
-  // Extrai somente a parte pura do Base64 (após a vírgula)
+  // Extrai apenas a string Base64 limpa
   let cleanBase64 = base64Content;
   if (cleanBase64.includes(',')) {
     cleanBase64 = cleanBase64.split(',')[1];
@@ -46,10 +46,10 @@ Analise este laudo laboratorial anexado (${examCategory}: ${examName}).
    - urinaUrocultura
    - gbs
 
-Retorne ESTRITAMENTE um objeto JSON válido (sem blocos markdown adicionais):
+Retorne ESTRITAMENTE um objeto JSON válido no seguinte formato:
 {
-  "resumoIA": "...",
-  "notaDra": "...",
+  "resumoIA": "texto explicativo para a gestante",
+  "notaDra": "texto técnico para o prontuário",
   "examesExtraidos": {
     "hbVg": "12.2 g/dL / 34.9%",
     "plaquetas": "281.000 /mm³",
@@ -69,46 +69,62 @@ Retorne ESTRITAMENTE um objeto JSON válido (sem blocos markdown adicionais):
   }
 }`;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: prompt },
-              {
-                inlineData: {
-                  mimeType: mimeType.includes('pdf') ? 'application/pdf' : 'image/jpeg',
-                  data: cleanBase64
-                }
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.1,
-          responseMimeType: "application/json"
-        }
-      })
-    }
-  );
+  // Lista de modelos e endpoints suportados
+  const candidateEndpoints = [
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent',
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent',
+    'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent'
+  ];
 
-  if (!response.ok) {
-    const errorDetails = await response.text();
-    throw new Error(`Erro na API Gemini (${response.status}): ${errorDetails}`);
+  let lastErrorMsg = '';
+
+  for (const endpoint of candidateEndpoints) {
+    try {
+      const response = await fetch(`${endpoint}?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: prompt },
+                {
+                  inlineData: {
+                    mimeType: mimeType.includes('pdf') ? 'application/pdf' : 'image/jpeg',
+                    data: cleanBase64
+                  }
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.1,
+            responseMimeType: "application/json"
+          }
+        })
+      });
+
+      if (!response.ok) {
+        lastErrorMsg = await response.text();
+        console.warn(`Tentativa em ${endpoint} retornou status ${response.status}:`, lastErrorMsg);
+        continue;
+      }
+
+      const data = await response.json();
+      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+      const cleanedText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const parsed: ExamIAResponse = JSON.parse(cleanedText);
+
+      return {
+        resumoIA: parsed.resumoIA || "Exame analisado com sucesso.",
+        notaDra: parsed.notaDra || "Resultados conferidos.",
+        examesExtraidos: parsed.examesExtraidos || {}
+      };
+    } catch (err: any) {
+      lastErrorMsg = err.message || JSON.stringify(err);
+    }
   }
 
-  const data = await response.json();
-  const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-  const cleanedText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
-  const parsed: ExamIAResponse = JSON.parse(cleanedText);
-
-  return {
-    resumoIA: parsed.resumoIA || "Exame analisado com sucesso.",
-    notaDra: parsed.notaDra || "Resultados conferidos.",
-    examesExtraidos: parsed.examesExtraidos || {}
-  };
+  throw new Error(`Falha ao conectar com o modelo Gemini. Detalhes: ${lastErrorMsg}`);
 }
