@@ -2000,6 +2000,7 @@ if (loginRole === 'secretaria') {
         doctorPassword={doctorPassword}
         setDoctorPassword={setDoctorPassword}
         handleDoctorLogin={handleDoctorLogin}
+        handleGoogleDoctorLogin={handleGoogleDoctorLogin}
         showMasterLoginModal={showMasterLoginModal}
         setShowMasterLoginModal={setShowMasterLoginModal}
         masterEmail={masterEmail}
