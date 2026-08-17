@@ -69,62 +69,66 @@ Retorne ESTRITAMENTE um objeto JSON válido no seguinte formato:
   }
 }`;
 
-  // Endpoints com as versões oficiais suportadas
-  const candidateEndpoints = [
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent',
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent'
-  ];
-
-  let lastErrorMsg = '';
-
-  for (const endpoint of candidateEndpoints) {
-    try {
-      const response = await fetch(`${endpoint}?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { text: prompt },
-                {
-                  inlineData: {
-                    mimeType: mimeType.includes('pdf') ? 'application/pdf' : 'image/jpeg',
-                    data: cleanBase64
-                  }
-                }
-              ]
-            }
-          ],
-          generationConfig: {
-            temperature: 0.1,
-            responseMimeType: "application/json"
-          }
-        })
-      });
-
-      if (!response.ok) {
-        lastErrorMsg = await response.text();
-        console.warn(`Tentativa em ${endpoint} retornou status ${response.status}:`, lastErrorMsg);
-        continue;
+  // 1. Descobre dinamicamente os modelos disponíveis para esta chave
+  let targetModel = "models/gemini-2.0-flash";
+  try {
+    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    if (listRes.ok) {
+      const listData = await listRes.json();
+      const validModel = listData.models?.find((m: any) => 
+        m.supportedGenerationMethods?.includes("generateContent") &&
+        (m.name.includes("flash") || m.name.includes("pro") || m.name.includes("gemini"))
+      );
+      if (validModel && validModel.name) {
+        targetModel = validModel.name;
       }
-
-      const data = await response.json();
-      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-      const cleanedText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
-      const parsed: ExamIAResponse = JSON.parse(cleanedText);
-
-      return {
-        resumoIA: parsed.resumoIA || "Exame analisado com sucesso.",
-        notaDra: parsed.notaDra || "Resultados conferidos.",
-        examesExtraidos: parsed.examesExtraidos || {}
-      };
-    } catch (err: any) {
-      lastErrorMsg = err.message || JSON.stringify(err);
     }
+  } catch (e) {
+    console.warn("Não foi possível listar modelos dinamicamente, usando fallback.", e);
   }
 
-  throw new Error(`Falha ao conectar com o modelo Gemini. Detalhes: ${lastErrorMsg}`);
+  // 2. Executa a requisição com o modelo detectado
+  const endpoint = targetModel.startsWith("models/") 
+    ? `https://generativelanguage.googleapis.com/v1beta/${targetModel}:generateContent`
+    : `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent`;
+
+  const response = await fetch(`${endpoint}?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [
+        {
+          parts: [
+            { text: prompt },
+            {
+              inlineData: {
+                mimeType: mimeType.includes('pdf') ? 'application/pdf' : 'image/jpeg',
+                data: cleanBase64
+              }
+            }
+          ]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.1,
+        responseMimeType: "application/json"
+      }
+    })
+  });
+
+  if (!response.ok) {
+    const errorDetails = await response.text();
+    throw new Error(`Erro na API Gemini (${response.status}) no modelo ${targetModel}:\n${errorDetails}`);
+  }
+
+  const data = await response.json();
+  const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+  const cleanedText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+  const parsed: ExamIAResponse = JSON.parse(cleanedText);
+
+  return {
+    resumoIA: parsed.resumoIA || "Exame analisado com sucesso.",
+    notaDra: parsed.notaDra || "Resultados conferidos.",
+    examesExtraidos: parsed.examesExtraidos || {}
+  };
 }
