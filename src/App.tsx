@@ -205,6 +205,16 @@ export default function App() {
     setSelectedPatientDoctorId
   });
 
+  // Endereço próprio por médica: maternaia.com.br/{slug} mostra uma landing
+  // com a cara dela em vez da genérica (pensado pra ela linkar daqui do site
+  // pessoal dela, tipo um WordPress, sem precisar hospedar o app lá).
+  const [doctorSlugFromUrl] = useState(() =>
+    window.location.pathname.replace(/^\/+/, '').split('/')[0].toLowerCase()
+  );
+  const landingDoctor = doctorSlugFromUrl
+    ? saasDoctors.find((d) => d.slug === doctorSlugFromUrl)
+    : undefined;
+
   const { patients, saveToFirestore } = usePatients({
     doctorId: currentDoctorProfile.id,
     userRole,
@@ -646,6 +656,7 @@ export default function App() {
             onOpenDoctorLogin={() => setShowDoctorLoginModal(true)}
             onOpenTrialModal={() => setShowDoctorTrialModal(true)}
             onInstallPWA={handleInstallPWA}
+            doctorContext={landingDoctor}
           />
           <div className="text-center pb-8 print:hidden">
             <button

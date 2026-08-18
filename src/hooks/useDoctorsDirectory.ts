@@ -5,6 +5,7 @@ import type { DoctorTenant } from '../types/saas';
 
 const INITIAL_DEMO_DOCTOR: DoctorTenant = {
   id: 'doc-priscila',
+  slug: 'drapriscila',
   nome: 'Dra. Priscila Gapski',
   email: 'dra.priscila@maternaia.com.br',
   crm: '24734-PR',

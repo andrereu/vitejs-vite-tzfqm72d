@@ -16,6 +16,7 @@ export interface TwoFactorConfig {
 }
 export interface DoctorTenant {
   id: string;
+  slug?: string; // Ex: "drapriscila" -> maternaia.com.br/drapriscila
   nome: string;
   email: string;
   crm: string;

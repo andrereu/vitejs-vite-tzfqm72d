@@ -1,19 +1,25 @@
 import React from 'react';
 import { Sparkles, Smartphone, CheckCircle2, ArrowRight, MessageCircle, Bot, LineChart, ShieldCheck, HeartHandshake } from 'lucide-react';
 import { AdBanner } from './AdBanner';
+import type { DoctorTenant } from '../types/saas';
 
 interface LandingPageProps {
   onOpenPatientLogin: () => void;
   onOpenDoctorLogin: () => void;
   onOpenTrialModal: () => void;
   onInstallPWA: () => void;
+  // Quando presente, a URL acessada bate com o endereço de uma médica
+  // (maternaia.com.br/{slug}) — mostramos a entrada com a cara dela em vez
+  // da landing de vendas genérica.
+  doctorContext?: DoctorTenant;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
   onOpenPatientLogin,
   onOpenDoctorLogin,
   onOpenTrialModal,
-  onInstallPWA
+  onInstallPWA,
+  doctorContext
 }) => {
   const handleFalarComConsultor = () => {
     const telefoneDestino = '5541998496940';
@@ -25,56 +31,101 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   return (
     <div className="space-y-14 pb-16 print:hidden">
-      
+
       {/* 1. HERO SECTION */}
       <section className="relative overflow-hidden pt-6 px-4 max-w-5xl mx-auto text-center">
         <div className="bg-gradient-to-b from-[#2E482A] via-[#233820] to-[#172515] text-white p-8 md:p-12 rounded-3xl shadow-2xl space-y-6 relative border border-[#3D5C38]">
-          
-          <div className="inline-flex items-center gap-2 bg-white/10 text-[#E8ECD8] text-[11px] font-bold px-4 py-1.5 rounded-full uppercase border border-white/20 backdrop-blur-xs">
-            <Sparkles className="w-3.5 h-3.5 text-amber-300" /> MaternaIA • Plataforma Inteligente de Pré-Natal
-          </div>
-          
-          <h1 className="text-3xl md:text-5xl font-serif font-bold text-[#F4F6F0] leading-tight max-w-3xl mx-auto">
-            Acompanhamento gestacional com carinho, precisão e Inteligência Artificial
-          </h1>
-          
-          <p className="text-xs md:text-sm text-[#A3B18A] max-w-2xl mx-auto leading-relaxed">
-            Substitua a carteirinha de papel por um ecossistema digital para obstetras e gestantes: leitura de laudos com IA Gemini, curva GPG oficial do Ministério da Saúde, avisos por WhatsApp e PWA Offline.
-          </p>
 
-          <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
-            <button 
-              onClick={onOpenTrialModal}
-              className="w-full sm:w-auto px-7 py-3.5 bg-[#D4AF37] hover:bg-amber-400 text-gray-900 rounded-2xl font-bold text-xs shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
-            >
-              <span>🚀 Teste Grátis de 14 Dias</span>
-            </button>
-            <button 
-              onClick={handleFalarComConsultor}
-              className="w-full sm:w-auto px-7 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold text-xs shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
-            >
-              <MessageCircle className="w-4 h-4" /> Falar com Consultor
-            </button>
-          </div>
+          {doctorContext ? (
+            <>
+              <div className="inline-flex items-center gap-2 bg-white/10 text-[#E8ECD8] text-[11px] font-bold px-4 py-1.5 rounded-full uppercase border border-white/20 backdrop-blur-xs">
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" /> Consultório Digital • Powered by MaternaIA
+              </div>
 
-          <div className="pt-2 text-xs text-[#A3B18A] flex flex-wrap justify-center gap-6">
-            <button onClick={onOpenPatientLogin} className="hover:text-white underline cursor-pointer font-medium">
-              👶 Sou Gestante (Acessar Carteirinha)
-            </button>
-            <button onClick={onOpenDoctorLogin} className="hover:text-white underline cursor-pointer font-medium">
-              🩺 Já sou cadastrado (Login Médico)
-            </button>
-            <button onClick={onInstallPWA} className="hover:text-white underline cursor-pointer font-medium flex items-center gap-1">
-              <Smartphone className="w-3.5 h-3.5" /> Instalar App
-            </button>
-          </div>
+              <h1 className="text-3xl md:text-5xl font-serif font-bold text-[#F4F6F0] leading-tight max-w-3xl mx-auto">
+                {doctorContext.nome}
+              </h1>
+
+              <p className="text-xs md:text-sm text-[#A3B18A] max-w-2xl mx-auto leading-relaxed">
+                {doctorContext.especialidade || 'Obstetrícia'} • CRM {doctorContext.crm}
+                {doctorContext.clinicaNome ? ` • ${doctorContext.clinicaNome}` : ''}
+              </p>
+
+              <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
+                <button
+                  onClick={onOpenPatientLogin}
+                  className="w-full sm:w-auto px-7 py-3.5 bg-[#D4AF37] hover:bg-amber-400 text-gray-900 rounded-2xl font-bold text-xs shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <span>👶 Sou Gestante — Acessar Carteirinha</span>
+                </button>
+                <button
+                  onClick={onOpenDoctorLogin}
+                  className="w-full sm:w-auto px-7 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold text-xs shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  🩺 Acesso Profissional
+                </button>
+              </div>
+
+              <div className="pt-2 text-xs text-[#A3B18A]">
+                <button onClick={onInstallPWA} className="hover:text-white underline cursor-pointer font-medium inline-flex items-center gap-1">
+                  <Smartphone className="w-3.5 h-3.5" /> Instalar App
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="inline-flex items-center gap-2 bg-white/10 text-[#E8ECD8] text-[11px] font-bold px-4 py-1.5 rounded-full uppercase border border-white/20 backdrop-blur-xs">
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" /> MaternaIA • Plataforma Inteligente de Pré-Natal
+              </div>
+
+              <h1 className="text-3xl md:text-5xl font-serif font-bold text-[#F4F6F0] leading-tight max-w-3xl mx-auto">
+                Acompanhamento gestacional com carinho, precisão e Inteligência Artificial
+              </h1>
+
+              <p className="text-xs md:text-sm text-[#A3B18A] max-w-2xl mx-auto leading-relaxed">
+                Substitua a carteirinha de papel por um ecossistema digital para obstetras e gestantes: leitura de laudos com IA Gemini, curva GPG oficial do Ministério da Saúde, avisos por WhatsApp e PWA Offline.
+              </p>
+
+              <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
+                <button
+                  onClick={onOpenTrialModal}
+                  className="w-full sm:w-auto px-7 py-3.5 bg-[#D4AF37] hover:bg-amber-400 text-gray-900 rounded-2xl font-bold text-xs shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <span>🚀 Teste Grátis de 14 Dias</span>
+                </button>
+                <button
+                  onClick={handleFalarComConsultor}
+                  className="w-full sm:w-auto px-7 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold text-xs shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <MessageCircle className="w-4 h-4" /> Falar com Consultor
+                </button>
+              </div>
+
+              <div className="pt-2 text-xs text-[#A3B18A] flex flex-wrap justify-center gap-6">
+                <button onClick={onOpenPatientLogin} className="hover:text-white underline cursor-pointer font-medium">
+                  👶 Sou Gestante (Acessar Carteirinha)
+                </button>
+                <button onClick={onOpenDoctorLogin} className="hover:text-white underline cursor-pointer font-medium">
+                  🩺 Já sou cadastrado (Login Médico)
+                </button>
+                <button onClick={onInstallPWA} className="hover:text-white underline cursor-pointer font-medium flex items-center gap-1">
+                  <Smartphone className="w-3.5 h-3.5" /> Instalar App
+                </button>
+              </div>
+            </>
+          )}
 
         </div>
       </section>
 
+      {/* Sem contexto de médica: mostra vitrine de vendas (anúncios, recursos,
+          planos). Numa página /slug de uma médica específica, isso não faz
+          sentido pra quem já é paciente ou colega dela — só o acesso direto. */}
+      {!doctorContext && (
+        <>
       {/* 2. ESPAÇO DE MONETIZAÇÃO / ADSENSE 1 */}
       <div className="max-w-5xl mx-auto px-4">
-        <AdBanner 
+        <AdBanner
           placeholderTitle="Dicas & Cuidados"
           placeholderSubtitle="Enxoval, amamentação e cuidados no pós-parto"
         />
@@ -204,6 +255,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           placeholderSubtitle="Anuncie serviços de saúde da mulher, ultrassonografia ou produtos para gestantes."
         />
       </div>
+        </>
+      )}
 
       {/* 6. RODAPÉ INSTITUCIONAL */}
       <footer className="border-t border-gray-200 pt-8 text-center text-xs text-gray-500 space-y-2">

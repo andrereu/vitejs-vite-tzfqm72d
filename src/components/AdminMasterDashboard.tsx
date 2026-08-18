@@ -23,6 +23,13 @@ interface AdminMasterDashboardProps {
 const inputClasses = 'w-full p-2.5 bg-slate-950 border border-slate-700 rounded-lg text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-sky-500';
 const labelClasses = 'font-bold text-slate-400 uppercase text-[10px] block mb-1 tracking-wider';
 
+// Vira o nome num endereço amigável: "Dra. Priscila Gapski" -> "drapriscilagapski"
+const slugify = (text: string) =>
+  text
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '') // remove acentos
+    .replace(/[^a-z0-9]/g, '');
+
 export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
   doctors,
   globalConfig,
@@ -42,6 +49,7 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
   const [editingDoctor, setEditingDoctor] = useState<DoctorTenant | null>(null);
   const [editDoctorForm, setEditDoctorForm] = useState({
     nome: '',
+    slug: '',
     email: '',
     crm: '',
     telefone: '',
@@ -59,6 +67,7 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
   // Form State para Novo Médico
   const [newDoctor, setNewDoctor] = useState({
     nome: '',
+    slug: '',
     email: '',
     crm: '',
     telefone: '',
@@ -67,6 +76,7 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
     plano: 'individual_pro' as 'individual_pro' | 'clinica_multi',
     trialDays: 7
   });
+  const [slugEditedManually, setSlugEditedManually] = useState(false);
 
   // Cálculos em tempo real
   const totalDoctors = doctors.length;
@@ -118,10 +128,15 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
     }
   };
 
+  // Impede duas médicas com o mesmo endereço (maternaia.com.br/mesmoslug).
+  const isSlugTaken = (slug: string, excludeDoctorId?: string) =>
+    !!slug && doctors.some((d) => d.id !== excludeDoctorId && d.slug === slug);
+
   const handleOpenEditDoctor = (doctor: DoctorTenant) => {
     setEditingDoctor(doctor);
     setEditDoctorForm({
       nome: doctor.nome,
+      slug: doctor.slug || slugify(doctor.nome),
       email: doctor.email,
       crm: doctor.crm,
       telefone: doctor.telefone || '',
@@ -135,6 +150,13 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
   const handleSaveEditDoctor = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingDoctor) return;
+
+    const slug = slugify(editDoctorForm.slug);
+    if (isSlugTaken(slug, editingDoctor.id)) {
+      alert(`O endereço "/${slug}" já está em uso por outra médica. Escolha outro.`);
+      return;
+    }
+
     setIsSavingEdit(true);
     try {
       const updated = doctors.map(d =>
@@ -142,6 +164,7 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
           ? {
               ...d,
               nome: editDoctorForm.nome,
+              slug,
               email: editDoctorForm.email.toLowerCase().trim(),
               crm: editDoctorForm.crm.trim(),
               telefone: editDoctorForm.telefone,
@@ -179,6 +202,12 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
     e.preventDefault();
     if (!newDoctor.nome || !newDoctor.email || !newDoctor.crm) return;
 
+    const slug = slugify(newDoctor.slug || newDoctor.nome);
+    if (isSlugTaken(slug)) {
+      alert(`O endereço "/${slug}" já está em uso por outra médica. Escolha outro.`);
+      return;
+    }
+
     setIsSaving(true);
     try {
       const hoje = new Date();
@@ -186,6 +215,7 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
 
       const createdDoctor: DoctorTenant = {
         id: `doc-${Date.now()}`,
+        slug,
         nome: newDoctor.nome,
         email: newDoctor.email.toLowerCase().trim(),
         crm: newDoctor.crm.trim(),
@@ -207,6 +237,7 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
       setShowNewDoctorModal(false);
       setNewDoctor({
         nome: '',
+        slug: '',
         email: '',
         crm: '',
         telefone: '',
@@ -215,6 +246,7 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
         plano: 'individual_pro',
         trialDays: 7
       });
+      setSlugEditedManually(false);
     } catch (err) {
       console.error(err);
       alert('Erro ao cadastrar novo médico.');
@@ -360,6 +392,11 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
                       <span className="text-[10px] text-sky-400 font-medium block">
                         {doc.clinicaNome || 'Consultório'}
                       </span>
+                      {doc.slug && (
+                        <span className="text-[10px] text-slate-500 font-mono block">
+                          maternaia.com.br/{doc.slug}
+                        </span>
+                      )}
                     </td>
 
                     <td className="p-3">
@@ -496,9 +533,33 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
                       required
                       placeholder="Ex: Dr. Lucas Silveira"
                       value={newDoctor.nome}
-                      onChange={(e) => setNewDoctor({ ...newDoctor, nome: e.target.value })}
+                      onChange={(e) => {
+                        const nome = e.target.value;
+                        setNewDoctor((prev) => ({
+                          ...prev,
+                          nome,
+                          slug: slugEditedManually ? prev.slug : slugify(nome)
+                        }));
+                      }}
                       className={inputClasses}
                     />
+                  </div>
+
+                  <div>
+                    <label className={labelClasses}>Endereço no MaternaIA</label>
+                    <div className="flex items-center gap-1">
+                      <span className="text-slate-500 shrink-0">maternaia.com.br/</span>
+                      <input
+                        type="text"
+                        placeholder="drapriscila"
+                        value={newDoctor.slug}
+                        onChange={(e) => {
+                          setSlugEditedManually(true);
+                          setNewDoctor({ ...newDoctor, slug: slugify(e.target.value) });
+                        }}
+                        className={inputClasses}
+                      />
+                    </div>
                   </div>
 
                   <div>
@@ -726,6 +787,19 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
                     onChange={(e) => setEditDoctorForm({ ...editDoctorForm, nome: e.target.value })}
                     className={inputClasses}
                   />
+                </div>
+
+                <div>
+                  <label className={labelClasses}>Endereço no MaternaIA</label>
+                  <div className="flex items-center gap-1">
+                    <span className="text-slate-500 shrink-0">maternaia.com.br/</span>
+                    <input
+                      type="text"
+                      value={editDoctorForm.slug}
+                      onChange={(e) => setEditDoctorForm({ ...editDoctorForm, slug: slugify(e.target.value) })}
+                      className={inputClasses}
+                    />
+                  </div>
                 </div>
 
                 <div>
