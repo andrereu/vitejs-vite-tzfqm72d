@@ -18,10 +18,14 @@ describe('hasPermission', () => {
     expect(hasPermission('secretaria', 'canEditDoctorSettings')).toBe(false);
   });
 
-  it('paciente só consegue mexer na própria agenda', () => {
+  it('paciente vê a própria carteirinha (histórico, exames, IA) mas não gerencia financeiro nem configurações', () => {
     expect(hasPermission('paciente', 'canManageSchedule')).toBe(true);
-    expect(hasPermission('paciente', 'canViewClinicalHistory')).toBe(false);
+    expect(hasPermission('paciente', 'canViewClinicalHistory')).toBe(true);
+    expect(hasPermission('paciente', 'canViewExamReports')).toBe(true);
+    expect(hasPermission('paciente', 'canUseMedicalAI')).toBe(true);
+
     expect(hasPermission('paciente', 'canManageFinancial')).toBe(false);
+    expect(hasPermission('paciente', 'canEditDoctorSettings')).toBe(false);
   });
 
   it('sem papel definido (ainda não logou), nunca libera nada', () => {

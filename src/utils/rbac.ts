@@ -27,8 +27,13 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'canManageBasicPatientData'
   ],
   // Gestante / Paciente: Acesso de visualização pessoal da sua carteirinha
+  // (as abas de edição dentro de cada tela continuam travadas só pra médica,
+  // então dar essas permissões de "ver" aqui não abre nenhum botão de editar).
   paciente: [
-    'canManageSchedule'
+    'canManageSchedule',
+    'canViewClinicalHistory',
+    'canViewExamReports',
+    'canUseMedicalAI'
   ],
   // Super Admin: mesmo acesso total de uma médica (hoje o app sempre usa o
   // papel 'medica' para o Super Admin, mas o tipo UserRole também permite
