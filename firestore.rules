@@ -41,10 +41,16 @@ service cloud.firestore {
     }
 
     match /doctors/{doctorId} {
-      // Precisa ser legível por qualquer usuário autenticado: é o "diretório" usado
+      // Legível por qualquer visitante, mesmo sem login: é o "diretório" usado
       // para reconhecer, no login com Google, se o e-mail pertence a um médico
-      // cadastrado, e para o painel do Super Admin listar todas as clínicas.
-      allow read: if isSignedIn();
+      // cadastrado; para o painel do Super Admin listar todas as clínicas; e
+      // para a landing pessoal (maternaia.com.br/{slug}), que qualquer
+      // visitante não autenticado pode acessar (é uma página pública).
+      // Os campos aqui são dados de contato/negócio (não prontuário de
+      // paciente) — sensibilidade moderada, mesma lógica já aplicada às
+      // pacientes abaixo: aberto por necessidade do produto hoje, com o
+      // entendimento de que uma trava mais fina é um próximo passo possível.
+      allow read: if true;
       allow write: if isSuperAdmin() || isOwnerDoctor(doctorId);
 
       match /patients/{patientId} {
@@ -72,7 +78,9 @@ service cloud.firestore {
     }
 
     match /saas_config/{configId} {
-      allow read: if isSignedIn();
+      // "financeiro" guarda a chave PIX pública, exibida a qualquer visitante
+      // na tela de pagamento — precisa ser legível sem login.
+      allow read: if true;
       allow write: if isSuperAdmin();
     }
 
