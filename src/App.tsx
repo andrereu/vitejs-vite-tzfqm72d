@@ -3,16 +3,15 @@ import {
   Heart, Upload, Plus, LogOut, Printer, Syringe, UserPlus, Calculator, AlertCircle, 
   Edit3, Bot, MapPin, CalendarPlus, Calendar, Smartphone, WifiOff, Share2, Send, Settings, Check 
 } from 'lucide-react';
-import { doc, setDoc, getDoc, getDocs, collectionGroup, query, where } from 'firebase/firestore';
-import { signInWithEmailAndPassword, signOut, onAuthStateChanged, signInWithPopup } from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
-import { Patient, AgendaConsulta, HorarioBloqueado, UserRole } from './types/prenatal';
-import { DoctorTenant, ClinicSecretary, SaasGlobalConfig } from './types/saas';
+import { Patient, AgendaConsulta, HorarioBloqueado } from './types/prenatal';
+import { DoctorTenant, SaasGlobalConfig } from './types/saas';
 import { ClinicScheduleManager } from './components/ClinicScheduleManager';
 import { PatientFinancialTab } from './components/PatientFinancialTab';
 
 
-import { db, auth, googleProvider } from './firebase';
+import { db } from './firebase';
 import { SubscriptionPaywall } from './components/SubscriptionPaywall';
 
 import { AppModals } from './components/AppModals';
@@ -27,6 +26,7 @@ import { MaternaLogo } from './components/MaternaLogo';
 import { AdBanner } from './components/AdBanner';
 import { PrenatalChatTab } from './components/PrenatalChatTab';
 import { Tooltip } from './components/Tooltip';
+import { TwoFactorVerifyModal } from './components/TwoFactorVerifyModal';
 
 import { formatDateDisplay, formatDateBR, calculateWeeksAndDays, fileToBase64 } from './utils/formatters';
 import { generateAppointmentReminderLink, generateConsultationSummaryLink, sharePatientCard } from './utils/whatsapp';
@@ -35,8 +35,7 @@ import { hasPermission } from './utils/rbac';
 import { useDoctorsDirectory } from './hooks/useDoctorsDirectory';
 import { usePatients } from './hooks/usePatients';
 import { useSecretaries } from './hooks/useSecretaries';
-
-const SUPER_ADMIN_EMAILS = ['admin@maternaia.com.br', 'andrereu@gmail.com'];
+import { useAuthSession } from './hooks/useAuthSession';
 
 const LISTA_EXAMES_OFICIAIS = [
   { id: 'hbVg', label: 'HB / VG', placeholder: 'Ex: 12.5 g/dL / 38%' },
@@ -90,10 +89,6 @@ export default function App() {
     }
   };
 
-  const [currentScreen, setCurrentScreen] = useState<'landing' | 'doctor_panel' | 'patient_app' | 'master_admin'>('landing');
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const [loginRole, setLoginRole] = useState<'medica' | 'secretaria'>('medica');
-  const [doctorPanelTab, setDoctorPanelTab] = useState<'pacientes' | 'agenda_geral'>('pacientes');
   const [blockedSlots, setBlockedSlots] = useState<HorarioBloqueado[]>([]);
 
   const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
@@ -126,9 +121,6 @@ export default function App() {
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
-  const [showPatientLoginModal, setShowPatientLoginModal] = useState(false);
-  const [showDoctorLoginModal, setShowDoctorLoginModal] = useState(false);
-  const [showMasterLoginModal, setShowMasterLoginModal] = useState(false);
   const [showDoctorTrialModal, setShowDoctorTrialModal] = useState(false);
   const [showDoctorSettingsModal, setShowDoctorSettingsModal] = useState(false);
 
@@ -147,13 +139,6 @@ export default function App() {
   const [calcUsgSemanas, setCalcUsgSemanas] = useState("8");
   const [calcUsgDias, setCalcUsgDias] = useState("0");
   const [calcResultado, setCalcResultado] = useState<any>(null);
-
-  const [doctorEmail, setDoctorEmail] = useState("");
-  const [doctorPassword, setDoctorPassword] = useState("");
-  const [masterEmail, setMasterEmail] = useState("");
-  const [masterPassword, setMasterPassword] = useState("");
-  const [loginCpf, setLoginCpf] = useState("");
-  const [loginError, setLoginError] = useState("");
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [examName, setExamName] = useState("");
@@ -207,24 +192,9 @@ export default function App() {
     };
   }, []);
 
-  useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        const userEmail = currentUser.email?.toLowerCase().trim() || '';
-        if (SUPER_ADMIN_EMAILS.includes(userEmail)) {
-          setUserRole('medica');
-          setCurrentScreen('master_admin');
-        } else {
-          setUserRole('medica');
-          setCurrentScreen('doctor_panel');
-        }
-      }
-    });
-    return () => unsubscribeAuth();
-  }, []);
-
-  // Lógica de dados (Firestore) de médicos, pacientes e secretárias vive em
-  // hooks próprios (src/hooks/) — o App.tsx só usa o resultado.
+  // Lógica de dados (Firestore) de médicos, pacientes e secretárias, e tudo
+  // relacionado a login/sessão, vive em hooks próprios (src/hooks/) — o
+  // App.tsx só usa o resultado.
   const { saasDoctors, saveSaasDoctorsToFirestore } = useDoctorsDirectory();
 
   // Mantém o perfil da médica de demonstração atualizado sempre que o
@@ -233,6 +203,36 @@ export default function App() {
     const found = saasDoctors.find((d) => d.id === 'doc-priscila');
     if (found) setCurrentDoctorProfile(found);
   }, [saasDoctors]);
+
+  const {
+    currentScreen, setCurrentScreen,
+    userRole, setUserRole,
+    loginRole, setLoginRole,
+    doctorPanelTab, setDoctorPanelTab,
+    showPatientLoginModal, setShowPatientLoginModal,
+    showDoctorLoginModal, setShowDoctorLoginModal,
+    showMasterLoginModal, setShowMasterLoginModal,
+    doctorEmail, setDoctorEmail,
+    doctorPassword, setDoctorPassword,
+    masterEmail, setMasterEmail,
+    masterPassword, setMasterPassword,
+    loginCpf, setLoginCpf,
+    loginError,
+    showTwoFactorModal, setShowTwoFactorModal,
+    pendingTwoFactorUser, setPendingTwoFactorUser,
+    handleDoctorLogin,
+    handleMasterLogin,
+    handleGooglePatientLogin,
+    handlePatientLogin,
+    handleGoogleDoctorLogin,
+    handleLogout
+  } = useAuthSession({
+    saasDoctors,
+    currentDoctorProfile,
+    setCurrentDoctorProfile,
+    setSelectedPatientId,
+    setSelectedPatientDoctorId
+  });
 
   const { patients, saveToFirestore } = usePatients({
     doctorId: currentDoctorProfile.id,
@@ -332,188 +332,6 @@ export default function App() {
 
     return list;
   }, [currentGest.weeks]);
-
-  const handleDoctorLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError("");
-    try {
-      await signInWithEmailAndPassword(auth, doctorEmail.trim(), doctorPassword);
-      setUserRole('medica');
-      setCurrentScreen('doctor_panel');
-      setShowDoctorLoginModal(false);
-    } catch (err) {
-      setLoginError("E-mail ou senha incorretos.");
-    }
-
-    // No handleDoctorLogin do App.tsx:
-if (loginRole === 'secretaria') {
-  setUserRole('secretaria');
-  setDoctorPanelTab('agenda_geral'); // Abre direto na Central da Agenda
-} else {
-  setUserRole('medica');
-  setDoctorPanelTab('pacientes');
-}
-
-  };
-
-  const handleMasterLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError("");
-    const emailNorm = masterEmail.toLowerCase().trim();
-
-    try {
-      await signInWithEmailAndPassword(auth, emailNorm, masterPassword);
-      if (SUPER_ADMIN_EMAILS.includes(emailNorm)) {
-        setUserRole('medica');
-        setCurrentScreen('master_admin');
-        setShowMasterLoginModal(false);
-      } else {
-        setLoginError("Acesso negado: este e-mail não possui permissões de Super Admin.");
-        await signOut(auth);
-      }
-    } catch (err) {
-      setLoginError("E-mail ou senha de administrador incorretos.");
-    }
-  };
-
-  const handleGooglePatientLogin = async () => {
-    setLoginError("");
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      const userEmail = user.email?.toLowerCase().trim();
-
-      if (!userEmail) {
-        setLoginError("Não foi possível obter o e-mail da sua conta Google.");
-        return;
-      }
-
-      const snap = await getDocs(query(collectionGroup(db, 'patients'), where('emailLower', '==', userEmail)));
-
-      if (!snap.empty) {
-        const matchedDoc = snap.docs[0];
-        setSelectedPatientId(matchedDoc.id);
-        setSelectedPatientDoctorId(matchedDoc.ref.parent.parent!.id);
-        setUserRole('paciente');
-        setCurrentScreen('patient_app');
-        setShowPatientLoginModal(false);
-      } else {
-        setLoginError(
-          `O e-mail ${userEmail} ainda não está vinculado a nenhum pré-natal cadastrado. Peça à sua médica para incluir seu e-mail no cadastro.`
-        );
-      }
-    } catch (err: any) {
-      console.error("Erro no login Google:", err);
-      if (err.code !== 'auth/popup-closed-by-user') {
-        setLoginError("Erro ao autenticar com o Google. Tente novamente.");
-      }
-    }
-  };
-
-  const handleLogout = async () => {
-    await signOut(auth);
-    setUserRole(null);
-    setCurrentScreen('landing');
-  };
-
-  const handlePatientLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError("");
-    const cpfDigits = loginCpf.replace(/\D/g, '');
-    try {
-      const snap = await getDocs(query(collectionGroup(db, 'patients'), where('cpfDigits', '==', cpfDigits)));
-      if (!snap.empty) {
-        const matchedDoc = snap.docs[0];
-        setSelectedPatientId(matchedDoc.id);
-        setSelectedPatientDoctorId(matchedDoc.ref.parent.parent!.id);
-        setUserRole('paciente');
-        setCurrentScreen('patient_app');
-        setShowPatientLoginModal(false);
-      } else {
-        setLoginError("CPF não encontrado.");
-      }
-    } catch (err) {
-      console.error("Erro ao buscar paciente:", err);
-      setLoginError("Erro ao buscar cadastro. Tente novamente.");
-    }
-  };
-  // Estados para 2FA no Login
-  const [showTwoFactorModal, setShowTwoFactorModal] = useState(false);
-  const [pendingTwoFactorUser, setPendingTwoFactorUser] = useState<{
-    role: 'medica' | 'secretaria';
-    profile: DoctorTenant;
-    config: TwoFactorConfig;
-  } | null>(null);
-
-  // Login com Google para Médicas e Secretárias
-  const handleGoogleDoctorLogin = async () => {
-    setLoginError("");
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const userEmail = result.user.email?.toLowerCase().trim() || '';
-
-      // Verifica se é o Super Admin
-      if (SUPER_ADMIN_EMAILS.includes(userEmail)) {
-        setUserRole('medica');
-        setCurrentScreen('master_admin');
-        setShowDoctorLoginModal(false);
-        return;
-      }
-
-      // Verifica se é uma Médica cadastrada
-      const matchedDoctor = saasDoctors.find(d => d.email.toLowerCase().trim() === userEmail);
-      if (matchedDoctor) {
-        if (matchedDoctor.twoFactor?.enabled) {
-          setPendingTwoFactorUser({
-            role: 'medica',
-            profile: matchedDoctor,
-            config: matchedDoctor.twoFactor
-          });
-          setShowTwoFactorModal(true);
-          setShowDoctorLoginModal(false);
-        } else {
-          setCurrentDoctorProfile(matchedDoctor);
-          setUserRole('medica');
-          setCurrentScreen('doctor_panel');
-          setShowDoctorLoginModal(false);
-        }
-        return;
-      }
-
-      // Verifica se é uma Secretária cadastrada (busca em todas as clínicas)
-      const secSnap = await getDocs(query(collectionGroup(db, 'secretaries'), where('email', '==', userEmail)));
-      if (!secSnap.empty) {
-        const secDoc = secSnap.docs[0];
-        const matchedSecretary = secDoc.data() as ClinicSecretary;
-        const secretaryDoctorId = secDoc.ref.parent.parent!.id;
-        const secretaryDoctorProfile = saasDoctors.find(d => d.id === secretaryDoctorId);
-
-        if (matchedSecretary.twoFactor?.enabled) {
-          setPendingTwoFactorUser({
-            role: 'secretaria',
-            profile: secretaryDoctorProfile || currentDoctorProfile,
-            config: matchedSecretary.twoFactor
-          });
-          setShowTwoFactorModal(true);
-          setShowDoctorLoginModal(false);
-        } else {
-          if (secretaryDoctorProfile) setCurrentDoctorProfile(secretaryDoctorProfile);
-          setUserRole('secretaria');
-          setCurrentScreen('doctor_panel');
-          setShowDoctorLoginModal(false);
-        }
-        return;
-      }
-
-      setLoginError(`O e-mail ${userEmail} não possui cadastro profissional ativo no MaternaIA.`);
-      await signOut(auth);
-    } catch (err: any) {
-      console.error(err);
-      if (err.code !== 'auth/popup-closed-by-user') {
-        setLoginError("Erro ao autenticar com o Google.");
-      }
-    }
-  };
 
       const handleFileUpload = async (e: React.FormEvent) => {
     e.preventDefault();
