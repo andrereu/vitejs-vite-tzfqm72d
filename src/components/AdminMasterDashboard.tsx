@@ -166,8 +166,7 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
   );
 
   return (
-    <div className="-mx-4 sm:mx-[calc(50%-50vw)] bg-slate-950 min-h-screen px-4 sm:px-8 py-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
 
         {/* CABEÇALHO */}
         <div className="bg-black border border-slate-800 text-white p-6 rounded-xl shadow-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -612,7 +611,6 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
           </div>
         )}
 
-      </div>
     </div>
   );
 };

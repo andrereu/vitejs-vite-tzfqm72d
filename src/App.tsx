@@ -509,7 +509,9 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F6F2] text-gray-800 font-sans pb-12 print:bg-white print:pb-0">
+    <div className={`min-h-screen font-sans pb-12 print:bg-white print:pb-0 ${
+      currentScreen === 'master_admin' ? 'bg-slate-950 text-slate-100' : 'bg-[#F4F6F2] text-gray-800'
+    }`}>
       
       <style>{`
         @media print {
@@ -532,7 +534,9 @@ export default function App() {
       )}
 
       {/* CABEÇALHO */}
-      <header className="bg-[#2E482A] text-white shadow-md sticky top-0 z-40 border-b border-[#3D5C38] print:hidden">
+      <header className={`text-white shadow-md sticky top-0 z-40 print:hidden ${
+        currentScreen === 'master_admin' ? 'bg-black border-b border-slate-800' : 'bg-[#2E482A] border-b border-[#3D5C38]'
+      }`}>
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           
           <div 
