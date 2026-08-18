@@ -1,26 +1,35 @@
 import React, { useState } from 'react';
-import { 
-  Users, DollarSign, Clock, ShieldCheck, 
-  Search, CheckCircle2, Ban, Plus, X, 
-  Save, LogOut, ArrowUpRight, UserPlus
+import {
+  Users, DollarSign, Clock, ShieldCheck,
+  Search, CheckCircle2, Ban, X,
+  Save, LogOut, Settings, UserPlus
 } from 'lucide-react';
-import { DoctorTenant } from '../types/saas';
+import type { DoctorTenant, SaasGlobalConfig } from '../types/saas';
+import { useDoctorPatientCounts } from '../hooks/useDoctorPatientCounts';
 
 interface AdminMasterDashboardProps {
   doctors: DoctorTenant[];
+  globalConfig: SaasGlobalConfig;
   onSaveDoctors: (updatedList: DoctorTenant[]) => Promise<void> | void;
+  onSaveGlobalConfig: (config: SaasGlobalConfig) => Promise<void> | void;
   onLogout: () => void;
 }
 
 export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
   doctors,
+  globalConfig,
   onSaveDoctors,
+  onSaveGlobalConfig,
   onLogout
 }) => {
   const [search, setSearch] = useState('');
   const [showNewDoctorModal, setShowNewDoctorModal] = useState(false);
-  const [pixChave, setPixChave] = useState('000.000.000-00'); // Seu CPF
+  const [showPaymentConfigModal, setShowPaymentConfigModal] = useState(false);
+  const [paymentConfigForm, setPaymentConfigForm] = useState<SaasGlobalConfig>(globalConfig);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingConfig, setIsSavingConfig] = useState(false);
+
+  const patientCounts = useDoctorPatientCounts(doctors.map((d) => d.id));
 
   // Form State para Novo Médico
   const [newDoctor, setNewDoctor] = useState({
@@ -44,7 +53,23 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
     .filter(d => d.status === 'active')
     .reduce((acc, curr) => acc + (curr.valorMensalidade || 89), 0);
 
-  const totalPatients = doctors.reduce((acc, curr) => acc + (curr.totalPacientes || 0), 0);
+  const totalPatients = Object.values(patientCounts).reduce((acc, count) => acc + count, 0);
+
+  const handleOpenPaymentConfig = () => {
+    setPaymentConfigForm(globalConfig);
+    setShowPaymentConfigModal(true);
+  };
+
+  const handleSavePaymentConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingConfig(true);
+    try {
+      await onSaveGlobalConfig(paymentConfigForm);
+      setShowPaymentConfigModal(false);
+    } finally {
+      setIsSavingConfig(false);
+    }
+  };
 
   const handleStatusChange = async (doctorId: string, newStatus: DoctorTenant['status']) => {
     const updated = doctors.map(d => {
@@ -189,14 +214,23 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
           </span>
         </div>
 
-        <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs space-y-1">
+        <button
+          type="button"
+          onClick={handleOpenPaymentConfig}
+          className="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs space-y-1 text-left cursor-pointer hover:border-[#2E482A]/40 transition-all"
+          title="Clique para editar a chave PIX e os dados de recebimento"
+        >
           <div className="flex justify-between items-center text-gray-400">
             <span className="text-[10px] font-bold uppercase">Chave PIX Recebimento</span>
-            <ArrowUpRight className="w-4 h-4 text-[#D4AF37]" />
+            <Settings className="w-4 h-4 text-[#D4AF37]" />
           </div>
-          <div className="text-sm font-bold text-gray-900 truncate">{pixChave}</div>
-          <span className="text-[11px] text-gray-500 font-medium">PIX Manual (CPF)</span>
-        </div>
+          <div className="text-sm font-bold text-gray-900 truncate">
+            {globalConfig.pixKey || 'Não configurada — clique para definir'}
+          </div>
+          <span className="text-[11px] text-gray-500 font-medium uppercase">
+            {globalConfig.pixKeyType || 'pix manual'}
+          </span>
+        </button>
       </div>
 
       {/* LISTAGEM DE MÉDICOS & AÇÕES */}
@@ -461,6 +495,102 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
                   className="px-5 py-2.5 bg-[#2E482A] hover:bg-[#233820] text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-sm"
                 >
                   <Save className="w-4 h-4" /> {isSaving ? 'Cadastrando...' : 'Cadastrar Médico'}
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CONFIGURAR RECEBIMENTO (PIX GLOBAL DO SAAS) */}
+      {showPaymentConfigModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 text-gray-800">
+
+            <div className="flex justify-between items-center border-b pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-[#2E482A]/10 text-[#2E482A] rounded-xl">
+                  <Settings className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-base">Configurar Recebimento</h3>
+                  <p className="text-xs text-gray-500">Chave PIX exibida às médicas na renovação manual</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPaymentConfigModal(false)}
+                className="text-gray-400 hover:text-gray-700 cursor-pointer p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePaymentConfig} className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">Chave PIX *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"
+                  value={paymentConfigForm.pixKey}
+                  onChange={(e) => setPaymentConfigForm({ ...paymentConfigForm, pixKey: e.target.value })}
+                  className="w-full p-2.5 bg-gray-50 border rounded-xl"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">Tipo da Chave</label>
+                <select
+                  value={paymentConfigForm.pixKeyType}
+                  onChange={(e) => setPaymentConfigForm({ ...paymentConfigForm, pixKeyType: e.target.value as SaasGlobalConfig['pixKeyType'] })}
+                  className="w-full p-2.5 bg-gray-50 border rounded-xl font-bold"
+                >
+                  <option value="cpf">CPF</option>
+                  <option value="cnpj">CNPJ</option>
+                  <option value="email">E-mail</option>
+                  <option value="telefone">Telefone</option>
+                  <option value="aleatoria">Chave Aleatória</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">Nome do Recebedor</label>
+                <input
+                  type="text"
+                  placeholder="Ex: MaternaIA Tecnologia"
+                  value={paymentConfigForm.nomeRecebedor}
+                  onChange={(e) => setPaymentConfigForm({ ...paymentConfigForm, nomeRecebedor: e.target.value })}
+                  className="w-full p-2.5 bg-gray-50 border rounded-xl"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">WhatsApp de Suporte</label>
+                <input
+                  type="text"
+                  placeholder="Ex: 5541999999999"
+                  value={paymentConfigForm.suporteWhatsapp}
+                  onChange={(e) => setPaymentConfigForm({ ...paymentConfigForm, suporteWhatsapp: e.target.value })}
+                  className="w-full p-2.5 bg-gray-50 border rounded-xl"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentConfigModal(false)}
+                  className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingConfig}
+                  className="px-5 py-2.5 bg-[#2E482A] hover:bg-[#233820] text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-sm"
+                >
+                  <Save className="w-4 h-4" /> {isSavingConfig ? 'Salvando...' : 'Salvar'}
                 </button>
               </div>
             </form>

@@ -711,10 +711,7 @@ export default function App() {
       {/* 4. PAINEL MASTER ADMIN */}
       {currentScreen === 'master_admin' && (
         <AdminMasterDashboard
-          doctors={saasDoctors.map(doc => ({
-            ...doc,
-            totalPacientes: doc.id === currentDoctorProfile.id ? patients.length : (doc.totalPacientes || 0)
-          }))}
+          doctors={saasDoctors}
           globalConfig={globalConfig}
           onSaveDoctors={saveSaasDoctorsToFirestore}
           onSaveGlobalConfig={handleSaveGlobalConfig}
