@@ -1,18 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Heart, Upload, Plus, LogOut, Printer, Syringe, UserPlus, Calculator, AlertCircle, 
-  Edit3, Bot, MapPin, CalendarPlus, Calendar, Smartphone, WifiOff, Share2, Send, Settings, Check 
+import {
+  Heart, Upload, Plus, LogOut, Printer, Syringe, Calculator, AlertCircle,
+  Edit3, Bot, MapPin, CalendarPlus, Calendar, Smartphone, WifiOff, Share2, Send, Check
 } from 'lucide-react';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 import { Patient, AgendaConsulta, HorarioBloqueado } from './types/prenatal';
 import { DoctorTenant, SaasGlobalConfig } from './types/saas';
-import { ClinicScheduleManager } from './components/ClinicScheduleManager';
 import { PatientFinancialTab } from './components/PatientFinancialTab';
 
 
 import { db } from './firebase';
-import { SubscriptionPaywall } from './components/SubscriptionPaywall';
+import { DoctorPanelScreen } from './components/DoctorPanelScreen';
 
 import { AppModals } from './components/AppModals';
 import { PrintableCarteirinha } from './components/PrintableCarteirinha';
@@ -112,7 +111,6 @@ export default function App() {
 
   const [selectedPatientId, setSelectedPatientId] = useState("gestante-01");
   const [selectedPatientDoctorId, setSelectedPatientDoctorId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState('resumo');
 
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -537,12 +535,6 @@ export default function App() {
     setShowAddConsultaModal(false);
   };
 
-  const filteredPatients = useMemo(() => {
-    if (!searchQuery) return patients;
-    const q = searchQuery.toLowerCase();
-    return patients.filter(p => p.nome.toLowerCase().includes(q) || p.cpf.includes(q));
-  }, [patients, searchQuery]);
-
   return (
     <div className="min-h-screen bg-[#F4F6F2] text-gray-800 font-sans pb-12 print:bg-white print:pb-0">
       
@@ -691,160 +683,21 @@ export default function App() {
 
       {/* 2. PAINEL DO MÉDICO & SECRETARIA */}
       {currentScreen === 'doctor_panel' && (
-        <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-          
-          {/* BANNER DE DEGUSTAÇÃO (TRIAL ATIVO) */}
-          {currentDoctorProfile.status === 'trial' && (
-            <div className="bg-amber-500 text-white px-4 py-3 rounded-2xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="text-base">⏳</span>
-                <span>
-                  Você está usando o <strong>Período de Degustação Gratuito</strong> até{' '}
-                  <strong>
-                    {currentDoctorProfile.trialEndsAt 
-                      ? new Date(currentDoctorProfile.trialEndsAt).toLocaleDateString('pt-BR') 
-                      : 'breve'}
-                  </strong>.
-                </span>
-              </div>
-              <a
-                href={`https://wa.me/5541998496940?text=${encodeURIComponent('Olá! Gostaria de ativar a assinatura do MaternaIA.')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-white text-amber-900 px-3 py-1.5 rounded-xl font-bold hover:bg-amber-50 transition-all whitespace-nowrap"
-              >
-                Garantir Assinatura Anual / Mensal
-              </a>
-            </div>
-          )}
-
-          {/* TRAVA / PAYWALL (CASO BLOQUEADO OU TRIAL EXPIRADO) */}
-          {(currentDoctorProfile.status === 'blocked' || 
-            currentDoctorProfile.status === 'past_due' ||
-            (currentDoctorProfile.status === 'trial' && 
-             currentDoctorProfile.trialEndsAt && 
-             new Date(currentDoctorProfile.trialEndsAt) < new Date())) && (
-            <SubscriptionPaywall 
-              doctor={currentDoctorProfile}
-              pixKey={globalConfig.pixKey || "020.255.429-50"}
-              onRefreshStatus={() => window.location.reload()}
-            />
-          )}
-
-          {/* SELETOR DE ABAS DA CLÍNICA */}
-          <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
-            <button
-              onClick={() => setDoctorPanelTab('pacientes')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                doctorPanelTab === 'pacientes' ? 'bg-[#2E482A] text-white shadow-xs' : 'bg-white text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              Gestantes Cadastradas ({patients.length})
-            </button>
-            <button
-              onClick={() => setDoctorPanelTab('agenda_geral')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                doctorPanelTab === 'agenda_geral' ? 'bg-[#2E482A] text-white shadow-xs' : 'bg-white text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              📅 Central da Agenda & Recepção
-            </button>
-          </div>
-
-          {/* ABA 1: LISTA DE GESTANTES */}
-          {doctorPanelTab === 'pacientes' && (
-            <div className="space-y-6">
-              <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">Gestantes Cadastradas</h2>
-                  <p className="text-xs text-gray-500">Acesse ou cadastre novas pacientes no banco de dados</p>
-                </div>
-                
-                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                  <input
-                    type="text"
-                    placeholder="Buscar paciente por nome ou CPF..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full sm:w-64 text-xs p-2.5 border rounded-xl"
-                  />
-
-                  {hasPermission(userRole, 'canManageSchedule') && (
-                    <button 
-                      onClick={() => setShowDoctorSettingsModal(true)} 
-                      className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer border border-gray-200"
-                      title="Configurar Logo, CRM e endereço do consultório"
-                    >
-                      <Settings className="w-4 h-4 text-[#2E482A]" /> Configurar Consultório
-                    </button>
-                  )}
-
-                  {hasPermission(userRole, 'canManageBasicPatientData') && (
-                    <button 
-                      onClick={() => setShowNewPatientModal(true)} 
-                      className="bg-[#2E482A] hover:bg-[#233820] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
-                    >
-                      <UserPlus className="w-4 h-4" /> + Cadastrar Gestante
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {filteredPatients.length === 0 && (
-                <div className="bg-white p-8 rounded-3xl border border-dashed border-gray-300 text-center text-sm text-gray-500">
-                  Nenhuma gestante cadastrada ainda. Clique em "+ Cadastrar Gestante" para começar.
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredPatients.map((pat) => (
-                  <div key={pat.id} className="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex justify-between items-center">
-                    <div>
-                      <span className="text-[10px] text-gray-400 font-bold uppercase">CPF: {pat.cpf}</span>
-                      <h3 className="font-bold text-gray-900 text-base">{pat.nome}</h3>
-                      <p className="text-xs text-gray-600 mt-1">
-                        Bebê: <strong>{pat.nomeBebe}</strong> • 
-                        <span className="inline-flex items-center ml-1">
-                          DPP: {new Date(pat.dpp).toLocaleDateString('pt-BR')}
-                        </span>
-                      </p>
-                      <p className="text-[11px] text-gray-500 mt-0.5">
-                        G{pat.g} P{pat.p} C{pat.c} A{pat.a} • WhatsApp: {pat.telefone || 'Não informado'}
-                      </p>
-                    </div>
-                    <button 
-                      onClick={() => { setSelectedPatientId(pat.id); setCurrentScreen('patient_app'); }} 
-                      className="px-4 py-2.5 bg-[#2E482A] text-white rounded-xl text-xs font-bold shrink-0 cursor-pointer"
-                    >
-                      Abrir Cartão
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ABA 2: CENTRAL DA AGENDA & RECEPÇÃO */}
-          {doctorPanelTab === 'agenda_geral' && (
-            <ClinicScheduleManager
-              patients={patients}
-              blockedSlots={blockedSlots}
-              onAddBlockedSlot={async (newSlot) => setBlockedSlots([...blockedSlots, newSlot])}
-              onRemoveBlockedSlot={async (id) => setBlockedSlots(blockedSlots.filter(b => b.id !== id))}
-              onOpenConfirmModal={(app, pat) => setSelectedAppointmentForConfirm({ app, pat })}
-              onQuickStatusChange={async (patientId, appointmentId, newStatus) => {
-                const targetPat = patients.find(p => p.id === patientId);
-                if (!targetPat) return;
-                const updatedAgenda = (targetPat.agendaConsultas || []).map(a => 
-                  a.id === appointmentId ? { ...a, status: newStatus } : a
-                );
-                const updated = { ...targetPat, agendaConsultas: updatedAgenda };
-                await saveToFirestore(patients.map(p => p.id === updated.id ? updated : p));
-              }}
-            />
-          )}
-
-        </div>
+        <DoctorPanelScreen
+          currentDoctorProfile={currentDoctorProfile}
+          globalConfig={globalConfig}
+          doctorPanelTab={doctorPanelTab}
+          setDoctorPanelTab={setDoctorPanelTab}
+          patients={patients}
+          userRole={userRole}
+          onOpenDoctorSettings={() => setShowDoctorSettingsModal(true)}
+          onOpenNewPatientModal={() => setShowNewPatientModal(true)}
+          onSelectPatient={(patientId) => { setSelectedPatientId(patientId); setCurrentScreen('patient_app'); }}
+          blockedSlots={blockedSlots}
+          setBlockedSlots={setBlockedSlots}
+          onOpenConfirmModal={(app, pat) => setSelectedAppointmentForConfirm({ app, pat })}
+          saveToFirestore={saveToFirestore}
+        />
       )}
 
       {/* 3. ÁREA DA PACIENTE */}
