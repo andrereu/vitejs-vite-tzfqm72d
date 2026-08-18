@@ -29,6 +29,19 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   // Gestante / Paciente: Acesso de visualização pessoal da sua carteirinha
   paciente: [
     'canManageSchedule'
+  ],
+  // Super Admin: mesmo acesso total de uma médica (hoje o app sempre usa o
+  // papel 'medica' para o Super Admin, mas o tipo UserRole também permite
+  // 'master_admin' — sem essa entrada, hasPermission() falhava silenciosamente
+  // para esse papel).
+  master_admin: [
+    'canManageSchedule',
+    'canManageFinancial',
+    'canManageBasicPatientData',
+    'canViewClinicalHistory',
+    'canViewExamReports',
+    'canUseMedicalAI',
+    'canEditDoctorSettings'
   ]
 };
 
