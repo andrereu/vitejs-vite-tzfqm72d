@@ -658,14 +658,16 @@ export default function App() {
             onInstallPWA={handleInstallPWA}
             doctorContext={landingDoctor}
           />
-          <div className="text-center pb-8 print:hidden">
-            <button
-              onClick={() => setShowMasterLoginModal(true)}
-              className="text-[11px] text-gray-400 hover:text-gray-600 transition-all font-medium cursor-pointer"
-            >
-              🔒 Acesso Restrito • Master Admin
-            </button>
-          </div>
+          {!landingDoctor && (
+            <div className="text-center pb-8 print:hidden">
+              <button
+                onClick={() => setShowMasterLoginModal(true)}
+                className="text-[11px] text-gray-400 hover:text-gray-600 transition-all font-medium cursor-pointer"
+              >
+                🔒 Acesso Restrito • Master Admin
+              </button>
+            </div>
+          )}
         </div>
       )}
 
