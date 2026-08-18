@@ -22,6 +22,7 @@ import { TwoFactorVerifyModal } from './components/TwoFactorVerifyModal';
 
 import { calculateWeeksAndDays, fileToBase64 } from './utils/formatters';
 import { generateAppointmentReminderLink } from './utils/whatsapp';
+import { generatePatientPin } from './utils/pin';
 import { processExamWithGeminiIA } from './services/geminiService';
 import { useDoctorsDirectory } from './hooks/useDoctorsDirectory';
 import { usePatients } from './hooks/usePatients';
@@ -188,6 +189,7 @@ export default function App() {
     masterEmail, setMasterEmail,
     masterPassword, setMasterPassword,
     loginCpf, setLoginCpf,
+    loginSenha, setLoginSenha,
     loginError,
     showTwoFactorModal, setShowTwoFactorModal,
     pendingTwoFactorUser, setPendingTwoFactorUser,
@@ -452,13 +454,14 @@ export default function App() {
     e.preventDefault();
     const dumDate = new Date(newPatient.dum);
     const dppDate = new Date(dumDate.getTime() + 280 * 24 * 60 * 60 * 1000);
+    const pinGerado = generatePatientPin();
 
     const novoObjetoPaciente: Patient = {
       id: `gestante-${Date.now()}`,
       doctorId: currentDoctorProfile.id,
       cpf: newPatient.cpf || "000.000.000-00",
       telefone: newPatient.telefone || "",
-      senhaAcc: "1234",
+      senhaAcc: pinGerado,
       nome: newPatient.nome || "Nova Gestante",
       idade: newPatient.idade || "25",
       pai: newPatient.pai || "Não informado",
@@ -491,6 +494,15 @@ export default function App() {
     saveToFirestore([...patients, novoObjetoPaciente]);
     setSelectedPatientId(novoObjetoPaciente.id);
     setShowNewPatientModal(false);
+    window.alert(
+      `Cadastro criado!\n\nSenha de acesso da paciente (PIN): ${pinGerado}\n\nPasse esse PIN para a gestante — ela usa CPF + esse PIN para entrar no app. Você pode gerar um novo PIN a qualquer momento em "Editar Dados".`
+    );
+  };
+
+  const handleResetPatientPin = () => {
+    const novoPin = generatePatientPin();
+    setEditProfileData({ ...editProfileData, senhaAcc: novoPin });
+    window.alert(`Novo PIN gerado: ${novoPin}\n\nClique em "Salvar Perfil" para confirmar a troca.`);
   };
 
   const handleAddConsulta = (e: React.FormEvent) => {
@@ -809,6 +821,7 @@ export default function App() {
         editProfileData={editProfileData}
         setEditProfileData={setEditProfileData}
         handleSaveProfile={handleSaveProfile}
+        handleResetPatientPin={handleResetPatientPin}
         showEditVacinasModal={showEditVacinasModal}
         setShowEditVacinasModal={setShowEditVacinasModal}
         editVacinasData={editVacinasData}
@@ -848,6 +861,8 @@ export default function App() {
         setShowPatientLoginModal={setShowPatientLoginModal}
         loginCpf={loginCpf}
         setLoginCpf={setLoginCpf}
+        loginSenha={loginSenha}
+        setLoginSenha={setLoginSenha}
         handlePatientLogin={handlePatientLogin}
         loginRole={loginRole}
         setLoginRole={setLoginRole}

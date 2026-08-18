@@ -17,6 +17,7 @@ interface AppModalsProps {
   editProfileData: any;
   setEditProfileData: (v: any) => void;
   handleSaveProfile: (e: React.FormEvent) => void;
+  handleResetPatientPin: () => void;
   
   // Vacinas Modal
   showEditVacinasModal: boolean;
@@ -80,6 +81,8 @@ interface AppModalsProps {
   setShowPatientLoginModal: (v: boolean) => void;
   loginCpf: string;
   setLoginCpf: (v: string) => void;
+  loginSenha: string;
+  setLoginSenha: (v: string) => void;
   handlePatientLogin: (e: React.FormEvent) => void;
   handleGooglePatientLogin: () => void;
   loginRole?: 'medica' | 'secretaria';
@@ -165,13 +168,32 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                 </div>
                 <div>
                   <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">CPF</label>
-                  <input 
-                    type="text" 
-                    value={props.editProfileData.cpf || ''} 
-                    onChange={(e) => props.setEditProfileData({ ...props.editProfileData, cpf: e.target.value })} 
-                    className="w-full p-2.5 border rounded-xl" 
+                  <input
+                    type="text"
+                    value={props.editProfileData.cpf || ''}
+                    onChange={(e) => props.setEditProfileData({ ...props.editProfileData, cpf: e.target.value })}
+                    className="w-full p-2.5 border rounded-xl"
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 items-end">
+                <div>
+                  <label className="font-bold text-gray-500 uppercase text-[10px] block mb-1">Senha de Acesso (PIN)</label>
+                  <input
+                    type="text"
+                    value={props.editProfileData.senhaAcc || ''}
+                    onChange={(e) => props.setEditProfileData({ ...props.editProfileData, senhaAcc: e.target.value })}
+                    className="w-full p-2.5 border rounded-xl font-mono"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={props.handleResetPatientPin}
+                  className="p-2.5 border border-gray-300 rounded-xl text-[10px] font-bold text-gray-600 hover:bg-gray-50"
+                >
+                  Gerar novo PIN
+                </button>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
@@ -814,7 +836,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
               <div className="flex-1 h-px bg-gray-200" />
             </div>
 
-            {/* ENTRADA POR CPF */}
+            {/* ENTRADA POR CPF + PIN */}
             <form onSubmit={props.handlePatientLogin} className="space-y-3">
               <div>
                 <label className="text-[10px] font-bold text-gray-600 block mb-1 uppercase">Seu CPF</label>
@@ -826,6 +848,20 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                   className="w-full text-xs p-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-[#2E482A]"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-gray-600 block mb-1 uppercase">Senha de Acesso (PIN)</label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  placeholder="Ex: 4821"
+                  value={props.loginSenha}
+                  onChange={(e) => props.setLoginSenha(e.target.value)}
+                  className="w-full text-xs p-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-[#2E482A]"
+                  required
+                />
+                <p className="text-[10px] text-gray-400 mt-1">Este PIN foi passado pela sua médica no cadastro.</p>
               </div>
 
               <button

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { collectionGroup, getDocs, query, where } from 'firebase/firestore';
-import { onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signInWithCustomToken, signInWithEmailAndPassword, signInWithPopup, signOut } from 'firebase/auth';
 import { auth, db, googleProvider } from '../firebase';
 import type { ClinicSecretary, DoctorTenant, TwoFactorConfig } from '../types/saas';
 import type { UserRole } from '../types/prenatal';
@@ -47,6 +47,7 @@ export function useAuthSession({
   const [masterEmail, setMasterEmail] = useState('');
   const [masterPassword, setMasterPassword] = useState('');
   const [loginCpf, setLoginCpf] = useState('');
+  const [loginSenha, setLoginSenha] = useState('');
   const [loginError, setLoginError] = useState('');
 
   const [showTwoFactorModal, setShowTwoFactorModal] = useState(false);
@@ -54,9 +55,12 @@ export function useAuthSession({
 
   // Restaura a sessão quando a página é recarregada com um usuário já logado.
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        const userEmail = currentUser.email?.toLowerCase().trim() || '';
+    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
+      if (!currentUser) return;
+
+      const userEmail = currentUser.email?.toLowerCase().trim() || '';
+      if (userEmail) {
+        // Sessão de médica/secretária/admin (login por e-mail e senha ou Google).
         if (SUPER_ADMIN_EMAILS.includes(userEmail)) {
           setUserRole('medica');
           setCurrentScreen('master_admin');
@@ -64,6 +68,23 @@ export function useAuthSession({
           setUserRole('medica');
           setCurrentScreen('doctor_panel');
         }
+        return;
+      }
+
+      // Sem e-mail: é uma sessão de paciente, autenticada por CPF + PIN via
+      // api/patient-login.ts (o "custom token" carrega doctorId/patientId
+      // como claims em vez de um e-mail).
+      try {
+        const tokenResult = await currentUser.getIdTokenResult();
+        const claims = tokenResult.claims as { role?: string; doctorId?: string; patientId?: string };
+        if (claims.role === 'paciente' && claims.doctorId && claims.patientId) {
+          setSelectedPatientId(claims.patientId);
+          setSelectedPatientDoctorId(claims.doctorId);
+          setUserRole('paciente');
+          setCurrentScreen('patient_app');
+        }
+      } catch (err) {
+        console.error('Erro ao restaurar sessão da paciente:', err);
       }
     });
     return () => unsubscribeAuth();
@@ -144,22 +165,29 @@ export function useAuthSession({
   const handlePatientLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
-    const cpfDigits = loginCpf.replace(/\D/g, '');
     try {
-      const snap = await getDocs(query(collectionGroup(db, 'patients'), where('cpfDigits', '==', cpfDigits)));
-      if (!snap.empty) {
-        const matchedDoc = snap.docs[0];
-        setSelectedPatientId(matchedDoc.id);
-        setSelectedPatientDoctorId(matchedDoc.ref.parent.parent!.id);
-        setUserRole('paciente');
-        setCurrentScreen('patient_app');
-        setShowPatientLoginModal(false);
-      } else {
-        setLoginError('CPF não encontrado.');
+      const response = await fetch('/api/patient-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cpf: loginCpf, senha: loginSenha })
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setLoginError(data.error || 'CPF ou senha inválidos.');
+        return;
       }
+
+      await signInWithCustomToken(auth, data.token);
+      setSelectedPatientId(data.patientId);
+      setSelectedPatientDoctorId(data.doctorId);
+      setUserRole('paciente');
+      setCurrentScreen('patient_app');
+      setShowPatientLoginModal(false);
+      setLoginSenha('');
     } catch (err) {
-      console.error('Erro ao buscar paciente:', err);
-      setLoginError('Erro ao buscar cadastro. Tente novamente.');
+      console.error('Erro ao autenticar paciente:', err);
+      setLoginError('Erro ao entrar. Tente novamente.');
     }
   };
 
@@ -248,6 +276,7 @@ export function useAuthSession({
     masterEmail, setMasterEmail,
     masterPassword, setMasterPassword,
     loginCpf, setLoginCpf,
+    loginSenha, setLoginSenha,
     loginError, setLoginError,
 
     showTwoFactorModal, setShowTwoFactorModal,

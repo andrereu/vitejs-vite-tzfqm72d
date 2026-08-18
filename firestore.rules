@@ -10,7 +10,8 @@ rules_version = '2';
 //   saas_config/financeiro                      -> configuração global (chave PIX, etc.)
 //
 // IMPORTANTE: a lista de super admins abaixo precisa ficar igual à constante
-// SUPER_ADMIN_EMAILS em src/App.tsx. Se um endereço mudar em um lugar, mude no outro.
+// SUPER_ADMIN_EMAILS em src/hooks/useAuthSession.ts. Se um endereço mudar em
+// um lugar, mude no outro.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -40,6 +41,25 @@ service cloud.firestore {
       return isSuperAdmin() || isOwnerDoctor(doctorId) || isSecretaryOfDoctor(doctorId);
     }
 
+    // Login real da paciente (CPF + PIN, via api/patient-login.ts): o servidor
+    // confere a senha e emite um "custom token" cujo uid é o próprio id da
+    // paciente, com claims (role, doctorId, patientId) — é isso que a regra
+    // abaixo verifica, sem precisar abrir a leitura pra qualquer visitante.
+    function isPatientSelf(doctorId, patientId) {
+      return isSignedIn() &&
+        request.auth.token.role == 'paciente' &&
+        request.auth.token.doctorId == doctorId &&
+        request.auth.uid == patientId;
+    }
+
+    // Login da paciente com conta Google: sem claims especiais, mas o e-mail
+    // do Google precisa bater com o e-mail cadastrado no prontuário dela.
+    function isPatientByEmail() {
+      return isSignedIn() &&
+        request.auth.token.email != null &&
+        resource.data.emailLower == request.auth.token.email.lower();
+    }
+
     match /doctors/{doctorId} {
       // Legível por qualquer visitante, mesmo sem login: é o "diretório" usado
       // para reconhecer, no login com Google, se o e-mail pertence a um médico
@@ -54,13 +74,13 @@ service cloud.firestore {
       allow write: if isSuperAdmin() || isOwnerDoctor(doctorId);
 
       match /patients/{patientId} {
-        // O portal da paciente (login por CPF/e-mail) ainda não usa Firebase Auth
-        // próprio — por isso a leitura aqui continua aberta, igual ao comportamento
-        // atual em produção. É uma limitação conhecida, não resolvida nesta mudança:
-        // uma correção completa exige um mecanismo de autenticação dedicado para a
-        // paciente (ex.: Cloud Function que valida CPF/senha e emite um token).
-        allow read: if true;
-        allow write: if isStaffOfDoctor(doctorId);
+        // A gestante só lê/escreve o próprio prontuário — nunca o de outra
+        // paciente — seja pelo login com Google (e-mail bate) ou pelo login
+        // com CPF + PIN (token emitido por api/patient-login.ts). A escrita
+        // também é liberada pra ela porque o app deixa a própria paciente
+        // solicitar consultas na agenda (grava no mesmo documento).
+        allow read: if isStaffOfDoctor(doctorId) || isPatientSelf(doctorId, patientId) || isPatientByEmail();
+        allow write: if isStaffOfDoctor(doctorId) || isPatientSelf(doctorId, patientId) || isPatientByEmail();
       }
 
       match /secretaries/{secretaryEmail} {
