@@ -13,6 +13,17 @@
   </head>
   <body class="bg-[#F4F6F2]">
     <div id="root"></div>
+    <script>
+      // Console de depuração em tela, só quando a URL tem ?debug=1 — útil
+      // pra ver erros em celular/tablet, sem precisar de F12 nem computador.
+      // Remover quando não precisar mais.
+      if (window.location.search.includes('debug=1')) {
+        var s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/eruda';
+        s.onload = function () { eruda.init(); };
+        document.body.appendChild(s);
+      }
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
