@@ -79,6 +79,12 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
   calcResultado,
   setShowUploadExamModal
 }) => {
+  // 'canManageSchedule' também é dada à paciente (só pra ela ver a própria
+  // aba de agenda e solicitar consulta) — então ações de uso exclusivo da
+  // equipe (agendar direto, enviar lembrete, editar registro) precisam
+  // checar o papel explicitamente, não essa permissão compartilhada.
+  const isStaff = userRole === 'medica' || userRole === 'secretaria';
+
   return (
         <div className="max-w-5xl mx-auto px-4 pt-4 space-y-6 print:p-0 print:m-0 print:max-w-none">
           <div className="bg-[#2E482A] text-white p-6 rounded-3xl shadow-md flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
@@ -176,7 +182,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {hasPermission(userRole, 'canManageSchedule') && (
+                    {isStaff && (
                       <a
                         href={generateAppointmentReminderLink(currentPatient, nextAppointment)}
                         target="_blank"
@@ -202,7 +208,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                       + Solicitar Agendamento
                     </button>
                   )}
-                  {hasPermission(userRole, 'canManageSchedule') && (
+                  {isStaff && (
                     <button onClick={() => setShowAddAgendaModal(true)} className="text-[#2E482A] font-bold underline cursor-pointer">
                       + Agendar Agora
                     </button>
@@ -248,7 +254,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
           {activeTab === 'financeiro' && hasPermission(userRole, 'canViewClinicalHistory') && (
             <PatientFinancialTab
               patient={currentPatient}
-              canEdit={hasPermission(userRole, 'canManageSchedule')}
+              canEdit={isStaff}
               onUpdatePatient={async (updatedPatient) => {
                 const updatedList = patients.map(p => p.id === updatedPatient.id ? updatedPatient : p);
                 await saveToFirestore(updatedList);
@@ -486,7 +492,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                     </button>
                   )}
 
-                  {hasPermission(userRole, 'canManageSchedule') && (
+                  {isStaff && (
                     <button
                       onClick={() => setShowAddAgendaModal(true)}
                       className="bg-[#2E482A] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
@@ -529,7 +535,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                           )}
                         </div>
 
-                        {hasPermission(userRole, 'canManageSchedule') && (
+                        {isStaff && (
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => setSelectedAppointmentForConfirm({ app: item, pat: currentPatient })}
