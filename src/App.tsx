@@ -3,10 +3,10 @@ import {
   Heart, Upload, Plus, LogOut, Printer, Syringe, UserPlus, Calculator, AlertCircle, 
   Edit3, Bot, MapPin, CalendarPlus, Calendar, Smartphone, WifiOff, Share2, Send, Settings, Check 
 } from 'lucide-react';
-import { doc, onSnapshot, setDoc, getDoc, getDocs, deleteDoc, collection, collectionGroup, query, where } from 'firebase/firestore';
+import { doc, setDoc, getDoc, getDocs, collectionGroup, query, where } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, signInWithPopup } from 'firebase/auth';
 
-import { Patient, initialPatientsList, AgendaConsulta, HorarioBloqueado, UserRole } from './types/prenatal';
+import { Patient, AgendaConsulta, HorarioBloqueado, UserRole } from './types/prenatal';
 import { DoctorTenant, ClinicSecretary, SaasGlobalConfig } from './types/saas';
 import { ClinicScheduleManager } from './components/ClinicScheduleManager';
 import { PatientFinancialTab } from './components/PatientFinancialTab';
@@ -32,6 +32,9 @@ import { formatDateDisplay, formatDateBR, calculateWeeksAndDays, fileToBase64 } 
 import { generateAppointmentReminderLink, generateConsultationSummaryLink, sharePatientCard } from './utils/whatsapp';
 import { processExamWithGeminiIA } from './services/geminiService';
 import { hasPermission } from './utils/rbac';
+import { useDoctorsDirectory } from './hooks/useDoctorsDirectory';
+import { usePatients } from './hooks/usePatients';
+import { useSecretaries } from './hooks/useSecretaries';
 
 const SUPER_ADMIN_EMAILS = ['admin@maternaia.com.br', 'andrereu@gmail.com'];
 
@@ -91,10 +94,8 @@ export default function App() {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [loginRole, setLoginRole] = useState<'medica' | 'secretaria'>('medica');
   const [doctorPanelTab, setDoctorPanelTab] = useState<'pacientes' | 'agenda_geral'>('pacientes');
-  const [secretaries, setSecretaries] = useState<ClinicSecretary[]>([]);
   const [blockedSlots, setBlockedSlots] = useState<HorarioBloqueado[]>([]);
 
-  const [saasDoctors, setSaasDoctors] = useState<DoctorTenant[]>([]);
   const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
     id: 'doc-priscila',
     nome: 'Dra. Priscila Gapski',
@@ -114,7 +115,6 @@ export default function App() {
     metodoPagamento: 'pix'
   });
 
-  const [patients, setPatients] = useState<Patient[]>(initialPatientsList);
   const [selectedPatientId, setSelectedPatientId] = useState("gestante-01");
   const [selectedPatientDoctorId, setSelectedPatientDoctorId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -223,100 +223,25 @@ export default function App() {
     return () => unsubscribeAuth();
   }, []);
 
-  // Diretório de médicos/clínicas (tenants). Cada médico é um documento próprio em
-  // "doctors/{doctorId}" — não mais um array único, para não estourar o limite de 1MB
-  // do Firestore e para permitir regras de segurança por tenant.
-  useEffect(() => {
-    try {
-      const unsubscribe = onSnapshot(collection(db, "doctors"), (snapshot) => {
-        if (snapshot.empty) {
-          const initialDoctor: DoctorTenant = {
-            id: 'doc-priscila',
-            nome: 'Dra. Priscila Gapski',
-            email: 'dra.priscila@maternaia.com.br',
-            crm: '24734-PR',
-            telefone: '(41) 99999-8888',
-            clinicaNome: 'Consultório Dra. Priscila Gapski',
-            especialidade: 'Ginecologia & Obstetrícia',
-            enderecoConsultorio: 'Curitiba - PR',
-            plano: 'individual_pro',
-            status: 'active',
-            trialEndsAt: '2027-12-31',
-            diasRestantes: 365,
-            totalPacientes: 1,
-            dataCadastro: '2026-01-01',
-            valorMensalidade: 89.0,
-            metodoPagamento: 'pix'
-          };
-          setDoc(doc(db, "doctors", initialDoctor.id), initialDoctor).catch(console.error);
-          return;
-        }
-        const list = snapshot.docs.map((d) => d.data() as DoctorTenant);
-        setSaasDoctors(list);
-        const found = list.find((d) => d.id === 'doc-priscila');
-        if (found) setCurrentDoctorProfile(found);
-      }, (err) => console.warn("Modo offline SaaS:", err));
-      return () => unsubscribe();
-    } catch (err) {
-      console.warn("Modo offline SaaS:", err);
-    }
-  }, []);
+  // Lógica de dados (Firestore) de médicos, pacientes e secretárias vive em
+  // hooks próprios (src/hooks/) — o App.tsx só usa o resultado.
+  const { saasDoctors, saveSaasDoctorsToFirestore } = useDoctorsDirectory();
 
-  // Pacientes de cada médico ficam em "doctors/{doctorId}/patients/{patientId}" —
-  // uma subcoleção isolada por tenant, em vez de uma lista global compartilhada por
-  // todos os médicos (o que vazava dados entre clínicas diferentes).
+  // Mantém o perfil da médica de demonstração atualizado sempre que o
+  // diretório de médicos mudar (comportamento igual ao de antes da divisão).
   useEffect(() => {
-    if (!currentDoctorProfile.id || (userRole !== 'medica' && userRole !== 'secretaria')) return;
-    try {
-      const colRef = collection(db, "doctors", currentDoctorProfile.id, "patients");
-      const unsubscribe = onSnapshot(colRef, (snapshot) => {
-        setPatients(snapshot.docs.map((d) => d.data() as Patient));
-      }, (err) => console.warn("Modo offline:", err));
-      return () => unsubscribe();
-    } catch (err) {
-      console.warn("Modo offline:", err);
-    }
-  }, [currentDoctorProfile.id, userRole]);
+    const found = saasDoctors.find((d) => d.id === 'doc-priscila');
+    if (found) setCurrentDoctorProfile(found);
+  }, [saasDoctors]);
 
-  // Sessão de paciente: assina só o próprio documento (não a subcoleção inteira).
-  useEffect(() => {
-    if (userRole !== 'paciente' || !selectedPatientDoctorId || !selectedPatientId) return;
-    const ref = doc(db, "doctors", selectedPatientDoctorId, "patients", selectedPatientId);
-    const unsubscribe = onSnapshot(ref, (snapshot) => {
-      if (snapshot.exists()) setPatients([snapshot.data() as Patient]);
-    }, (err) => console.warn("Modo offline:", err));
-    return () => unsubscribe();
-  }, [userRole, selectedPatientDoctorId, selectedPatientId]);
+  const { patients, saveToFirestore } = usePatients({
+    doctorId: currentDoctorProfile.id,
+    userRole,
+    selectedPatientDoctorId,
+    selectedPatientId
+  });
 
-  // Equipe (secretárias) de cada médico: "doctors/{doctorId}/secretaries/{email}".
-  // O ID do documento é o e-mail da secretária para permitir checagem rápida de
-  // permissão nas regras do Firestore (exists() em vez de uma query).
-  useEffect(() => {
-    if (!currentDoctorProfile.id || (userRole !== 'medica' && userRole !== 'secretaria')) return;
-    const colRef = collection(db, "doctors", currentDoctorProfile.id, "secretaries");
-    const unsubscribe = onSnapshot(colRef, (snapshot) => {
-      setSecretaries(snapshot.docs.map((d) => d.data() as ClinicSecretary));
-    }, (err) => console.warn("Erro ao carregar secretárias:", err));
-    return () => unsubscribe();
-  }, [currentDoctorProfile.id, userRole]);
-
-  // Mantém a assinatura de "saveSaasDoctorsToFirestore(listaCompleta)" usada pelas
-  // telas (Admin Master, cadastro de trial) para não precisar mexer nelas: por
-  // dentro, grava só os documentos de médico que realmente mudaram.
-  const saveSaasDoctorsToFirestore = async (updatedList: DoctorTenant[]) => {
-    const previous = saasDoctors;
-    setSaasDoctors(updatedList);
-    try {
-      const prevMap = new Map(previous.map((d) => [d.id, d]));
-      await Promise.all(
-        updatedList
-          .filter((d) => prevMap.get(d.id) !== d)
-          .map((d) => setDoc(doc(db, "doctors", d.id), d, { merge: true }))
-      );
-    } catch (err) {
-      console.error("Erro ao salvar médicos no Firestore:", err);
-    }
-  };
+  const { secretaries, saveSecretaries } = useSecretaries(currentDoctorProfile.id, userRole);
 
   const handleInstallPWA = async () => {
     if (deferredPrompt) {
@@ -328,35 +253,6 @@ export default function App() {
       }
     } else {
       setShowInstallModal(true);
-    }
-  };
-
-  // Mesma assinatura de sempre (recebe a lista inteira do médico atual), mas por
-  // dentro só grava/apaga os pacientes que de fato mudaram, em documentos
-  // individuais dentro de "doctors/{doctorId}/patients/{patientId}".
-  const saveToFirestore = async (updatedList: Patient[]) => {
-    const previous = patients;
-    setPatients(updatedList);
-    try {
-      const prevMap = new Map(previous.map((p) => [p.id, p]));
-      const nextIds = new Set(updatedList.map((p) => p.id));
-
-      const writes = updatedList
-        .filter((p) => prevMap.get(p.id) !== p)
-        .map((p) => {
-          const doctorId = p.doctorId || currentDoctorProfile.id;
-          const cpfDigits = (p.cpf || '').replace(/\D/g, '');
-          const emailLower = (p.email || '').toLowerCase().trim();
-          return setDoc(doc(db, "doctors", doctorId, "patients", p.id), { ...p, doctorId, cpfDigits, emailLower }, { merge: true });
-        });
-
-      const deletes = previous
-        .filter((p) => !nextIds.has(p.id))
-        .map((p) => deleteDoc(doc(db, "doctors", p.doctorId || currentDoctorProfile.id, "patients", p.id)));
-
-      await Promise.all([...writes, ...deletes]);
-    } catch (err) {
-      console.error("Erro ao salvar no Firestore:", err);
     }
   };
 
@@ -682,7 +578,6 @@ if (loginRole === 'secretaria') {
 
       // 5. Salva na lista e sincroniza com o Firestore
       const novaLista = patients.map(p => p.id === updated.id ? updated : p);
-      setPatients(novaLista);
       await saveToFirestore(novaLista);
 
       setIsUploading(false);
@@ -1868,24 +1763,7 @@ if (loginRole === 'secretaria') {
         currentDoctor={currentDoctorProfile}
         globalConfig={globalConfig}
         secretaries={secretaries}
-        onSaveSecretaries={async (updatedSecs) => {
-          const previousSecs = secretaries;
-          setSecretaries(updatedSecs);
-          try {
-            const prevMap = new Map(previousSecs.map((s) => [s.id, s]));
-            const nextIds = new Set(updatedSecs.map((s) => s.id));
-            await Promise.all([
-              ...updatedSecs
-                .filter((s) => prevMap.get(s.id) !== s)
-                .map((s) => setDoc(doc(db, "doctors", currentDoctorProfile.id, "secretaries", s.email), s, { merge: true })),
-              ...previousSecs
-                .filter((s) => !nextIds.has(s.id))
-                .map((s) => deleteDoc(doc(db, "doctors", currentDoctorProfile.id, "secretaries", s.email)))
-            ]);
-          } catch (err) {
-            console.error("Erro ao salvar secretárias:", err);
-          }
-        }}
+        onSaveSecretaries={saveSecretaries}
         onSave={async (updatedDoctor) => {
           setCurrentDoctorProfile(updatedDoctor);
           const updatedList = saasDoctors.map(d => d.id === updatedDoctor.id ? updatedDoctor : d);
