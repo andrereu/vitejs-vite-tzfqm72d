@@ -91,6 +91,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           },
           { merge: true }
         );
+
+        // Grava no extrato de pagamentos. Usa o ID do próprio pagamento do
+        // Mercado Pago como ID do documento — se o webhook disparar duas
+        // vezes para o mesmo pagamento (acontece), não duplica o registro.
+        await doctorRef.collection('payments').doc(String(paymentId)).set({
+          id: String(paymentId),
+          data: now.toISOString(),
+          valor: Number(payment.transaction_amount) || Number(doctor.valorMensalidade) || 0,
+          metodo: 'mercadopago',
+          origem: 'Mercado Pago (Pix/Cartão)',
+          mpPaymentId: String(paymentId)
+        });
       } else {
         console.warn(`Webhook Mercado Pago: médico ${doctorId} não encontrado.`);
       }

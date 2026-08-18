@@ -58,6 +58,18 @@ export interface ClinicSecretary {
 }
 
 
+// Um registro por pagamento recebido — extrato de cada médico, guardado em
+// doctors/{doctorId}/payments/{id}. Diferente de "ultimoPagamento" (só o
+// último), isso é o histórico completo.
+export interface PaymentRecord {
+  id: string;
+  data: string; // ISO
+  valor: number;
+  metodo: 'pix_manual' | 'mercadopago';
+  origem: string; // Ex: "Confirmação manual (Admin)" ou "Mercado Pago (Pix/Cartão)"
+  mpPaymentId?: string; // ID do pagamento no Mercado Pago, quando aplicável
+}
+
 export interface SaaSMetrics {
   mrr: number;
   totalMedicos: number;

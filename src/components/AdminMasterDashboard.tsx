@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import {
   Users, DollarSign, Clock, ShieldCheck,
   Search, CheckCircle2, Ban, X,
-  Save, LogOut, Settings, UserPlus, Terminal
+  Save, LogOut, Settings, UserPlus, Terminal, Pencil, Receipt
 } from 'lucide-react';
 import type { DoctorTenant, SaasGlobalConfig } from '../types/saas';
 import { useDoctorPatientCounts } from '../hooks/useDoctorPatientCounts';
+import { usePaymentHistory } from '../hooks/usePaymentHistory';
 
 interface AdminMasterDashboardProps {
   doctors: DoctorTenant[];
@@ -37,6 +38,23 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
   const [isSavingConfig, setIsSavingConfig] = useState(false);
 
   const patientCounts = useDoctorPatientCounts(doctors.map((d) => d.id));
+
+  const [editingDoctor, setEditingDoctor] = useState<DoctorTenant | null>(null);
+  const [editDoctorForm, setEditDoctorForm] = useState({
+    nome: '',
+    email: '',
+    crm: '',
+    telefone: '',
+    clinicaNome: '',
+    especialidade: '',
+    plano: 'individual_pro' as 'individual_pro' | 'clinica_multi',
+    valorMensalidade: 89
+  });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  const [historyDoctorId, setHistoryDoctorId] = useState<string | null>(null);
+  const { payments: paymentHistory, recordManualPayment } = usePaymentHistory(historyDoctorId);
+  const historyDoctor = doctors.find((d) => d.id === historyDoctorId) || null;
 
   // Form State para Novo Médico
   const [newDoctor, setNewDoctor] = useState({
@@ -79,6 +97,7 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
   };
 
   const handleStatusChange = async (doctorId: string, newStatus: DoctorTenant['status']) => {
+    const targetDoctor = doctors.find(d => d.id === doctorId);
     const updated = doctors.map(d => {
       if (d.id === doctorId) {
         const hoje = new Date();
@@ -93,6 +112,51 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
       return d;
     });
     await onSaveDoctors(updated);
+
+    if (newStatus === 'active' && targetDoctor) {
+      await recordManualPayment(doctorId, targetDoctor.valorMensalidade || 89);
+    }
+  };
+
+  const handleOpenEditDoctor = (doctor: DoctorTenant) => {
+    setEditingDoctor(doctor);
+    setEditDoctorForm({
+      nome: doctor.nome,
+      email: doctor.email,
+      crm: doctor.crm,
+      telefone: doctor.telefone || '',
+      clinicaNome: doctor.clinicaNome || '',
+      especialidade: doctor.especialidade || '',
+      plano: doctor.plano,
+      valorMensalidade: doctor.valorMensalidade || 89
+    });
+  };
+
+  const handleSaveEditDoctor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingDoctor) return;
+    setIsSavingEdit(true);
+    try {
+      const updated = doctors.map(d =>
+        d.id === editingDoctor.id
+          ? {
+              ...d,
+              nome: editDoctorForm.nome,
+              email: editDoctorForm.email.toLowerCase().trim(),
+              crm: editDoctorForm.crm.trim(),
+              telefone: editDoctorForm.telefone,
+              clinicaNome: editDoctorForm.clinicaNome,
+              especialidade: editDoctorForm.especialidade,
+              plano: editDoctorForm.plano,
+              valorMensalidade: Number(editDoctorForm.valorMensalidade)
+            }
+          : d
+      );
+      await onSaveDoctors(updated);
+      setEditingDoctor(null);
+    } finally {
+      setIsSavingEdit(false);
+    }
   };
 
   const handleExtendTrial = async (doctorId: string, diasExtras: number) => {
@@ -374,6 +438,22 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
                             Bloquear
                           </button>
                         )}
+
+                        <button
+                          onClick={() => handleOpenEditDoctor(doc)}
+                          className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md cursor-pointer border border-slate-700"
+                          title="Editar dados cadastrais"
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </button>
+
+                        <button
+                          onClick={() => setHistoryDoctorId(doc.id)}
+                          className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md cursor-pointer border border-slate-700"
+                          title="Ver histórico de pagamentos"
+                        >
+                          <Receipt className="w-3 h-3" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -610,6 +690,183 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
             </div>
           </div>
         )}
+
+      {/* MODAL EDITAR MÉDICO */}
+      {editingDoctor && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in zoom-in duration-200">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-slate-100">
+
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-sky-500/10 text-sky-400 rounded-lg border border-sky-500/20">
+                  <Pencil className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-100 text-base">Editar Médico</h3>
+                  <p className="text-xs text-slate-500">{editingDoctor.nome}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingDoctor(null)}
+                className="text-slate-500 hover:text-slate-200 cursor-pointer p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditDoctor} className="space-y-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClasses}>Nome Completo *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editDoctorForm.nome}
+                    onChange={(e) => setEditDoctorForm({ ...editDoctorForm, nome: e.target.value })}
+                    className={inputClasses}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelClasses}>CRM com UF *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editDoctorForm.crm}
+                    onChange={(e) => setEditDoctorForm({ ...editDoctorForm, crm: e.target.value })}
+                    className={inputClasses}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelClasses}>E-mail de Acesso *</label>
+                  <input
+                    type="email"
+                    required
+                    value={editDoctorForm.email}
+                    onChange={(e) => setEditDoctorForm({ ...editDoctorForm, email: e.target.value })}
+                    className={inputClasses}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelClasses}>WhatsApp / Telefone</label>
+                  <input
+                    type="text"
+                    value={editDoctorForm.telefone}
+                    onChange={(e) => setEditDoctorForm({ ...editDoctorForm, telefone: e.target.value })}
+                    className={inputClasses}
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className={labelClasses}>Nome da Clínica / Consultório</label>
+                  <input
+                    type="text"
+                    value={editDoctorForm.clinicaNome}
+                    onChange={(e) => setEditDoctorForm({ ...editDoctorForm, clinicaNome: e.target.value })}
+                    className={inputClasses}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelClasses}>Plano</label>
+                  <select
+                    value={editDoctorForm.plano}
+                    onChange={(e) => setEditDoctorForm({ ...editDoctorForm, plano: e.target.value as any })}
+                    className={`${inputClasses} font-bold`}
+                  >
+                    <option value="individual_pro">Individual Pro</option>
+                    <option value="clinica_multi">Clínica Multi</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className={labelClasses}>Valor da Mensalidade (R$)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    value={editDoctorForm.valorMensalidade}
+                    onChange={(e) => setEditDoctorForm({ ...editDoctorForm, valorMensalidade: Number(e.target.value) })}
+                    className={inputClasses}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingDoctor(null)}
+                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-lg cursor-pointer border border-slate-700"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit}
+                  className="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-lg flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-60"
+                >
+                  <Save className="w-4 h-4" /> {isSavingEdit ? 'Salvando...' : 'Salvar Alterações'}
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* MODAL HISTÓRICO DE PAGAMENTOS */}
+      {historyDoctorId && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in zoom-in duration-200">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-slate-100">
+
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-sky-500/10 text-sky-400 rounded-lg border border-sky-500/20">
+                  <Receipt className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-100 text-base">Histórico de Pagamentos</h3>
+                  <p className="text-xs text-slate-500">{historyDoctor?.nome || 'Médico'}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setHistoryDoctorId(null)}
+                className="text-slate-500 hover:text-slate-200 cursor-pointer p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {paymentHistory.length === 0 ? (
+              <div className="text-center py-8 text-slate-500 text-xs">
+                Nenhum pagamento registrado ainda.
+              </div>
+            ) : (
+              <div className="max-h-96 overflow-y-auto space-y-2">
+                {paymentHistory.map((p) => (
+                  <div key={p.id} className="bg-slate-950 border border-slate-800 rounded-lg p-3 flex justify-between items-center text-xs">
+                    <div>
+                      <span className="font-bold text-slate-100 block">
+                        {new Date(p.data).toLocaleDateString('pt-BR')} às {new Date(p.data).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      <span className="text-[10px] text-slate-500 uppercase">{p.origem}</span>
+                    </div>
+                    <span className="font-mono font-bold text-emerald-400">
+                      R$ {p.valor.toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
 
     </div>
   );

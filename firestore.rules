@@ -6,6 +6,7 @@ rules_version = '2';
 //   doctors/{doctorId}                         -> perfil e assinatura do médico/clínica
 //   doctors/{doctorId}/patients/{patientId}     -> prontuários das gestantes daquele médico
 //   doctors/{doctorId}/secretaries/{email}      -> equipe (secretárias) daquele médico
+//   doctors/{doctorId}/payments/{paymentId}     -> extrato de pagamentos daquele médico
 //   saas_config/financeiro                      -> configuração global (chave PIX, etc.)
 //
 // IMPORTANTE: a lista de super admins abaixo precisa ficar igual à constante
@@ -59,6 +60,14 @@ service cloud.firestore {
       match /secretaries/{secretaryEmail} {
         allow read: if isStaffOfDoctor(doctorId);
         allow write: if isSuperAdmin() || isOwnerDoctor(doctorId);
+      }
+
+      match /payments/{paymentId} {
+        // Extrato de pagamentos: o médico pode ver o próprio histórico, mas
+        // só o Super Admin (ou o webhook do Mercado Pago, via Admin SDK, que
+        // ignora estas regras) grava novos registros.
+        allow read: if isSuperAdmin() || isOwnerDoctor(doctorId);
+        allow write: if isSuperAdmin();
       }
     }
 
