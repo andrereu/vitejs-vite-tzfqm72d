@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getAdminFirestore } from './_lib/firebaseAdmin';
+import { getAdminFirestore } from './_lib/firebaseAdmin.js';
 
 // Cria um link de pagamento (Mercado Pago Checkout Pro, aceita Pix e cartão)
 // para a assinatura de um médico/clínica. O valor é lido do próprio Firestore

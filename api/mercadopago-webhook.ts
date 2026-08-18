@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
-import { getAdminFirestore } from './_lib/firebaseAdmin';
+import { getAdminFirestore } from './_lib/firebaseAdmin.js';
 
 // Recebe o aviso de pagamento do Mercado Pago e libera a assinatura da
 // médica automaticamente — sem precisar de ninguém conferindo comprovante
