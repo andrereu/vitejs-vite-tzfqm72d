@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Users, DollarSign, Clock, ShieldCheck,
   Search, CheckCircle2, Ban, X,
-  Save, LogOut, Settings, UserPlus
+  Save, LogOut, Settings, UserPlus, Terminal
 } from 'lucide-react';
 import type { DoctorTenant, SaasGlobalConfig } from '../types/saas';
 import { useDoctorPatientCounts } from '../hooks/useDoctorPatientCounts';
@@ -14,6 +14,13 @@ interface AdminMasterDashboardProps {
   onSaveGlobalConfig: (config: SaasGlobalConfig) => Promise<void> | void;
   onLogout: () => void;
 }
+
+// Visual propositalmente diferente do painel da médica (verde/dourado,
+// cantos bem arredondados): aqui é um "painel de operações" escuro, com
+// cantos mais retos e números grandes — pra ficar claro, só de olhar, que
+// é uma ferramenta interna, não a área de atendimento da clínica.
+const inputClasses = 'w-full p-2.5 bg-slate-950 border border-slate-700 rounded-lg text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-sky-500';
+const labelClasses = 'font-bold text-slate-400 uppercase text-[10px] block mb-1 tracking-wider';
 
 export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
   doctors,
@@ -152,453 +159,460 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
     }
   };
 
-  const filteredDoctors = doctors.filter(d => 
+  const filteredDoctors = doctors.filter(d =>
     (d.nome || '').toLowerCase().includes(search.toLowerCase()) ||
     (d.email || '').toLowerCase().includes(search.toLowerCase()) ||
     (d.crm || '').includes(search)
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-      
-      {/* CABEÇALHO */}
-      <div className="bg-[#2E482A] text-white p-6 rounded-3xl shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <span className="text-[10px] text-[#A3B18A] uppercase font-bold tracking-widest block">
-            Painel Super Administrador • MaternaIA SaaS
-          </span>
-          <h2 className="text-2xl font-bold text-white mt-1">Gestão de Clínicas & Assinaturas</h2>
-        </div>
-        <button
-          onClick={onLogout}
-          className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-all"
-        >
-          <LogOut className="w-4 h-4" /> Sair do Painel Master
-        </button>
-      </div>
+    <div className="-mx-4 sm:mx-[calc(50%-50vw)] bg-slate-950 min-h-screen px-4 sm:px-8 py-6">
+      <div className="max-w-7xl mx-auto space-y-6">
 
-      {/* CARDS DE MÉTRICAS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs space-y-1">
-          <div className="flex justify-between items-center text-gray-400">
-            <span className="text-[10px] font-bold uppercase">MRR (Recorrência Mensal)</span>
-            <DollarSign className="w-4 h-4 text-emerald-600" />
+        {/* CABEÇALHO */}
+        <div className="bg-black border border-slate-800 text-white p-6 rounded-xl shadow-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-sky-500/10 text-sky-400 rounded-lg border border-sky-500/20">
+              <Terminal className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[10px] text-sky-400 uppercase font-bold tracking-widest block font-mono">
+                painel-admin // maternaia-saas
+              </span>
+              <h2 className="text-2xl font-bold text-white mt-0.5">Gestão de Clínicas & Assinaturas</h2>
+            </div>
           </div>
-          <div className="text-2xl font-bold text-gray-900">
-            R$ {mrr.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-          </div>
-          <span className="text-[11px] text-emerald-600 font-medium">
-            {activeDoctors} assinaturas ativas
-          </span>
+          <button
+            onClick={onLogout}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold flex items-center gap-2 cursor-pointer transition-all border border-slate-700"
+          >
+            <LogOut className="w-4 h-4" /> Sair do Painel
+          </button>
         </div>
 
-        <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs space-y-1">
-          <div className="flex justify-between items-center text-gray-400">
-            <span className="text-[10px] font-bold uppercase">Médicos Cadastrados</span>
-            <Users className="w-4 h-4 text-[#2E482A]" />
+        {/* CARDS DE MÉTRICAS */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-slate-900 p-5 rounded-xl border border-slate-800 border-l-4 border-l-sky-500 space-y-1">
+            <div className="flex justify-between items-center text-slate-500">
+              <span className="text-[10px] font-bold uppercase tracking-wider">MRR (Recorrência Mensal)</span>
+              <DollarSign className="w-4 h-4 text-sky-400" />
+            </div>
+            <div className="text-3xl font-mono font-bold text-white">
+              R$ {mrr.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </div>
+            <span className="text-[11px] text-sky-400 font-medium">
+              {activeDoctors} assinaturas ativas
+            </span>
           </div>
-          <div className="text-2xl font-bold text-gray-900">{totalDoctors}</div>
-          <span className="text-[11px] text-gray-500 font-medium">
-            {trialDoctors} em degustação / {blockedDoctors} pendentes
-          </span>
+
+          <div className="bg-slate-900 p-5 rounded-xl border border-slate-800 border-l-4 border-l-indigo-500 space-y-1">
+            <div className="flex justify-between items-center text-slate-500">
+              <span className="text-[10px] font-bold uppercase tracking-wider">Médicos Cadastrados</span>
+              <Users className="w-4 h-4 text-indigo-400" />
+            </div>
+            <div className="text-3xl font-mono font-bold text-white">{totalDoctors}</div>
+            <span className="text-[11px] text-slate-500 font-medium">
+              {trialDoctors} em degustação / {blockedDoctors} pendentes
+            </span>
+          </div>
+
+          <div className="bg-slate-900 p-5 rounded-xl border border-slate-800 border-l-4 border-l-fuchsia-500 space-y-1">
+            <div className="flex justify-between items-center text-slate-500">
+              <span className="text-[10px] font-bold uppercase tracking-wider">Gestantes no Sistema</span>
+              <ShieldCheck className="w-4 h-4 text-fuchsia-400" />
+            </div>
+            <div className="text-3xl font-mono font-bold text-white">{totalPatients}</div>
+            <span className="text-[11px] text-fuchsia-400 font-medium">
+              Base ativa de pacientes
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleOpenPaymentConfig}
+            className="bg-slate-900 p-5 rounded-xl border border-slate-800 border-l-4 border-l-amber-500 space-y-1 text-left cursor-pointer hover:border-slate-700 transition-all"
+            title="Clique para editar a chave PIX e os dados de recebimento"
+          >
+            <div className="flex justify-between items-center text-slate-500">
+              <span className="text-[10px] font-bold uppercase tracking-wider">Chave PIX Recebimento</span>
+              <Settings className="w-4 h-4 text-amber-400" />
+            </div>
+            <div className="text-sm font-mono font-bold text-white truncate">
+              {globalConfig.pixKey || 'Não configurada — clique para definir'}
+            </div>
+            <span className="text-[11px] text-slate-500 font-medium uppercase">
+              {globalConfig.pixKeyType || 'pix manual'}
+            </span>
+          </button>
         </div>
 
-        <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs space-y-1">
-          <div className="flex justify-between items-center text-gray-400">
-            <span className="text-[10px] font-bold uppercase">Gestantes no Sistema</span>
-            <ShieldCheck className="w-4 h-4 text-purple-600" />
-          </div>
-          <div className="text-2xl font-bold text-gray-900">{totalPatients}</div>
-          <span className="text-[11px] text-purple-600 font-medium">
-            Base ativa de pacientes
-          </span>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleOpenPaymentConfig}
-          className="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs space-y-1 text-left cursor-pointer hover:border-[#2E482A]/40 transition-all"
-          title="Clique para editar a chave PIX e os dados de recebimento"
-        >
-          <div className="flex justify-between items-center text-gray-400">
-            <span className="text-[10px] font-bold uppercase">Chave PIX Recebimento</span>
-            <Settings className="w-4 h-4 text-[#D4AF37]" />
-          </div>
-          <div className="text-sm font-bold text-gray-900 truncate">
-            {globalConfig.pixKey || 'Não configurada — clique para definir'}
-          </div>
-          <span className="text-[11px] text-gray-500 font-medium uppercase">
-            {globalConfig.pixKeyType || 'pix manual'}
-          </span>
-        </button>
-      </div>
-
-      {/* LISTAGEM DE MÉDICOS & AÇÕES */}
-      <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-4">
-          <div>
-            <h3 className="font-bold text-gray-900 text-base">Controle de Assinaturas</h3>
-            <p className="text-xs text-gray-500">Libere acessos após conferência do PIX ou cadastre novas contas</p>
-          </div>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <div className="relative flex-1 sm:w-64">
-              <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Buscar médico, CRM ou e-mail..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-xs bg-gray-50 border rounded-xl"
-              />
+        {/* LISTAGEM DE MÉDICOS & AÇÕES */}
+        <div className="bg-slate-900 p-6 rounded-xl border border-slate-800 space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-4">
+            <div>
+              <h3 className="font-bold text-slate-100 text-base">Controle de Assinaturas</h3>
+              <p className="text-xs text-slate-500">Libere acessos após conferência do PIX ou cadastre novas contas</p>
             </div>
 
-            <button
-              onClick={() => setShowNewDoctorModal(true)}
-              className="px-4 py-2 bg-[#2E482A] hover:bg-[#233820] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm transition-all whitespace-nowrap"
-            >
-              <UserPlus className="w-4 h-4" /> Novo Médico
-            </button>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="p-3 font-bold text-gray-700">Médico(a) / Clínica</th>
-                <th className="p-3 font-bold text-gray-700">Plano & Valor</th>
-                <th className="p-3 font-bold text-gray-700">Status Atual</th>
-                <th className="p-3 font-bold text-gray-700">Vencimento / Trial</th>
-                <th className="p-3 font-bold text-gray-700 text-center">Ações Rápidas</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filteredDoctors.map((doc) => (
-                <tr key={doc.id} className="hover:bg-gray-50">
-                  <td className="p-3">
-                    <strong className="text-gray-900 block font-bold">{doc.nome}</strong>
-                    <span className="text-[11px] text-gray-500 block">
-                      CRM {doc.crm} • {doc.email}
-                    </span>
-                    <span className="text-[10px] text-emerald-700 font-medium block">
-                      {doc.clinicaNome || 'Consultório'}
-                    </span>
-                  </td>
-
-                  <td className="p-3">
-                    <span className="font-bold text-gray-900 block">
-                      R$ {(doc.valorMensalidade || 89).toFixed(2)}/mês
-                    </span>
-                    <span className="text-[10px] text-gray-500 uppercase">
-                      {doc.plano === 'individual_pro' ? 'Individual Pro' : 'Clínica Multi'}
-                    </span>
-                  </td>
-
-                  <td className="p-3">
-                    {doc.status === 'active' && (
-                      <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full font-bold text-[10px] inline-flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> ATIVO
-                      </span>
-                    )}
-                    {doc.status === 'trial' && (
-                      <span className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full font-bold text-[10px] inline-flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> DEGUSTAÇÃO
-                      </span>
-                    )}
-                    {(doc.status === 'past_due' || doc.status === 'blocked') && (
-                      <span className="px-2.5 py-1 bg-rose-100 text-rose-800 rounded-full font-bold text-[10px] inline-flex items-center gap-1">
-                        <Ban className="w-3 h-3" /> BLOQUEADO
-                      </span>
-                    )}
-                  </td>
-
-                  <td className="p-3 text-gray-600">
-                    {doc.status === 'active' ? (
-                      <div>
-                        <span className="font-bold text-gray-900 block">
-                          {doc.validadeAssinatura ? new Date(doc.validadeAssinatura).toLocaleDateString('pt-BR') : 'Sem data'}
-                        </span>
-                        <span className="text-[10px] text-gray-400">Validade do PIX</span>
-                      </div>
-                    ) : (
-                      <div>
-                        <span className="font-bold text-gray-900 block">
-                          {doc.trialEndsAt ? new Date(doc.trialEndsAt).toLocaleDateString('pt-BR') : 'Expirado'}
-                        </span>
-                        <span className="text-[10px] text-gray-400">Fim do Trial</span>
-                      </div>
-                    )}
-                  </td>
-
-                  <td className="p-3">
-                    <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                      {doc.status !== 'active' && (
-                        <button
-                          onClick={() => handleStatusChange(doc.id, 'active')}
-                          className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg font-bold text-[10px] cursor-pointer shadow-xs"
-                          title="Confirmar PIX e ativar por +30 dias"
-                        >
-                          Confirmar PIX
-                        </button>
-                      )}
-
-                      {doc.status === 'trial' && (
-                        <button
-                          onClick={() => handleExtendTrial(doc.id, 7)}
-                          className="px-2 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-bold text-[10px] cursor-pointer"
-                          title="Dar +7 dias de degustação"
-                        >
-                          +7d Trial
-                        </button>
-                      )}
-
-                      {doc.status === 'active' && (
-                        <button
-                          onClick={() => handleStatusChange(doc.id, 'blocked')}
-                          className="px-2 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-bold text-[10px] cursor-pointer"
-                          title="Suspender acesso"
-                        >
-                          Bloquear
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* MODAL CADASTRAR NOVO MÉDICO */}
-      {showNewDoctorModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in zoom-in duration-200">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-gray-800">
-            
-            <div className="flex justify-between items-center border-b pb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-[#2E482A]/10 text-[#2E482A] rounded-xl">
-                  <UserPlus className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 text-base">Cadastrar Novo Médico</h3>
-                  <p className="text-xs text-gray-500">Crie a conta e libere o período de testes</p>
-                </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-64">
+                <Search className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Buscar médico, CRM ou e-mail..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-950 border border-slate-700 rounded-lg text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-sky-500"
+                />
               </div>
-              <button 
-                type="button"
-                onClick={() => setShowNewDoctorModal(false)}
-                className="text-gray-400 hover:text-gray-700 cursor-pointer p-1 rounded-lg"
+
+              <button
+                onClick={() => setShowNewDoctorModal(true)}
+                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm transition-all whitespace-nowrap"
               >
-                <X className="w-5 h-5" />
+                <UserPlus className="w-4 h-4" /> Novo Médico
               </button>
             </div>
+          </div>
 
-            <form onSubmit={handleCreateDoctor} className="space-y-3 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">Nome Completo *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ex: Dr. Lucas Silveira"
-                    value={newDoctor.nome}
-                    onChange={(e) => setNewDoctor({ ...newDoctor, nome: e.target.value })}
-                    className="w-full p-2.5 bg-gray-50 border rounded-xl"
-                  />
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-950/60 border-b border-slate-800">
+                <tr>
+                  <th className="p-3 font-bold text-slate-500 uppercase tracking-wider">Médico(a) / Clínica</th>
+                  <th className="p-3 font-bold text-slate-500 uppercase tracking-wider">Plano & Valor</th>
+                  <th className="p-3 font-bold text-slate-500 uppercase tracking-wider">Status Atual</th>
+                  <th className="p-3 font-bold text-slate-500 uppercase tracking-wider">Vencimento / Trial</th>
+                  <th className="p-3 font-bold text-slate-500 uppercase tracking-wider text-center">Ações Rápidas</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800">
+                {filteredDoctors.map((doc) => (
+                  <tr key={doc.id} className="hover:bg-slate-800/40">
+                    <td className="p-3">
+                      <strong className="text-slate-100 block font-bold">{doc.nome}</strong>
+                      <span className="text-[11px] text-slate-500 block">
+                        CRM {doc.crm} • {doc.email}
+                      </span>
+                      <span className="text-[10px] text-sky-400 font-medium block">
+                        {doc.clinicaNome || 'Consultório'}
+                      </span>
+                    </td>
+
+                    <td className="p-3">
+                      <span className="font-mono font-bold text-slate-100 block">
+                        R$ {(doc.valorMensalidade || 89).toFixed(2)}/mês
+                      </span>
+                      <span className="text-[10px] text-slate-500 uppercase">
+                        {doc.plano === 'individual_pro' ? 'Individual Pro' : 'Clínica Multi'}
+                      </span>
+                    </td>
+
+                    <td className="p-3">
+                      {doc.status === 'active' && (
+                        <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md font-bold text-[10px] inline-flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> ATIVO
+                        </span>
+                      )}
+                      {doc.status === 'trial' && (
+                        <span className="px-2.5 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-md font-bold text-[10px] inline-flex items-center gap-1">
+                          <Clock className="w-3 h-3" /> DEGUSTAÇÃO
+                        </span>
+                      )}
+                      {(doc.status === 'past_due' || doc.status === 'blocked') && (
+                        <span className="px-2.5 py-1 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-md font-bold text-[10px] inline-flex items-center gap-1">
+                          <Ban className="w-3 h-3" /> BLOQUEADO
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="p-3 text-slate-400">
+                      {doc.status === 'active' ? (
+                        <div>
+                          <span className="font-bold text-slate-100 block">
+                            {doc.validadeAssinatura ? new Date(doc.validadeAssinatura).toLocaleDateString('pt-BR') : 'Sem data'}
+                          </span>
+                          <span className="text-[10px] text-slate-500">Validade do PIX</span>
+                        </div>
+                      ) : (
+                        <div>
+                          <span className="font-bold text-slate-100 block">
+                            {doc.trialEndsAt ? new Date(doc.trialEndsAt).toLocaleDateString('pt-BR') : 'Expirado'}
+                          </span>
+                          <span className="text-[10px] text-slate-500">Fim do Trial</span>
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="p-3">
+                      <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                        {doc.status !== 'active' && (
+                          <button
+                            onClick={() => handleStatusChange(doc.id, 'active')}
+                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md font-bold text-[10px] cursor-pointer shadow-xs"
+                            title="Confirmar PIX e ativar por +30 dias"
+                          >
+                            Confirmar PIX
+                          </button>
+                        )}
+
+                        {doc.status === 'trial' && (
+                          <button
+                            onClick={() => handleExtendTrial(doc.id, 7)}
+                            className="px-2 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded-md font-bold text-[10px] cursor-pointer"
+                            title="Dar +7 dias de degustação"
+                          >
+                            +7d Trial
+                          </button>
+                        )}
+
+                        {doc.status === 'active' && (
+                          <button
+                            onClick={() => handleStatusChange(doc.id, 'blocked')}
+                            className="px-2 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded-md font-bold text-[10px] cursor-pointer"
+                            title="Suspender acesso"
+                          >
+                            Bloquear
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* MODAL CADASTRAR NOVO MÉDICO */}
+        {showNewDoctorModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in zoom-in duration-200">
+            <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-slate-100">
+
+              <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-sky-500/10 text-sky-400 rounded-lg border border-sky-500/20">
+                    <UserPlus className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-100 text-base">Cadastrar Novo Médico</h3>
+                    <p className="text-xs text-slate-500">Crie a conta e libere o período de testes</p>
+                  </div>
                 </div>
-
-                <div>
-                  <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">CRM com UF *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ex: 34567-PR"
-                    value={newDoctor.crm}
-                    onChange={(e) => setNewDoctor({ ...newDoctor, crm: e.target.value })}
-                    className="w-full p-2.5 bg-gray-50 border rounded-xl"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">E-mail de Acesso *</label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="medico@clinica.com.br"
-                    value={newDoctor.email}
-                    onChange={(e) => setNewDoctor({ ...newDoctor, email: e.target.value })}
-                    className="w-full p-2.5 bg-gray-50 border rounded-xl"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">WhatsApp / Telefone</label>
-                  <input
-                    type="text"
-                    placeholder="(41) 99999-9999"
-                    value={newDoctor.telefone}
-                    onChange={(e) => setNewDoctor({ ...newDoctor, telefone: e.target.value })}
-                    className="w-full p-2.5 bg-gray-50 border rounded-xl"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">Nome da Clínica / Consultório</label>
-                  <input
-                    type="text"
-                    placeholder="Ex: Clínica Materno Fetal"
-                    value={newDoctor.clinicaNome}
-                    onChange={(e) => setNewDoctor({ ...newDoctor, clinicaNome: e.target.value })}
-                    className="w-full p-2.5 bg-gray-50 border rounded-xl"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">Plano Inicial</label>
-                  <select
-                    value={newDoctor.plano}
-                    onChange={(e) => setNewDoctor({ ...newDoctor, plano: e.target.value as any })}
-                    className="w-full p-2.5 bg-gray-50 border rounded-xl font-bold"
-                  >
-                    <option value="individual_pro">Individual Pro (R$ 89/mês)</option>
-                    <option value="clinica_multi">Clínica Multi (R$ 179/mês)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">Dias de Degustação</label>
-                  <select
-                    value={newDoctor.trialDays}
-                    onChange={(e) => setNewDoctor({ ...newDoctor, trialDays: Number(e.target.value) })}
-                    className="w-full p-2.5 bg-gray-50 border rounded-xl font-bold"
-                  >
-                    <option value={7}>7 dias grátis</option>
-                    <option value={14}>14 dias grátis</option>
-                    <option value={30}>30 dias grátis</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t">
                 <button
                   type="button"
                   onClick={() => setShowNewDoctorModal(false)}
-                  className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl cursor-pointer"
+                  className="text-slate-500 hover:text-slate-200 cursor-pointer p-1 rounded-lg"
                 >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="px-5 py-2.5 bg-[#2E482A] hover:bg-[#233820] text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-sm"
-                >
-                  <Save className="w-4 h-4" /> {isSaving ? 'Cadastrando...' : 'Cadastrar Médico'}
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            </form>
 
-          </div>
-        </div>
-      )}
+              <form onSubmit={handleCreateDoctor} className="space-y-3 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelClasses}>Nome Completo *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ex: Dr. Lucas Silveira"
+                      value={newDoctor.nome}
+                      onChange={(e) => setNewDoctor({ ...newDoctor, nome: e.target.value })}
+                      className={inputClasses}
+                    />
+                  </div>
 
-      {/* MODAL CONFIGURAR RECEBIMENTO (PIX GLOBAL DO SAAS) */}
-      {showPaymentConfigModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in zoom-in duration-200">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 text-gray-800">
+                  <div>
+                    <label className={labelClasses}>CRM com UF *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ex: 34567-PR"
+                      value={newDoctor.crm}
+                      onChange={(e) => setNewDoctor({ ...newDoctor, crm: e.target.value })}
+                      className={inputClasses}
+                    />
+                  </div>
 
-            <div className="flex justify-between items-center border-b pb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-[#2E482A]/10 text-[#2E482A] rounded-xl">
-                  <Settings className="w-5 h-5" />
+                  <div>
+                    <label className={labelClasses}>E-mail de Acesso *</label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="medico@clinica.com.br"
+                      value={newDoctor.email}
+                      onChange={(e) => setNewDoctor({ ...newDoctor, email: e.target.value })}
+                      className={inputClasses}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={labelClasses}>WhatsApp / Telefone</label>
+                    <input
+                      type="text"
+                      placeholder="(41) 99999-9999"
+                      value={newDoctor.telefone}
+                      onChange={(e) => setNewDoctor({ ...newDoctor, telefone: e.target.value })}
+                      className={inputClasses}
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className={labelClasses}>Nome da Clínica / Consultório</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Clínica Materno Fetal"
+                      value={newDoctor.clinicaNome}
+                      onChange={(e) => setNewDoctor({ ...newDoctor, clinicaNome: e.target.value })}
+                      className={inputClasses}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={labelClasses}>Plano Inicial</label>
+                    <select
+                      value={newDoctor.plano}
+                      onChange={(e) => setNewDoctor({ ...newDoctor, plano: e.target.value as any })}
+                      className={`${inputClasses} font-bold`}
+                    >
+                      <option value="individual_pro">Individual Pro (R$ 89/mês)</option>
+                      <option value="clinica_multi">Clínica Multi (R$ 179/mês)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className={labelClasses}>Dias de Degustação</label>
+                    <select
+                      value={newDoctor.trialDays}
+                      onChange={(e) => setNewDoctor({ ...newDoctor, trialDays: Number(e.target.value) })}
+                      className={`${inputClasses} font-bold`}
+                    >
+                      <option value={7}>7 dias grátis</option>
+                      <option value={14}>14 dias grátis</option>
+                      <option value={30}>30 dias grátis</option>
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 text-base">Configurar Recebimento</h3>
-                  <p className="text-xs text-gray-500">Chave PIX exibida às médicas na renovação manual</p>
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setShowNewDoctorModal(false)}
+                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-lg cursor-pointer border border-slate-700"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-lg flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-60"
+                  >
+                    <Save className="w-4 h-4" /> {isSaving ? 'Cadastrando...' : 'Cadastrar Médico'}
+                  </button>
                 </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowPaymentConfigModal(false)}
-                className="text-gray-400 hover:text-gray-700 cursor-pointer p-1 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              </form>
+
             </div>
+          </div>
+        )}
 
-            <form onSubmit={handleSavePaymentConfig} className="space-y-3 text-xs">
-              <div>
-                <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">Chave PIX *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"
-                  value={paymentConfigForm.pixKey}
-                  onChange={(e) => setPaymentConfigForm({ ...paymentConfigForm, pixKey: e.target.value })}
-                  className="w-full p-2.5 bg-gray-50 border rounded-xl"
-                />
-              </div>
+        {/* MODAL CONFIGURAR RECEBIMENTO (PIX GLOBAL DO SAAS) */}
+        {showPaymentConfigModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in zoom-in duration-200">
+            <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4 text-slate-100">
 
-              <div>
-                <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">Tipo da Chave</label>
-                <select
-                  value={paymentConfigForm.pixKeyType}
-                  onChange={(e) => setPaymentConfigForm({ ...paymentConfigForm, pixKeyType: e.target.value as SaasGlobalConfig['pixKeyType'] })}
-                  className="w-full p-2.5 bg-gray-50 border rounded-xl font-bold"
-                >
-                  <option value="cpf">CPF</option>
-                  <option value="cnpj">CNPJ</option>
-                  <option value="email">E-mail</option>
-                  <option value="telefone">Telefone</option>
-                  <option value="aleatoria">Chave Aleatória</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">Nome do Recebedor</label>
-                <input
-                  type="text"
-                  placeholder="Ex: MaternaIA Tecnologia"
-                  value={paymentConfigForm.nomeRecebedor}
-                  onChange={(e) => setPaymentConfigForm({ ...paymentConfigForm, nomeRecebedor: e.target.value })}
-                  className="w-full p-2.5 bg-gray-50 border rounded-xl"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">WhatsApp de Suporte</label>
-                <input
-                  type="text"
-                  placeholder="Ex: 5541999999999"
-                  value={paymentConfigForm.suporteWhatsapp}
-                  onChange={(e) => setPaymentConfigForm({ ...paymentConfigForm, suporteWhatsapp: e.target.value })}
-                  className="w-full p-2.5 bg-gray-50 border rounded-xl"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t">
+              <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-sky-500/10 text-sky-400 rounded-lg border border-sky-500/20">
+                    <Settings className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-100 text-base">Configurar Recebimento</h3>
+                    <p className="text-xs text-slate-500">Chave PIX exibida às médicas na renovação manual</p>
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={() => setShowPaymentConfigModal(false)}
-                  className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl cursor-pointer"
+                  className="text-slate-500 hover:text-slate-200 cursor-pointer p-1 rounded-lg"
                 >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingConfig}
-                  className="px-5 py-2.5 bg-[#2E482A] hover:bg-[#233820] text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-sm"
-                >
-                  <Save className="w-4 h-4" /> {isSavingConfig ? 'Salvando...' : 'Salvar'}
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            </form>
 
+              <form onSubmit={handleSavePaymentConfig} className="space-y-3 text-xs">
+                <div>
+                  <label className={labelClasses}>Chave PIX *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"
+                    value={paymentConfigForm.pixKey}
+                    onChange={(e) => setPaymentConfigForm({ ...paymentConfigForm, pixKey: e.target.value })}
+                    className={inputClasses}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelClasses}>Tipo da Chave</label>
+                  <select
+                    value={paymentConfigForm.pixKeyType}
+                    onChange={(e) => setPaymentConfigForm({ ...paymentConfigForm, pixKeyType: e.target.value as SaasGlobalConfig['pixKeyType'] })}
+                    className={`${inputClasses} font-bold`}
+                  >
+                    <option value="cpf">CPF</option>
+                    <option value="cnpj">CNPJ</option>
+                    <option value="email">E-mail</option>
+                    <option value="telefone">Telefone</option>
+                    <option value="aleatoria">Chave Aleatória</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className={labelClasses}>Nome do Recebedor</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: MaternaIA Tecnologia"
+                    value={paymentConfigForm.nomeRecebedor}
+                    onChange={(e) => setPaymentConfigForm({ ...paymentConfigForm, nomeRecebedor: e.target.value })}
+                    className={inputClasses}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelClasses}>WhatsApp de Suporte</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: 5541999999999"
+                    value={paymentConfigForm.suporteWhatsapp}
+                    onChange={(e) => setPaymentConfigForm({ ...paymentConfigForm, suporteWhatsapp: e.target.value })}
+                    className={inputClasses}
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setShowPaymentConfigModal(false)}
+                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-lg cursor-pointer border border-slate-700"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingConfig}
+                    className="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-lg flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-60"
+                  >
+                    <Save className="w-4 h-4" /> {isSavingConfig ? 'Salvando...' : 'Salvar'}
+                  </button>
+                </div>
+              </form>
+
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
+      </div>
     </div>
   );
 };
