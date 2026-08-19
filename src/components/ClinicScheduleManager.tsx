@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Calendar as CalendarIcon, Clock, AlertTriangle, CheckCircle, List, ChevronLeft, ChevronRight, User, Send, Ban } from 'lucide-react';
-import { Patient, AgendaConsulta, HorarioBloqueado } from '../types/prenatal';
+import type { Patient, AgendaConsulta, HorarioBloqueado } from '../types/prenatal';
 import { formatDateBR } from '../utils/formatters';
 import { generateAppointmentReminderLink } from '../utils/whatsapp';
 
@@ -196,8 +196,20 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
                   {/* Tags das Consultas no Dia */}
                   <div className="space-y-1 mt-1 overflow-hidden">
                     {isBlocked && (
-                      <div className="text-[9px] font-bold text-rose-700 bg-rose-100/80 px-1 py-0.5 rounded truncate">
-                        ⛔ Bloqueado
+                      <div className="text-[9px] font-bold text-rose-700 bg-rose-100/80 px-1 py-0.5 rounded truncate flex items-center justify-between gap-1">
+                        <span>⛔ Bloqueado</span>
+                        <button
+                          type="button"
+                          title="Remover bloqueio"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const slot = blockedSlots.find((b) => b.data === dateStr);
+                            if (slot) onRemoveBlockedSlot(slot.id);
+                          }}
+                          className="text-rose-700 hover:text-rose-900 cursor-pointer"
+                        >
+                          ✕
+                        </button>
                       </div>
                     )}
                     {dayAppointments.slice(0, 2).map((app) => (
@@ -229,11 +241,25 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
 
       {/* 2. FILA DE CONSULTAS DETALHADA */}
       <div className="bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden">
-        <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+        <div className="p-4 border-b bg-gray-50 flex flex-wrap justify-between items-center gap-2">
           <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
             <List className="w-4 h-4 text-[#2E482A]" /> Consultas Selecionadas
           </h3>
-          <span className="text-xs text-gray-500">{filteredAppointments.length} agendamento(s)</span>
+          <div className="flex items-center gap-2">
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="text-xs font-bold bg-white border rounded-xl px-2 py-1.5 text-gray-700 cursor-pointer"
+            >
+              <option value="todos">Todos os status</option>
+              <option value="solicitada">Solicitada</option>
+              <option value="confirmada">Confirmada</option>
+              <option value="encaixe_urgente">Encaixe Urgente</option>
+              <option value="realizada">Realizada</option>
+              <option value="cancelada">Cancelada</option>
+            </select>
+            <span className="text-xs text-gray-500">{filteredAppointments.length} agendamento(s)</span>
+          </div>
         </div>
 
         {filteredAppointments.length === 0 ? (

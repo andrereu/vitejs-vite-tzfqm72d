@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Heart, Upload, Plus, LogOut, Printer, Syringe, UserPlus, Calculator, AlertCircle, 
-  Edit3, Bot, MapPin, CalendarPlus, Calendar, Smartphone, WifiOff, Share2, Send, Settings, Check 
+import {
+  Upload, Plus, LogOut, Printer, Syringe, UserPlus, Calculator, AlertCircle,
+  Edit3, Bot, MapPin, CalendarPlus, Calendar, Smartphone, WifiOff, Share2, Send, Settings
 } from 'lucide-react';
 import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, signInWithPopup } from 'firebase/auth';
 
-import { Patient, initialPatientsList, AgendaConsulta, HorarioBloqueado, UserRole } from './types/prenatal';
-import { DoctorTenant, ClinicSecretary, SaasGlobalConfig } from './types/saas';
+import type { Patient, AgendaConsulta, HorarioBloqueado, UserRole } from './types/prenatal';
+import { initialPatientsList } from './types/prenatal';
+import type { DoctorTenant, ClinicSecretary, SaasGlobalConfig, TwoFactorConfig } from './types/saas';
 import { ClinicScheduleManager } from './components/ClinicScheduleManager';
 import { PatientFinancialTab } from './components/PatientFinancialTab';
 
@@ -27,6 +28,7 @@ import { MaternaLogo } from './components/MaternaLogo';
 import { AdBanner } from './components/AdBanner';
 import { PrenatalChatTab } from './components/PrenatalChatTab';
 import { Tooltip } from './components/Tooltip';
+import { TwoFactorVerifyModal } from './components/TwoFactorVerifyModal';
 
 import { formatDateDisplay, formatDateBR, calculateWeeksAndDays, fileToBase64 } from './utils/formatters';
 import { generateAppointmentReminderLink, generateConsultationSummaryLink, sharePatientCard } from './utils/whatsapp';
@@ -1854,6 +1856,7 @@ if (loginRole === 'secretaria') {
         setShowInstallModal={setShowInstallModal}
         isIOS={isIOS}
         handleGooglePatientLogin={handleGooglePatientLogin}
+        handleGoogleDoctorLogin={handleGoogleDoctorLogin}
         showEditProfileModal={showEditProfileModal}
         setShowEditProfileModal={setShowEditProfileModal}
         editProfileData={editProfileData}

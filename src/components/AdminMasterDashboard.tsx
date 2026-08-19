@@ -1,26 +1,32 @@
 import React, { useState } from 'react';
-import { 
-  Users, DollarSign, Clock, ShieldCheck, 
-  Search, CheckCircle2, Ban, Plus, X, 
-  Save, LogOut, ArrowUpRight, UserPlus
+import {
+  Users, DollarSign, Clock, ShieldCheck,
+  Search, CheckCircle2, Ban, X,
+  Save, LogOut, ArrowUpRight, UserPlus, Pencil
 } from 'lucide-react';
-import { DoctorTenant } from '../types/saas';
+import type { DoctorTenant, SaasGlobalConfig } from '../types/saas';
 
 interface AdminMasterDashboardProps {
   doctors: DoctorTenant[];
+  globalConfig: SaasGlobalConfig;
   onSaveDoctors: (updatedList: DoctorTenant[]) => Promise<void> | void;
+  onSaveGlobalConfig: (updatedConfig: SaasGlobalConfig) => Promise<void> | void;
   onLogout: () => void;
 }
 
 export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
   doctors,
+  globalConfig,
   onSaveDoctors,
+  onSaveGlobalConfig,
   onLogout
 }) => {
   const [search, setSearch] = useState('');
   const [showNewDoctorModal, setShowNewDoctorModal] = useState(false);
-  const [pixChave, setPixChave] = useState('000.000.000-00'); // Seu CPF
+  const [showPixConfigModal, setShowPixConfigModal] = useState(false);
+  const [pixConfigForm, setPixConfigForm] = useState<SaasGlobalConfig>(globalConfig);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingPix, setIsSavingPix] = useState(false);
 
   // Form State para Novo Médico
   const [newDoctor, setNewDoctor] = useState({
@@ -192,10 +198,25 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
         <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs space-y-1">
           <div className="flex justify-between items-center text-gray-400">
             <span className="text-[10px] font-bold uppercase">Chave PIX Recebimento</span>
-            <ArrowUpRight className="w-4 h-4 text-[#D4AF37]" />
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setPixConfigForm(globalConfig);
+                  setShowPixConfigModal(true);
+                }}
+                title="Editar dados de recebimento"
+                className="text-gray-400 hover:text-[#2E482A] cursor-pointer"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+              <ArrowUpRight className="w-4 h-4 text-[#D4AF37]" />
+            </div>
           </div>
-          <div className="text-sm font-bold text-gray-900 truncate">{pixChave}</div>
-          <span className="text-[11px] text-gray-500 font-medium">PIX Manual (CPF)</span>
+          <div className="text-sm font-bold text-gray-900 truncate">{globalConfig.pixKey || 'Não configurada'}</div>
+          <span className="text-[11px] text-gray-500 font-medium uppercase">
+            PIX Manual ({globalConfig.pixKeyType || 'cpf'})
+          </span>
         </div>
       </div>
 
@@ -461,6 +482,114 @@ export const AdminMasterDashboard: React.FC<AdminMasterDashboardProps> = ({
                   className="px-5 py-2.5 bg-[#2E482A] hover:bg-[#233820] text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-sm"
                 >
                   <Save className="w-4 h-4" /> {isSaving ? 'Cadastrando...' : 'Cadastrar Médico'}
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDITAR DADOS PIX DE RECEBIMENTO */}
+      {showPixConfigModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 text-gray-800">
+
+            <div className="flex justify-between items-center border-b pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-[#D4AF37]/10 text-[#D4AF37] rounded-xl">
+                  <ArrowUpRight className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-base">Dados de Recebimento PIX</h3>
+                  <p className="text-xs text-gray-500">Usados para cobrar as assinaturas dos médicos</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPixConfigModal(false)}
+                className="text-gray-400 hover:text-gray-700 cursor-pointer p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setIsSavingPix(true);
+                try {
+                  await onSaveGlobalConfig(pixConfigForm);
+                  setShowPixConfigModal(false);
+                } finally {
+                  setIsSavingPix(false);
+                }
+              }}
+              className="space-y-3 text-xs"
+            >
+              <div>
+                <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">Chave PIX *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: 000.000.000-00"
+                  value={pixConfigForm.pixKey}
+                  onChange={(e) => setPixConfigForm({ ...pixConfigForm, pixKey: e.target.value })}
+                  className="w-full p-2.5 bg-gray-50 border rounded-xl"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">Tipo da Chave</label>
+                <select
+                  value={pixConfigForm.pixKeyType}
+                  onChange={(e) => setPixConfigForm({ ...pixConfigForm, pixKeyType: e.target.value as SaasGlobalConfig['pixKeyType'] })}
+                  className="w-full p-2.5 bg-gray-50 border rounded-xl font-bold"
+                >
+                  <option value="cpf">CPF</option>
+                  <option value="cnpj">CNPJ</option>
+                  <option value="email">E-mail</option>
+                  <option value="telefone">Telefone</option>
+                  <option value="aleatoria">Chave Aleatória</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">Nome do Recebedor</label>
+                <input
+                  type="text"
+                  placeholder="Ex: MaternaIA"
+                  value={pixConfigForm.nomeRecebedor}
+                  onChange={(e) => setPixConfigForm({ ...pixConfigForm, nomeRecebedor: e.target.value })}
+                  className="w-full p-2.5 bg-gray-50 border rounded-xl"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">WhatsApp de Suporte</label>
+                <input
+                  type="text"
+                  placeholder="Ex: 5541999999999"
+                  value={pixConfigForm.suporteWhatsapp}
+                  onChange={(e) => setPixConfigForm({ ...pixConfigForm, suporteWhatsapp: e.target.value })}
+                  className="w-full p-2.5 bg-gray-50 border rounded-xl"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowPixConfigModal(false)}
+                  className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingPix}
+                  className="px-5 py-2.5 bg-[#2E482A] hover:bg-[#233820] text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-sm"
+                >
+                  <Save className="w-4 h-4" /> {isSavingPix ? 'Salvando...' : 'Salvar Dados'}
                 </button>
               </div>
             </form>

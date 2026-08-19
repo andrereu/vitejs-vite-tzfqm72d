@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Calendar, Clock, AlertCircle, X, Send } from 'lucide-react';
-import { AgendaConsulta } from '../types/prenatal';
+import { Calendar, AlertCircle, X, Send } from 'lucide-react';
+import type { AgendaConsulta } from '../types/prenatal';
 
 interface RequestAppointmentModalProps {
   isOpen: boolean;

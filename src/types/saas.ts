@@ -28,9 +28,11 @@ export interface DoctorTenant {
   limiteMedicos?: number; // 1 para individual, 5 para multi
   status: 'active' | 'trial' | 'past_due' | 'blocked';
   trialEndsAt: string;
+  diasRestantes?: number;
   totalPacientes: number;
   dataCadastro: string;
   valorMensalidade: number;
+  metodoPagamento?: 'pix' | 'cartao_credito' | 'boleto';
    // Configuração de Segurança A2F
   twoFactor?: TwoFactorConfig;
   

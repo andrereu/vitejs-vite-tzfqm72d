@@ -1,16 +1,13 @@
 import React from 'react';
-import { 
-  X, User, Syringe, CalendarPlus, Bot, Loader2, Smartphone, Share 
+import {
+  X, User, Syringe, CalendarPlus, Bot, Loader2, Smartphone, Share
 } from 'lucide-react';
-import { auth, googleProvider, signInWithPopup } from '../firebase';
-
 
 interface AppModalsProps {
   // PWA Modal
   showInstallModal: boolean;
   setShowInstallModal: (v: boolean) => void;
   isIOS: boolean;
-  setSelectedFile: (file: File | null) => void;
   // Profile Modal
   showEditProfileModal: boolean;
   setShowEditProfileModal: (v: boolean) => void;
@@ -82,6 +79,7 @@ interface AppModalsProps {
   setLoginCpf: (v: string) => void;
   handlePatientLogin: (e: React.FormEvent) => void;
   handleGooglePatientLogin: () => void;
+  handleGoogleDoctorLogin: () => void;
   loginRole?: 'medica' | 'secretaria';
 setLoginRole?: (role: 'medica' | 'secretaria') => void;
 

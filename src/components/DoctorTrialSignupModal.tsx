@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Sparkles, X, CheckCircle2, Lock } from 'lucide-react';
-import { DoctorTenant } from '../types/saas';
+import { Sparkles, X, CheckCircle2 } from 'lucide-react';
+import type { DoctorTenant } from '../types/saas';
 
 interface DoctorTrialSignupModalProps {
   isOpen: boolean;
@@ -34,8 +34,9 @@ export const DoctorTrialSignupModal: React.FC<DoctorTrialSignupModalProps> = ({
       telefone: telefone.trim(),
       clinicaNome: clinicaNome.trim() || `Consultório ${nome}`,
       especialidade: 'Ginecologia & Obstetrícia',
+      enderecoConsultorio: '',
       plano: 'individual_pro',
-      status: 'trialing',
+      status: 'trial',
       trialEndsAt: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
       diasRestantes: 14,
       totalPacientes: 0,

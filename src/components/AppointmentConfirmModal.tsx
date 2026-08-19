@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Check, X, Calendar, Clock, AlertTriangle, MessageCircle, Send } from 'lucide-react';
-import { AgendaConsulta, Patient } from '../types/prenatal';
-import { formatDateBR } from '../utils/formatters';
+import { Check, X, AlertTriangle, MessageCircle } from 'lucide-react';
+import type { AgendaConsulta, Patient } from '../types/prenatal';
 
 interface AppointmentConfirmModalProps {
   isOpen: boolean;

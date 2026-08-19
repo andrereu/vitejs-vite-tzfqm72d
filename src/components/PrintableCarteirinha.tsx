@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { Patient } from '../types/prenatal';
+import type { Patient } from '../types/prenatal';
 
 interface PrintableCarteirinhaProps {
   patient?: Patient | null;

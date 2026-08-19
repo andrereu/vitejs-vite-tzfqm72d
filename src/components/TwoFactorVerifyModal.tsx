@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, MessageSquare, KeyRound, Check, RefreshCw, X } from 'lucide-react';
-import { TwoFactorConfig } from '../types/saas';
+import { ShieldCheck, Check, RefreshCw } from 'lucide-react';
+import type { TwoFactorConfig } from '../types/saas';
 
 interface TwoFactorVerifyModalProps {
   isOpen: boolean;
@@ -14,7 +14,6 @@ export const TwoFactorVerifyModal: React.FC<TwoFactorVerifyModalProps> = ({
   isOpen,
   onClose,
   twoFactorConfig,
-  userEmail,
   onSuccess
 }) => {
   const [code, setCode] = useState('');

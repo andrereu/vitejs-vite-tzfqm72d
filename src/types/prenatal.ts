@@ -155,7 +155,7 @@ export const initialPatientsList: Patient[] = [
         tipo: "Consulta Pré-Natal de Rotina",
         local: "Consultório Dra. Priscila Gapski",
         observacoes: "Trazer carteira de vacinas e exames de sangue do 3º trimestre.",
-        status: "agendada"
+        status: "confirmada"
       },
       {
         id: "ag-2",
@@ -164,7 +164,7 @@ export const initialPatientsList: Patient[] = [
         tipo: "Avaliação Fetal / Retorno",
         local: "Consultório Dra. Priscila Gapski",
         observacoes: "Checar ultrassom de acompanhamento.",
-        status: "agendada"
+        status: "confirmada"
       }
     ],
     examesEnviados: []

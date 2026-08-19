@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Smartphone, CheckCircle2, ArrowRight, MessageCircle, Bot, LineChart, ShieldCheck, HeartHandshake } from 'lucide-react';
+import { Sparkles, Smartphone, CheckCircle2, ArrowRight, MessageCircle } from 'lucide-react';
 import { AdBanner } from './AdBanner';
 
 interface LandingPageProps {

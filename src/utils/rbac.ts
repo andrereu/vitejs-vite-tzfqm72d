@@ -1,4 +1,4 @@
-import { UserRole } from '../types/prenatal';
+import type { UserRole } from '../types/prenatal';
 
 export type Permission = 
   | 'canManageSchedule'           // Agendamentos, lembretes, confirmar horários
@@ -29,6 +29,16 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   // Gestante / Paciente: Acesso de visualização pessoal da sua carteirinha
   paciente: [
     'canManageSchedule'
+  ],
+  // Master Admin: Acesso total à plataforma SaaS
+  master_admin: [
+    'canManageSchedule',
+    'canManageFinancial',
+    'canManageBasicPatientData',
+    'canViewClinicalHistory',
+    'canViewExamReports',
+    'canUseMedicalAI',
+    'canEditDoctorSettings'
   ]
 };
 

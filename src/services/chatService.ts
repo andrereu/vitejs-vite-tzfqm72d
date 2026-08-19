@@ -1,4 +1,4 @@
-import { Patient } from '../types/prenatal';
+import type { Patient } from '../types/prenatal';
 
 export interface ChatMessage {
   id: string;
@@ -19,12 +19,17 @@ export const sendPrenatalChatMessage = async (
     return "🌸 Mamãe, o serviço de IA está sendo inicializado. Qualquer dúvida urgente, fale com a Dra. Priscila!";
   }
 
+  const historyText = chatHistory
+    .slice(-6)
+    .map((m) => `${m.sender === 'user' ? 'Gestante' : 'Assistente'}: ${m.text}`)
+    .join('\n');
+
   const promptText = `Você é a Assistente Virtual Pré-Natal da Dra. Priscila Gapski (CRM 24734).
 Informações da gestante:
 - Nome: ${patient.nome}
 - Gestação: ${weeks} semanas
 - Nome do Bebê: ${patient.nomeBebe || 'Bebê'}
-
+${historyText ? `\nHistórico recente da conversa:\n${historyText}\n` : ''}
 Dúvida da gestante: "${userMessage}"
 
 Diretrizes obrigatórias:

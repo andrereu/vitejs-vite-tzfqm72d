@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { 
-  DollarSign, Plus, CheckCircle2, Clock, AlertTriangle, 
-  CreditCard, FileText, Trash2, Filter, ShieldCheck, Building2
+import {
+  DollarSign, Plus, CheckCircle2, Clock, AlertTriangle,
+  Trash2, ShieldCheck
 } from 'lucide-react';
-import { Patient, PatientFinancialRecord } from '../types/prenatal';
+import type { Patient, PatientFinancialRecord } from '../types/prenatal';
 import { formatDateBR } from '../utils/formatters';
 
 interface PatientFinancialTabProps {

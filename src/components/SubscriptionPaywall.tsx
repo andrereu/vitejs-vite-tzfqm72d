@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { ShieldAlert, QrCode, Copy, Check, Clock, MessageSquare, ArrowRight } from 'lucide-react';
-import { DoctorTenant } from '../types/saas';
+import { ShieldAlert, Copy, Check, MessageSquare } from 'lucide-react';
+import type { DoctorTenant } from '../types/saas';
 
 interface SubscriptionPaywallProps {
   doctor: DoctorTenant;
