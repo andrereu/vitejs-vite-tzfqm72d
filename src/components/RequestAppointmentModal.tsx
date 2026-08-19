@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, Clock, AlertCircle, X, Send } from 'lucide-react';
 import type { AgendaConsulta } from '../types/prenatal';
+import { getLocalDateString } from '../utils/formatters';
 
 interface RequestAppointmentModalProps {
   isOpen: boolean;
@@ -9,6 +10,17 @@ interface RequestAppointmentModalProps {
   enderecoPadrao: string;
 }
 
+type PeriodoPreferido = 'manha' | 'tarde' | 'final_do_dia';
+
+// Rótulo completo de cada período, reaproveitado tanto nas options do select
+// quanto no resumo textual que vai pras observações (pra recepção continuar
+// vendo a preferência sem precisar de UI nova pra periodoPreferido).
+const PERIODO_LABEL: Record<PeriodoPreferido, string> = {
+  manha: 'Manhã (08:30 às 11:30)',
+  tarde: 'Tarde (13:30 às 17:30)',
+  final_do_dia: 'Final do Dia (17:30 às 19:00)'
+};
+
 export const RequestAppointmentModal: React.FC<RequestAppointmentModalProps> = ({
   isOpen,
   onClose,
@@ -16,7 +28,7 @@ export const RequestAppointmentModal: React.FC<RequestAppointmentModalProps> = (
   enderecoPadrao
 }) => {
   const [data, setData] = useState('');
-  const [turno, setTurno] = useState('Manhã (08:30 - 11:30)');
+  const [periodoPreferido, setPeriodoPreferido] = useState<PeriodoPreferido>('manha');
   const [tipo, setTipo] = useState('Consulta Pré-Natal de Rotina');
   const [observacoes, setObservacoes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,10 +46,13 @@ export const RequestAppointmentModal: React.FC<RequestAppointmentModalProps> = (
     const solicitacao: AgendaConsulta = {
       id: `req-${Date.now()}`,
       data,
-      horario: turno.split(' ')[0], // Sugestão inicial
+      // Ainda não há horário definido — só um período preferido. horario só
+      // recebe um HH:mm de verdade quando a equipe confirma a consulta.
+      horario: '',
+      periodoPreferido,
       tipo,
       local: enderecoPadrao || 'Consultório Médico',
-      observacoes: `[Preferência de Turno: ${turno}] ${observacoes}`.trim(),
+      observacoes: `[Preferência de Turno: ${PERIODO_LABEL[periodoPreferido]}] ${observacoes}`.trim(),
       status: 'solicitada',
       solicitadoPor: 'paciente',
       solicitadoEm: new Date().toISOString()
@@ -73,7 +88,7 @@ export const RequestAppointmentModal: React.FC<RequestAppointmentModalProps> = (
             <input
               type="date"
               required
-              min={new Date().toISOString().split('T')[0]}
+              min={getLocalDateString()}
               value={data}
               onChange={(e) => setData(e.target.value)}
               className="w-full p-2.5 bg-gray-50 border rounded-xl"
@@ -83,13 +98,13 @@ export const RequestAppointmentModal: React.FC<RequestAppointmentModalProps> = (
           <div>
             <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">Turno de Preferência *</label>
             <select
-              value={turno}
-              onChange={(e) => setTurno(e.target.value)}
+              value={periodoPreferido}
+              onChange={(e) => setPeriodoPreferido(e.target.value as PeriodoPreferido)}
               className="w-full p-2.5 bg-gray-50 border rounded-xl"
             >
-              <option value="Manhã (08:30 - 11:30)">Manhã (08:30 às 11:30)</option>
-              <option value="Tarde (13:30 - 17:30)">Tarde (13:30 às 17:30)</option>
-              <option value="Final do Dia (17:30 - 19:00)">Final do Dia (17:30 às 19:00)</option>
+              <option value="manha">{PERIODO_LABEL.manha}</option>
+              <option value="tarde">{PERIODO_LABEL.tarde}</option>
+              <option value="final_do_dia">{PERIODO_LABEL.final_do_dia}</option>
             </select>
           </div>
 

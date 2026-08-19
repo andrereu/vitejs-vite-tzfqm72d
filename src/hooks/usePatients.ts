@@ -24,8 +24,22 @@ function normalizarExamesTabela(raw: any): Record<string, ResultadoExame[]> {
   return normalizado;
 }
 
+// "agendada" nunca foi um status oficial (o modelo sempre foi solicitada/
+// confirmada/encaixe_urgente/realizada/cancelada), mas pode existir em
+// documentos antigos gravados antes dessa consistência. Trata como
+// "confirmada" só na leitura — não escreve nada de volta no Firestore — pra
+// não deixar consulta antiga invisível pra filtros que checam status
+// explicitamente (ex: lembretes de amanhã).
+function normalizarAgendaConsultas(raw: any[] | undefined): Patient['agendaConsultas'] {
+  return (raw || []).map((ag) => (ag?.status === 'agendada' ? { ...ag, status: 'confirmada' } : ag));
+}
+
 function normalizarPaciente(raw: any): Patient {
-  return { ...raw, examesTabela: normalizarExamesTabela(raw?.examesTabela) } as Patient;
+  return {
+    ...raw,
+    examesTabela: normalizarExamesTabela(raw?.examesTabela),
+    agendaConsultas: normalizarAgendaConsultas(raw?.agendaConsultas)
+  } as Patient;
 }
 
 interface UsePatientsOptions {

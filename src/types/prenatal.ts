@@ -41,7 +41,11 @@ export type AppointmentStatus =
 export interface AgendaConsulta {
   id: string;
   data: string; // YYYY-MM-DD
-  horario: string; // HH:mm
+  // Horário efetivamente definido, HH:mm — só existe depois que a equipe
+  // confirma. Numa solicitação ainda pendente (status "solicitada") fica
+  // vazio; o período que a paciente prefere vai em periodoPreferido, nunca
+  // aqui (esse campo nunca guarda texto como "Manhã"/"Tarde").
+  horario: string; // HH:mm, ou "" enquanto não há horário confirmado
   tipo: string; // Ex: Pré-natal de Rotina, Retorno, Urgência
   local: string;
   observacoes?: string;
@@ -51,13 +55,25 @@ export interface AgendaConsulta {
   motivoCancelamento?: string;
   notaSecretaria?: string;
   lembreteEnviadoEm?: string;
+  // Período que a paciente indicou ao solicitar (antes de a equipe definir
+  // um horário exato). Independente de horario — os dois podem conviver:
+  // depois de confirmada, a consulta guarda tanto o período original quanto
+  // o horário HH:mm que a equipe marcou de fato.
+  periodoPreferido?: 'manha' | 'tarde' | 'final_do_dia';
 }
 
+// Bloqueio de agenda: dois formatos possíveis no mesmo tipo — dia inteiro
+// (diaInteiro: true, sem horarioInicio/horarioFim) ou período parcial dentro
+// de um dia (diaInteiro: false, com horarioInicio/horarioFim preenchidos).
+// Os dois campos de horário são opcionais justamente pra não obrigar
+// documentos antigos (todos "dia inteiro" até aqui) a tê-los. Persistência
+// no Firestore e UI de bloqueio parcial ainda não existem — só o tipo já
+// está preparado pra representar os dois casos.
 export interface HorarioBloqueado {
   id: string;
   data: string;
-  horarioInicio?: string;
-  horarioFim?: string;
+  horarioInicio?: string; // HH:mm — só quando diaInteiro é false
+  horarioFim?: string; // HH:mm — só quando diaInteiro é false
   diaInteiro: boolean;
   motivo: string; // Ex: Congresso, Feriado, Folga
 }
@@ -193,7 +209,7 @@ export const initialPatientsList: Patient[] = [
         tipo: "Consulta Pré-Natal de Rotina",
         local: "Consultório Dra. Priscila Gapski",
         observacoes: "Trazer carteira de vacinas e exames de sangue do 3º trimestre.",
-        status: "agendada"
+        status: "confirmada"
       },
       {
         id: "ag-2",
@@ -202,7 +218,7 @@ export const initialPatientsList: Patient[] = [
         tipo: "Avaliação Fetal / Retorno",
         local: "Consultório Dra. Priscila Gapski",
         observacoes: "Checar ultrassom de acompanhamento.",
-        status: "agendada"
+        status: "confirmada"
       }
     ],
     examesEnviados: []

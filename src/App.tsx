@@ -22,7 +22,7 @@ import { TwoFactorVerifyModal } from './components/TwoFactorVerifyModal';
 import { PatientShell } from './components/PatientShell';
 import { DoctorShell } from './components/DoctorShell';
 
-import { calculateWeeksAndDays, fileToBase64 } from './utils/formatters';
+import { calculateWeeksAndDays, fileToBase64, getLocalDateString } from './utils/formatters';
 import { generateAppointmentReminderLink } from './utils/whatsapp';
 import { generatePatientPin } from './utils/pin';
 import { processExamWithGeminiIA } from './services/geminiService';
@@ -125,7 +125,7 @@ export default function App() {
   const [editVacinasData, setEditVacinasData] = useState<any>({});
 
   const [newAgenda, setNewAgenda] = useState({
-    data: new Date().toISOString().split('T')[0],
+    data: getLocalDateString(),
     horario: '14:00',
     tipo: 'Consulta Pré-Natal de Rotina',
     local: 'Consultório Dra. Priscila Gapski',
@@ -455,7 +455,7 @@ export default function App() {
     saveToFirestore(patients.map(p => p.id === updated.id ? updated : p));
     setShowAddAgendaModal(false);
     setNewAgenda({
-      data: new Date().toISOString().split('T')[0],
+      data: getLocalDateString(),
       horario: '14:00',
       tipo: 'Consulta Pré-Natal de Rotina',
       local: currentDoctorProfile.enderecoConsultorio || 'Consultório Dra. Priscila Gapski',

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Send, CheckCircle2, BellRing } from 'lucide-react';
 import type { Patient } from '../types/prenatal';
 import { generateAppointmentReminderLink } from '../utils/whatsapp';
+import { getLocalDateString } from '../utils/formatters';
 
 interface DoctorRemindersTabProps {
   patients: Patient[];
@@ -17,7 +18,7 @@ export const DoctorRemindersTab: React.FC<DoctorRemindersTabProps> = ({ patients
   const amanha = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
-    return d.toISOString().split('T')[0];
+    return getLocalDateString(d);
   }, []);
 
   const amanhaLabel = useMemo(

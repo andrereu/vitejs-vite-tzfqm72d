@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar as CalendarIcon, Clock, AlertTriangle, CheckCircle, List, ChevronLeft, ChevronRight, User, Send, Ban } from 'lucide-react';
 import type { Patient, AgendaConsulta, HorarioBloqueado } from '../types/prenatal';
-import { formatDateBR } from '../utils/formatters';
+import { formatDateBR, getLocalDateString } from '../utils/formatters';
 import { generateAppointmentReminderLink } from '../utils/whatsapp';
 
 interface ClinicScheduleManagerProps {
@@ -26,7 +26,7 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
   const [selectedDateFilter, setSelectedDateFilter] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('todos');
   const [showBlockModal, setShowBlockModal] = useState(false);
-  const [newBlockDate, setNewBlockDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newBlockDate, setNewBlockDate] = useState(getLocalDateString());
   const [newBlockReason, setNewBlockReason] = useState('');
 
   // Todas as consultas consolidadas
