@@ -10,6 +10,7 @@ import { hasPermission } from '../utils/rbac';
 import { isDoctorBlocked } from '../utils/subscription';
 import { calculateWeeksAndDays } from '../utils/formatters';
 import { getTimelineSummary } from '../utils/gestationTimeline';
+import { encontrarBloqueioConflitante, mensagemBloqueioAgenda } from '../utils/agendaScheduling';
 
 interface DoctorPanelScreenProps {
   currentDoctorProfile: DoctorTenant;
@@ -227,6 +228,20 @@ export const DoctorPanelScreen: React.FC<DoctorPanelScreenProps> = ({
           onQuickStatusChange={async (patientId, appointmentId, newStatus) => {
             const targetPat = patients.find((p) => p.id === patientId);
             if (!targetPat) return;
+
+            // "Aprovar" também pode levar a confirmada/encaixe_urgente —
+            // mesma checagem de bloqueio do modal de confirmação, pra não
+            // ter um jeito de contornar a trava só por vir de um botão
+            // diferente.
+            if (newStatus === 'confirmada' || newStatus === 'encaixe_urgente') {
+              const alvo = (targetPat.agendaConsultas || []).find((a) => a.id === appointmentId);
+              const bloqueio = alvo ? encontrarBloqueioConflitante(alvo.data, alvo.horario, blockedSlots) : undefined;
+              if (bloqueio) {
+                alert(mensagemBloqueioAgenda(bloqueio));
+                return;
+              }
+            }
+
             const updatedAgenda = (targetPat.agendaConsultas || []).map((a) =>
               a.id === appointmentId ? { ...a, status: newStatus } : a
             );

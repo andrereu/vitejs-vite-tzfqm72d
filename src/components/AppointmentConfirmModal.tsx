@@ -40,9 +40,19 @@ export const AppointmentConfirmModal: React.FC<AppointmentConfirmModalProps> = (
       notaSecretaria,
     };
 
-    await onSave(updated, notifyWhatsApp);
-    setIsSaving(false);
-    onClose();
+    try {
+      // onSave pode recusar (ex: horário caiu num bloqueio da agenda) —
+      // nesse caso ele lança um erro em vez de resolver, e o modal
+      // continua aberto com os dados preenchidos em vez de fechar como se
+      // tivesse salvo.
+      await onSave(updated, notifyWhatsApp);
+      onClose();
+    } catch {
+      // O aviso do motivo já foi mostrado por onSave (alert); aqui só
+      // evita fechar o modal / perder o preenchimento.
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (

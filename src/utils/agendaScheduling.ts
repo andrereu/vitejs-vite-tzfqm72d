@@ -29,9 +29,7 @@ export function compararAgendamentos(
   return pa - pb;
 }
 
-// Responde só "esse horário, nessa data, está dentro desse bloqueio?" — sem
-// nenhuma automação em cima (ainda não é chamada por nenhum fluxo de
-// aprovação/agendamento, só existe como base pra uma próxima etapa).
+// Responde só "esse horário, nessa data, está dentro desse bloqueio?".
 // Bloqueio de dia inteiro cobre o dia todo, independente de horário; período
 // parcial usa início inclusivo e fim exclusivo (14:00 bloqueia, 18:00 já
 // está livre), igual a como intervalos de agenda costumam ser lidos.
@@ -42,7 +40,36 @@ export function horarioEstaBloqueado(data: string, horario: string, bloqueio: Ho
   return horario >= bloqueio.horarioInicio && horario < bloqueio.horarioFim;
 }
 
+// Primeiro bloqueio da lista que colide com esse horário — usado pra
+// escolher a mensagem certa (dia inteiro vs período) na hora de avisar a
+// equipe, em vez de só um booleano.
+export function encontrarBloqueioConflitante(data: string, horario: string, bloqueios: HorarioBloqueado[]): HorarioBloqueado | undefined {
+  return bloqueios.find((b) => horarioEstaBloqueado(data, horario, b));
+}
+
 // Mesma checagem, contra a lista inteira de bloqueios da médica.
 export function algumBloqueioAtivo(data: string, horario: string, bloqueios: HorarioBloqueado[]): boolean {
-  return bloqueios.some((b) => horarioEstaBloqueado(data, horario, b));
+  return !!encontrarBloqueioConflitante(data, horario, bloqueios);
+}
+
+// Mensagem exibida à equipe quando uma confirmação esbarra num bloqueio —
+// texto único, reaproveitado nos dois pontos de confirmação (modal e
+// aprovação rápida), pra não divergir a redação entre eles.
+export function mensagemBloqueioAgenda(bloqueio: HorarioBloqueado): string {
+  return bloqueio.diaInteiro
+    ? 'Esta data está bloqueada na agenda.'
+    : 'Este horário está bloqueado na agenda.';
+}
+
+// Consultas que realmente ocupam a agenda (confirmada ou encaixe_urgente) e
+// colidem com um bloqueio — usado tanto pra checar um bloqueio já existente
+// quanto pra validar um bloqueio ainda por criar, antes de gravá-lo.
+// Cancelada, realizada e solicitação (com ou sem horário) nunca entram aqui.
+export function consultasEmConflitoComBloqueio<T extends Pick<AgendaConsulta, 'data' | 'horario' | 'status'>>(
+  consultas: T[],
+  bloqueio: HorarioBloqueado
+): T[] {
+  return consultas.filter(
+    (c) => (c.status === 'confirmada' || c.status === 'encaixe_urgente') && horarioEstaBloqueado(c.data, c.horario, bloqueio)
+  );
 }

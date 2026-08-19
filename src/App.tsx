@@ -30,6 +30,7 @@ import { useDoctorsDirectory } from './hooks/useDoctorsDirectory';
 import { usePatients } from './hooks/usePatients';
 import { useSecretaries } from './hooks/useSecretaries';
 import { useBlockedSlots } from './hooks/useBlockedSlots';
+import { encontrarBloqueioConflitante, mensagemBloqueioAgenda } from './utils/agendaScheduling';
 import { useAuthSession } from './hooks/useAuthSession';
 import { useBrandTheme } from './hooks/useBrandTheme';
 import { LISTA_EXAMES_OFICIAIS } from './constants/examesList';
@@ -899,12 +900,25 @@ export default function App() {
           appointment={selectedAppointmentForConfirm.app}
           patient={selectedAppointmentForConfirm.pat}
           onSave={async (updatedApp, notifyWhatsApp) => {
-            const updatedAgenda = selectedAppointmentForConfirm.pat.agendaConsultas.map(a => 
+            // Antes de confirmar/encaixar num horário real, garante que ele
+            // não caiu num bloqueio da médica criado nesse meio-tempo — não
+            // grava nada e devolve o erro pro modal não fechar sozinho,
+            // pra secretária poder escolher outro horário sem perder o que
+            // já tinha preenchido.
+            if (updatedApp.status === 'confirmada' || updatedApp.status === 'encaixe_urgente') {
+              const bloqueio = encontrarBloqueioConflitante(updatedApp.data, updatedApp.horario, blockedSlots);
+              if (bloqueio) {
+                alert(mensagemBloqueioAgenda(bloqueio));
+                throw new Error('Horário bloqueado na agenda.');
+              }
+            }
+
+            const updatedAgenda = selectedAppointmentForConfirm.pat.agendaConsultas.map(a =>
               a.id === updatedApp.id ? updatedApp : a
             );
             const updatedPat: Patient = { ...selectedAppointmentForConfirm.pat, agendaConsultas: updatedAgenda };
             await saveToFirestore(patients.map(p => p.id === updatedPat.id ? updatedPat : p));
-            
+
             if (notifyWhatsApp && updatedApp.status === 'confirmada') {
               const zapLink = generateAppointmentReminderLink(updatedPat, updatedApp);
               window.open(zapLink, '_blank');

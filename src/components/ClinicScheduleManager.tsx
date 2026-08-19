@@ -3,7 +3,7 @@ import { Calendar as CalendarIcon, Clock, AlertTriangle, CheckCircle, List, Chev
 import type { Patient, AgendaConsulta, HorarioBloqueado } from '../types/prenatal';
 import { formatDateBR, getLocalDateString } from '../utils/formatters';
 import { generateAppointmentReminderLink } from '../utils/whatsapp';
-import { compararAgendamentos } from '../utils/agendaScheduling';
+import { compararAgendamentos, consultasEmConflitoComBloqueio } from '../utils/agendaScheduling';
 
 interface ClinicScheduleManagerProps {
   patients: Patient[];
@@ -338,6 +338,18 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
               const novoBloqueio: HorarioBloqueado = newBlockTipo === 'periodo'
                 ? { id: `blk-${Date.now()}`, data: newBlockDate, diaInteiro: false, horarioInicio: newBlockHoraInicio, horarioFim: newBlockHoraFim, motivo: newBlockReason }
                 : { id: `blk-${Date.now()}`, data: newBlockDate, diaInteiro: true, motivo: newBlockReason };
+
+              // Não deixa criar o bloqueio por cima de consulta já
+              // confirmada/encaixe urgente — a médica precisa cancelar ou
+              // reagendar essas consultas antes, o bloqueio não faz isso
+              // sozinho.
+              const conflitos = consultasEmConflitoComBloqueio(allAppointments, novoBloqueio);
+              if (conflitos.length > 0) {
+                alert(
+                  `Não é possível criar este bloqueio: há ${conflitos.length} consulta${conflitos.length > 1 ? 's' : ''} confirmada(s) ou encaixe(s) urgente(s) nesse período. Cancele ou reagende antes de bloquear.`
+                );
+                return;
+              }
 
               await onAddBlockedSlot(novoBloqueio);
               resetBlockForm();
