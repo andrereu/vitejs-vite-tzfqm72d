@@ -3,7 +3,8 @@ import {
   Upload, Plus, Printer, Syringe, Calculator, AlertCircle,
   Edit3, Bot, MapPin, CalendarPlus, Calendar, Share2, Send, Download, ShieldAlert,
   HeartPulse, Activity, FlaskConical, User, Phone, Mail, CalendarCheck, CalendarClock,
-  LayoutDashboard, History, CreditCard, ClipboardList, BarChart3, FolderOpen, LayoutGrid, X
+  LayoutDashboard, History, CreditCard, ClipboardList, BarChart3, FolderOpen, LayoutGrid, X,
+  ChevronRight, Scale
 } from 'lucide-react';
 import type { Patient, AgendaConsulta, MarcoPersonalizado, UserRole } from '../types/prenatal';
 import type { DoctorTenant } from '../types/saas';
@@ -200,38 +201,38 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
     {
       label: 'Visão Geral',
       items: [
-        { id: 'resumo', label: 'Resumo', icon: LayoutDashboard, allowed: true },
-        { id: 'linhaTempo', label: 'Linha do Tempo', icon: History, allowed: hasPermission(userRole, 'canViewClinicalHistory') },
+        { id: 'resumo', label: 'Resumo', desc: 'Visão geral do seu acompanhamento', icon: LayoutDashboard, tint: 'bg-gray-100 text-gray-600', allowed: true },
+        { id: 'linhaTempo', label: 'Linha do Tempo', desc: 'Marcos e etapas da sua gestação', icon: History, tint: 'bg-gray-100 text-gray-600', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
       ]
     },
     {
       label: 'Agenda & Financeiro',
       items: [
-        { id: 'agenda', label: 'Agenda & Lembretes', icon: CalendarClock, allowed: hasPermission(userRole, 'canManageSchedule') },
-        { id: 'financeiro', label: 'Financeiro & Convênio', icon: CreditCard, allowed: hasPermission(userRole, 'canManageFinancial') },
+        { id: 'agenda', label: 'Agenda & Lembretes', desc: 'Consultas marcadas e solicitações', icon: CalendarClock, tint: 'bg-gray-100 text-gray-600', allowed: hasPermission(userRole, 'canManageSchedule') },
+        { id: 'financeiro', label: 'Financeiro & Convênio', desc: 'Pagamentos, convênio e histórico', icon: CreditCard, tint: 'bg-sky-50 text-sky-600', allowed: hasPermission(userRole, 'canManageFinancial') },
       ]
     },
     {
       label: 'Prontuário Clínico',
       items: [
-        { id: 'dados', label: 'Dados Clínicos & GPCA', icon: ClipboardList, allowed: hasPermission(userRole, 'canViewClinicalHistory') },
-        { id: 'consultas', label: 'Evolução Clínica', icon: Activity, allowed: hasPermission(userRole, 'canViewClinicalHistory') },
-        { id: 'vacinas', label: 'Vacinas', icon: Syringe, allowed: hasPermission(userRole, 'canViewClinicalHistory') },
-        { id: 'graficos', label: 'Gráfico GPG (MS)', icon: BarChart3, allowed: hasPermission(userRole, 'canViewClinicalHistory') },
+        { id: 'dados', label: 'Dados Clínicos & GPCA', desc: 'Anamnese e histórico obstétrico', icon: ClipboardList, tint: 'bg-indigo-50 text-indigo-600', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
+        { id: 'consultas', label: 'Evolução Clínica', desc: 'Registro das consultas realizadas', icon: Activity, tint: 'bg-teal-50 text-teal-600', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
+        { id: 'vacinas', label: 'Vacinas', desc: 'Carteira de vacinação e pendências', icon: Syringe, tint: 'bg-rose-50 text-rose-600', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
+        { id: 'graficos', label: 'Gráfico GPG (MS)', desc: 'Curva de ganho de peso gestacional', icon: BarChart3, tint: 'bg-amber-50 text-amber-600', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
       ]
     },
     {
       label: 'Exames',
       items: [
-        { id: 'examesTabela', label: 'Exames Laboratoriais', icon: FlaskConical, allowed: hasPermission(userRole, 'canViewExamReports') },
-        { id: 'examesCentral', label: 'Central de Exames + IA', icon: FolderOpen, allowed: hasPermission(userRole, 'canViewExamReports') },
+        { id: 'examesTabela', label: 'Exames Laboratoriais', desc: 'Resultados e histórico de exames', icon: FlaskConical, tint: 'bg-emerald-50 text-emerald-600', allowed: hasPermission(userRole, 'canViewExamReports') },
+        { id: 'examesCentral', label: 'Central de Exames + IA', desc: 'Envie laudos e receba leitura com IA', icon: FolderOpen, tint: 'bg-violet-50 text-violet-600', allowed: hasPermission(userRole, 'canViewExamReports') },
       ]
     },
     {
       label: 'Ferramentas',
       items: [
-        { id: 'calculadora', label: 'Calculadora Gestacional', icon: Calculator, allowed: true },
-        { id: 'chatIA', label: 'Assistente Pré-Natal (IA)', icon: Bot, allowed: hasPermission(userRole, 'canUseMedicalAI') },
+        { id: 'calculadora', label: 'Calculadora Gestacional', desc: 'Idade gestacional e DPP', icon: Calculator, tint: 'bg-cyan-50 text-cyan-600', allowed: true },
+        { id: 'chatIA', label: 'Assistente Pré-Natal (IA)', desc: 'Fale com a assistente virtual', icon: Bot, tint: 'bg-fuchsia-50 text-fuchsia-600', allowed: hasPermission(userRole, 'canUseMedicalAI') },
       ]
     },
   ];
@@ -294,6 +295,22 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
           {/* BARRA LATERAL FIXA (DESKTOP) — mesmos grupos da navegação mobile, agrupados por área */}
           <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 bg-white border border-gray-200 rounded-3xl shadow-sm p-3 print:hidden">
             {renderNavGroups()}
+
+            {doctorProfile && (
+              <div className="mt-auto pt-3 border-t border-gray-100 flex items-center gap-2.5 px-1">
+                {doctorProfile.logoUrl ? (
+                  <img src={doctorProfile.logoUrl} alt={doctorProfile.nome} className="w-9 h-9 rounded-full object-cover shrink-0" />
+                ) : (
+                  <span className="w-9 h-9 rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] flex items-center justify-center text-xs font-bold shrink-0">
+                    {doctorProfile.nome.split(' ').filter(Boolean).slice(0, 2).map((s) => s[0]).join('').toUpperCase()}
+                  </span>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-bold text-gray-900 truncate">{doctorProfile.nome}</div>
+                  <div className="text-[10px] text-gray-400 truncate">{doctorProfile.especialidade || 'Obstetra'}</div>
+                </div>
+              </div>
+            )}
           </aside>
 
           {/* COLUNA DE CONTEÚDO */}
@@ -386,11 +403,11 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
             </div>
           </nav>
 
-          {/* FOLHA "MAIS" (CELULAR) — as demais seções, agrupadas do mesmo jeito que a barra lateral do desktop */}
+          {/* FOLHA "MAIS" (CELULAR) — lista única (sem cabeçalhos de grupo), ícone + título + descrição + chevron */}
           {showMoreSheet && (
             <div className="lg:hidden fixed inset-0 z-50 bg-white flex flex-col print:hidden animate-in fade-in slide-in-from-bottom duration-200">
               <div className="flex items-center justify-between p-4 border-b border-gray-100 shrink-0">
-                <span className="font-serif font-bold text-base text-[var(--brand-primary)]">Mais</span>
+                <span className="font-serif font-bold text-lg text-gray-900">Mais</span>
                 <button
                   type="button"
                   onClick={() => setShowMoreSheet(false)}
@@ -399,8 +416,37 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <div className="overflow-y-auto pb-6 flex-1">
-                {renderNavGroups(() => setShowMoreSheet(false), PRIMARY_MOBILE_IDS)}
+              <div className="overflow-y-auto p-4 flex-1 space-y-1">
+                {allNavItems
+                  .filter((item) => item.allowed && !PRIMARY_MOBILE_IDS.includes(item.id))
+                  .map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveTab(item.id);
+                          setShowMoreSheet(false);
+                        }}
+                        className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer text-left"
+                      >
+                        <span className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${item.tint}`}>
+                          <Icon className="w-5 h-5" />
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block font-bold text-sm text-gray-900">{item.label}</span>
+                          <span className="block text-xs text-gray-500 truncate">{item.desc}</span>
+                        </span>
+                        <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+                      </button>
+                    );
+                  })}
+
+                <div className="mt-4 bg-rose-50 border border-rose-100 rounded-2xl p-4 text-center">
+                  <p className="text-xs font-semibold text-rose-800">Seus dados são seguros e confidenciais.</p>
+                  <p className="text-xs text-rose-700 mt-0.5">Maternidade é nossa prioridade. ❤️</p>
+                </div>
               </div>
             </div>
           )}
@@ -413,114 +459,234 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
 
                     {/* TAB 1: RESUMO */}
           {activeTab === 'resumo' && (
-            <div className="space-y-4 print:hidden">
+            <div className="space-y-5 print:hidden">
 
-              {nextAppointment ? (
-                <div className="bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/30 p-5 rounded-3xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              {/* CABEÇALHO + CARD DA PACIENTE (DESKTOP) — só aqui na aba Resumo; no celular a mesma informação está no bloco "Olá" + pílula abaixo */}
+              <div className="hidden lg:block space-y-5">
+                <div className="flex items-center gap-2.5">
+                  <LayoutDashboard className="w-5 h-5 text-[var(--brand-primary)] shrink-0" />
+                  <div>
+                    <h3 className="font-serif text-lg font-bold text-gray-900 leading-tight">Resumo da Paciente</h3>
+                    <p className="text-xs text-gray-500">Visão geral dos dados e acompanhamento gestacional.</p>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-3xl border border-gray-200 shadow-xs p-5 flex flex-wrap items-center gap-x-8 gap-y-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-[var(--brand-primary)] text-white flex items-center justify-center font-bold text-xl shrink-0">
-                      🗓️
-                    </div>
+                    <span className="w-14 h-14 rounded-full bg-[var(--brand-primary)]/10 flex items-center justify-center text-2xl shrink-0">🤰</span>
                     <div>
-                      <span className="text-[10px] text-[var(--brand-primary)] font-bold uppercase tracking-wider block">Próxima Consulta Agendada</span>
-                      <strong className="text-base text-gray-900 block">{nextAppointment.tipo}</strong>
-                      <p className="text-xs text-gray-600 mt-0.5">
-                        📍 {nextAppointment.local} • <strong>{formatDateBR(nextAppointment.data)} às {nextAppointment.horario}</strong>
-                      </p>
+                      <div className="font-bold text-gray-900">{currentPatient.nome}</div>
+                      {currentPatient.idade && (
+                        <span className="inline-block mt-1 px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-bold rounded-full">
+                          {currentPatient.idade} anos
+                        </span>
+                      )}
+                      <div className="text-xs text-gray-500 mt-1">
+                        {currentPatient.g === '1' ? 'Primigesta' : `G${currentPatient.g || 0}P${currentPatient.p || 0}`} • {currentGest.weeks} semanas e {currentGest.days} dias de gestação
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    {isStaff && (
-                      <a
-                        href={generateAppointmentReminderLink(currentPatient, nextAppointment)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs"
-                      >
-                        <Send className="w-3.5 h-3.5" /> Enviar Lembrete Zap
-                      </a>
-                    )}
-                    <button
-                      onClick={() => setActiveTab('agenda')}
-                      className="px-3.5 py-2 bg-[var(--brand-primary)] text-white rounded-xl text-xs font-bold shrink-0 cursor-pointer"
-                    >
-                      Ver Agenda
-                    </button>
+                  <div className="flex flex-col gap-1.5 text-xs text-gray-600 border-l border-gray-100 pl-8">
+                    <div className="flex items-center gap-1.5"><User className="w-3.5 h-3.5 text-gray-400 shrink-0" /> CPF <strong className="text-gray-900">{currentPatient.cpf}</strong></div>
+                    <div className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-gray-400 shrink-0" /> Contato <strong className="text-gray-900">{currentPatient.telefone || '—'}</strong></div>
+                    <div className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-gray-400 shrink-0" /> E-mail <strong className="text-gray-900">{currentPatient.email || '—'}</strong></div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 text-xs text-gray-500 border-l border-gray-100 pl-8 ml-auto">
+                    <div>Última consulta <strong className="text-gray-900 block">{ultimaConsulta ? formatDateBR(ultimaConsulta.data) : '—'}</strong></div>
+                    <div>Próxima consulta agendada <strong className="text-gray-900 block">{nextAppointment ? `${formatDateBR(nextAppointment.data)} • ${nextAppointment.horario}` : 'Não agendada'}</strong></div>
                   </div>
                 </div>
-              ) : (
-                <div className="bg-gray-50 border p-4 rounded-2xl flex justify-between items-center text-xs text-gray-500">
-                  <span>Nenhuma consulta agendada no momento.</span>
-                  {userRole === 'paciente' && (
-                    <button onClick={() => setShowRequestAppointmentModal(true)} className="text-[var(--brand-primary)] font-bold underline cursor-pointer">
-                      + Solicitar Agendamento
-                    </button>
-                  )}
-                  {isStaff && (
-                    <button onClick={() => setShowAddAgendaModal(true)} className="text-[var(--brand-primary)] font-bold underline cursor-pointer">
-                      + Agendar Agora
-                    </button>
-                  )}
-                </div>
-              )}
 
-              {examAlerts.length > 0 && (
-                <div className="bg-amber-50/80 p-5 rounded-3xl border border-amber-200 space-y-2">
-                  <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <AlertCircle className="w-4 h-4 text-amber-600" />
-                    Exames Recomendados para esta Fase ({currentGest.weeks}ª Semana)
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
-                    {examAlerts.map((al, idx) => (
-                      <div key={idx} className="bg-white p-3 rounded-2xl border border-amber-100 text-xs space-y-0.5">
-                        <strong className="text-gray-900 block font-bold">{al.titulo}</strong>
-                        <p className="text-gray-600 text-[11px]">{al.desc}</p>
+                {hasPermission(userRole, 'canViewClinicalHistory') && (
+                  <div className="space-y-2">
+                    <div>
+                      <h4 className="font-bold text-gray-900 text-sm">Visão geral do acompanhamento</h4>
+                      <p className="text-xs text-gray-500">Acompanhe os principais indicadores da gestação.</p>
+                    </div>
+                    <div className="grid grid-cols-4 gap-4">
+                      <div className="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs">
+                        <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-2">
+                          <HeartPulse className="w-5 h-5" />
+                        </div>
+                        <div className="text-[10px] text-gray-400 font-bold uppercase">Batimentos Cardíacos Fetais</div>
+                        <div className="text-xl font-bold text-gray-900 mt-0.5">{ultimaConsulta?.bcfMf || 'Sem registro'}</div>
+                        {ultimaConsulta && <p className="text-[10px] text-gray-400 mt-1">Consulta de {formatDateBR(ultimaConsulta.data)}</p>}
                       </div>
-                    ))}
+                      <div className="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs">
+                        <div className="w-10 h-10 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center mb-2">
+                          <Scale className="w-5 h-5" />
+                        </div>
+                        <div className="text-[10px] text-gray-400 font-bold uppercase">Peso</div>
+                        <div className="text-xl font-bold text-gray-900 mt-0.5">
+                          {ultimaConsulta ? `${ultimaConsulta.peso.toFixed(1).replace('.', ',')} kg` : (currentPatient.pesoInicial ? `${parseFloat(currentPatient.pesoInicial).toFixed(1).replace('.', ',')} kg` : 'Sem registro')}
+                        </div>
+                        {ultimaConsulta && currentPatient.pesoInicial && (
+                          <p className="text-[10px] text-gray-400 mt-1">
+                            {(ultimaConsulta.peso - parseFloat(currentPatient.pesoInicial)) >= 0 ? '+' : ''}
+                            {(ultimaConsulta.peso - parseFloat(currentPatient.pesoInicial)).toFixed(1).replace('.', ',')} kg desde o início
+                          </p>
+                        )}
+                      </div>
+                      <div className="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs">
+                        <div className="w-10 h-10 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mb-2">
+                          <Activity className="w-5 h-5" />
+                        </div>
+                        <div className="text-[10px] text-gray-400 font-bold uppercase">Pressão Arterial</div>
+                        <div className="text-xl font-bold text-gray-900 mt-0.5">{ultimaConsulta?.pa || 'Sem registro'}</div>
+                        {ultimaConsulta && <p className="text-[10px] text-gray-400 mt-1">Consulta de {formatDateBR(ultimaConsulta.data)}</p>}
+                      </div>
+                      <div className="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs">
+                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center mb-2 ${examesPendentes > 0 ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                          <FlaskConical className="w-5 h-5" />
+                        </div>
+                        <div className="text-[10px] text-gray-400 font-bold uppercase">Exames Pendentes</div>
+                        <div className="text-xl font-bold text-gray-900 mt-0.5">{examesPendentes}</div>
+                        {examesPendentes > 0 ? (
+                          <button onClick={() => setActiveTab('linhaTempo')} className="text-[10px] text-[var(--brand-primary)] font-bold mt-1 cursor-pointer flex items-center gap-0.5">
+                            Ver exames <ChevronRight className="w-3 h-3" />
+                          </button>
+                        ) : (
+                          <p className="text-[10px] text-gray-400 mt-1">Tudo em dia</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
+                )}
+              </div>
+
+              {/* SAUDAÇÃO (CELULAR) — só faz sentido em 2ª pessoa quando é a própria gestante lendo; no desktop, o card acima já mostra os mesmos dados em 3ª pessoa pra equipe */}
+              <div className="lg:hidden space-y-5">
+              {userRole === 'paciente' && (
+                <div>
+                  <p className="text-sm text-gray-500">Olá, {currentPatient.nome.split(' ')[0]} 👋</p>
+                  <p className="text-xl font-bold text-gray-900 mt-0.5">
+                    Bem-vinda à <span className="text-[var(--brand-primary)]">sua jornada</span>.
+                  </p>
                 </div>
               )}
 
+              {/* PÍLULA DE SEMANAS DE GESTAÇÃO */}
+              <button
+                onClick={() => setActiveTab('linhaTempo')}
+                className="w-full bg-white rounded-3xl border border-gray-200 shadow-xs p-4 flex items-center gap-3 text-left cursor-pointer hover:bg-gray-50 transition-all"
+              >
+                <span className="w-12 h-12 rounded-full bg-[var(--brand-primary)]/10 flex items-center justify-center text-2xl shrink-0">🤰</span>
+                <span className="flex-1 min-w-0">
+                  <span className="block font-bold text-gray-900">{currentGest.weeks} semanas de gestação</span>
+                  <span className="block text-xs text-gray-400 capitalize">
+                    {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                  </span>
+                </span>
+                <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+              </button>
+
+              {/* RESUMO DA GESTAÇÃO — 4 indicadores principais */}
               {hasPermission(userRole, 'canViewClinicalHistory') && (
                 <div className="space-y-2">
-                  <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-1">Visão Geral do Acompanhamento</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="flex items-center justify-between px-1">
+                    <h4 className="font-bold text-gray-900 text-sm">Resumo da gestação</h4>
+                    <button onClick={() => setActiveTab('linhaTempo')} className="text-xs text-[var(--brand-primary)] font-bold cursor-pointer">
+                      Ver detalhes
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div className="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs">
-                      <div className="w-9 h-9 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-2">
-                        <HeartPulse className="w-4.5 h-4.5" />
+                      <div className="w-9 h-9 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center mb-2">
+                        <Scale className="w-4.5 h-4.5" />
                       </div>
-                      <div className="text-[10px] text-gray-400 font-bold uppercase">Batimentos Fetais</div>
-                      <div className="text-base font-bold text-gray-900 mt-0.5">{ultimaConsulta?.bcfMf || 'Sem registro'}</div>
-                      {ultimaConsulta && <p className="text-[10px] text-gray-400 mt-1">Consulta de {formatDateBR(ultimaConsulta.data)}</p>}
+                      <div className="text-[10px] text-gray-400 font-bold uppercase">Peso</div>
+                      <div className="text-base font-bold text-gray-900 mt-0.5">
+                        {ultimaConsulta ? `${ultimaConsulta.peso.toFixed(1).replace('.', ',')} kg` : (currentPatient.pesoInicial ? `${parseFloat(currentPatient.pesoInicial).toFixed(1).replace('.', ',')} kg` : 'Sem registro')}
+                      </div>
                     </div>
                     <div className="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs">
                       <div className="w-9 h-9 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mb-2">
                         <Activity className="w-4.5 h-4.5" />
                       </div>
-                      <div className="text-[10px] text-gray-400 font-bold uppercase">Pressão Arterial</div>
+                      <div className="text-[10px] text-gray-400 font-bold uppercase">Pressão</div>
                       <div className="text-base font-bold text-gray-900 mt-0.5">{ultimaConsulta?.pa || 'Sem registro'}</div>
-                      {ultimaConsulta && <p className="text-[10px] text-gray-400 mt-1">Consulta de {formatDateBR(ultimaConsulta.data)}</p>}
                     </div>
                     <div className="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs">
-                      <div className={`w-9 h-9 rounded-2xl flex items-center justify-center mb-2 ${examesPendentes > 0 ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                        <FlaskConical className="w-4.5 h-4.5" />
+                      <div className="w-9 h-9 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-2">
+                        <HeartPulse className="w-4.5 h-4.5" />
                       </div>
-                      <div className="text-[10px] text-gray-400 font-bold uppercase">Exames Pendentes</div>
-                      <div className="text-base font-bold text-gray-900 mt-0.5">{examesPendentes}</div>
-                      {examesPendentes > 0 ? (
-                        <button onClick={() => setActiveTab('linhaTempo')} className="text-[10px] text-[var(--brand-primary)] font-bold underline mt-1 cursor-pointer">
-                          Ver na Linha do Tempo
-                        </button>
-                      ) : (
-                        <p className="text-[10px] text-gray-400 mt-1">Tudo em dia</p>
-                      )}
+                      <div className="text-[10px] text-gray-400 font-bold uppercase">Batimentos fetais</div>
+                      <div className="text-base font-bold text-gray-900 mt-0.5">{ultimaConsulta?.bcfMf || 'Sem registro'}</div>
+                    </div>
+                    <div className="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs">
+                      <div className="w-9 h-9 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-2">
+                        <CalendarCheck className="w-4.5 h-4.5" />
+                      </div>
+                      <div className="text-[10px] text-gray-400 font-bold uppercase">Última consulta</div>
+                      <div className="text-base font-bold text-gray-900 mt-0.5">{ultimaConsulta ? formatDateBR(ultimaConsulta.data) : '—'}</div>
                     </div>
                   </div>
                 </div>
               )}
 
+              {/* PRÓXIMA CONSULTA */}
               <div className="space-y-2">
+                <div className="flex items-center justify-between px-1">
+                  <h4 className="font-bold text-gray-900 text-sm">Próxima consulta</h4>
+                  <button onClick={() => setActiveTab('agenda')} className="text-xs text-[var(--brand-primary)] font-bold cursor-pointer">
+                    Ver agenda
+                  </button>
+                </div>
+
+                {nextAppointment ? (
+                  <div className="bg-white rounded-3xl border border-gray-200 shadow-xs p-4 flex items-center gap-3">
+                    <span className="w-11 h-11 rounded-2xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] flex items-center justify-center shrink-0">
+                      <CalendarClock className="w-5 h-5" />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <strong className="text-sm text-gray-900 block truncate">{nextAppointment.tipo}</strong>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {formatDateBR(nextAppointment.data)} às {nextAppointment.horario}
+                        {doctorProfile?.nome ? ` • ${doctorProfile.nome}` : ''}
+                      </p>
+                    </div>
+                    {isStaff ? (
+                      <a
+                        href={generateAppointmentReminderLink(currentPatient, nextAppointment)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-[11px] font-bold flex items-center gap-1.5 shadow-xs shrink-0"
+                      >
+                        <Send className="w-3.5 h-3.5" /> Zap
+                      </a>
+                    ) : (
+                      <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 border border-gray-200 p-4 rounded-3xl flex justify-between items-center text-xs text-gray-500">
+                    <span>Nenhuma consulta agendada no momento.</span>
+                    {userRole === 'paciente' && (
+                      <button onClick={() => setShowRequestAppointmentModal(true)} className="text-[var(--brand-primary)] font-bold underline cursor-pointer shrink-0">
+                        + Solicitar
+                      </button>
+                    )}
+                    {isStaff && (
+                      <button onClick={() => setShowAddAgendaModal(true)} className="text-[var(--brand-primary)] font-bold underline cursor-pointer shrink-0">
+                        + Agendar
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {examAlerts.length > 0 && (
+                  <div className="bg-rose-50 border border-rose-100 rounded-2xl px-4 py-3 text-xs text-rose-800 font-medium">
+                    Lembrete: {examAlerts[0].titulo}
+                    {examAlerts.length > 1 ? ` e mais ${examAlerts.length - 1} exame(s) recomendado(s) para esta fase.` : '.'}
+                  </div>
+                )}
+              </div>
+              </div>
+
+              {/* Dados de Contato: só no celular — no desktop o card do topo já mostra CPF/Contato/E-mail/Última/Próxima consulta */}
+              <div className="lg:hidden space-y-2">
                 <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-1">Dados de Contato</h4>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                   <div className="bg-white p-3.5 rounded-2xl border border-gray-200">
