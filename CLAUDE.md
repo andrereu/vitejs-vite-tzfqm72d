@@ -53,6 +53,36 @@ Chave do Gemini (`GEMINI_API_KEY`, sem prefixo `VITE_`) e credenciais do Mercado
 
 `Patient.examesTabela` guarda `Record<string, ResultadoExame[]>` — lista de resultados (mais recente primeiro), não um número fixo de colunas. Ao ler dados do Firestore, `usePatients.ts` normaliza qualquer doc ainda no formato antigo (`{d1,r1,d2,r2}`) pro formato de lista atual — proteção necessária porque não houve script de migração de dados, só normalização em tempo de leitura.
 
+## UI/UX & Frontend Guidelines (Design System)
+
+### Persona & Papel
+
+Atue como um Engenheiro de Design System e Especialista em UI/UX Mobile-First (Tailwind CSS + React).
+
+### Princípios de Design Obrigatórios
+
+1. **Estética App-First (Nativa):**
+   - Use bordas arredondadas generosas: `rounded-2xl` para cards e `rounded-3xl` para modais/containers.
+   - Sombras leves e suaves: use `shadow-sm` ou `shadow-md` sutis, evitando blocos pretos chapados.
+   - Fundos limpos/neutros: base em `bg-stone-50` ou `bg-slate-50`, nunca fundos escuros pesados na tela inteira da paciente.
+   - Espaçamento e Respiração: padding consistente (`p-4` a `p-6`), evitando acúmulo de botões no topo.
+
+2. **Cores Dinâmicas (Whitelabel / Consultório):**
+   - Nunca fixe cores estáticas (ex: `bg-green-700`) em componentes centrais.
+   - Use sempre classes utilitárias baseadas em variáveis CSS ou estilos em linha controlados pelo tema do médico (`style={{ color: doctor.primaryColor }}` / `bg-[var(--primary)]`).
+   - Garanta contraste acessível (texto escuro em fundos claros, texto branco apenas em botões preenchidos).
+
+3. **Hierarquia de Ações:**
+   - **Visão da Paciente:** Priorize métricas vitais em grids compactos (2x2 ou 4x1), card de boas-vindas com semana gestacional e próxima consulta.
+   - **Ações Administrativas:** Esconda ações como "Imprimir", "Compartilhar", "Exportar dados" dentro do menu "Mais" ou na área médica.
+
+4. **Regras de Código Tailwind:**
+   - Priorize flexbox e CSS Grid para alinhamento (`grid grid-cols-2 gap-3` / `flex items-center justify-between`).
+   - Use estados visuais claros: `hover:opacity-90 active:scale-[0.98] transition-all`.
+   - Bottom Navigation Bar sempre fixa (`fixed bottom-0 left-0 right-0 z-40`), com suporte a safe-area de celulares.
+
+Priorize o padrão visual de componentes limpos inspirados no Shadcn UI (Radix + Tailwind CSS).
+
 ## Como trabalhar nesta sessão
 
 - O usuário é o dono do produto e está aprendendo React ao longo do projeto — explicações devem ser didáticas, em português, citando o arquivo principal e a ideia por trás da mudança (não só jargão técnico solto).
