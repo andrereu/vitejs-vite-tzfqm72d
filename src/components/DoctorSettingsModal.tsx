@@ -47,6 +47,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [copiedPix, setCopiedPix] = useState(false);
+  const [showCustomColorPanel, setShowCustomColorPanel] = useState(false);
 
   const [twoFactorConfig, setTwoFactorConfig] = useState<TwoFactorConfig>({
     enabled: currentDoctor?.twoFactor?.enabled || false,
@@ -319,7 +320,10 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
                       key={cor.hex}
                       type="button"
                       title={cor.nome}
-                      onClick={() => setFormData({ ...formData, corPrimaria: cor.hex })}
+                      onClick={() => {
+                        setFormData({ ...formData, corPrimaria: cor.hex });
+                        setShowCustomColorPanel(false);
+                      }}
                       className={`w-9 h-9 rounded-full shrink-0 cursor-pointer transition-all flex items-center justify-center ${
                         isSelected ? 'ring-2 ring-offset-2 ring-gray-400' : 'hover:scale-110'
                       }`}
@@ -330,24 +334,58 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
                   );
                 })}
 
-                {/* Customizada: input nativo estourado e recortado num círculo, pra parecer mais um swatch da paleta do que o widget cru do navegador */}
-                <div
-                  className="relative w-9 h-9 rounded-full shrink-0 overflow-hidden border-2 border-dashed border-gray-300 cursor-pointer hover:scale-110 transition-all"
-                  title="Escolher outra cor"
-                  style={
-                    formData.corPrimaria && !CORES_SUGERIDAS.some((c) => c.hex.toLowerCase() === formData.corPrimaria!.toLowerCase())
-                      ? { background: formData.corPrimaria, borderStyle: 'solid' }
-                      : { background: 'conic-gradient(from 0deg, #ef4444, #eab308, #22c55e, #3b82f6, #a855f7, #ef4444)' }
-                  }
-                >
-                  <input
-                    type="color"
-                    value={formData.corPrimaria || '#2E482A'}
-                    onChange={(e) => setFormData({ ...formData, corPrimaria: e.target.value })}
-                    className="absolute -top-2 -left-2 w-14 h-14 cursor-pointer opacity-0"
-                  />
-                </div>
+                {/* Customizada: em vez de disparar o dialog nativo do sistema
+                    operacional (que não segue o visual do app), abre um
+                    painel próprio com campo de hex logo abaixo. */}
+                {(() => {
+                  const isCustom = !!formData.corPrimaria && !CORES_SUGERIDAS.some((c) => c.hex.toLowerCase() === formData.corPrimaria!.toLowerCase());
+                  return (
+                    <button
+                      type="button"
+                      title="Escolher outra cor"
+                      onClick={() => setShowCustomColorPanel((v) => !v)}
+                      className={`w-9 h-9 rounded-full shrink-0 transition-all flex items-center justify-center cursor-pointer ${
+                        isCustom ? 'ring-2 ring-offset-2 ring-gray-400' : showCustomColorPanel ? 'ring-2 ring-offset-2 ring-gray-300' : 'hover:scale-110'
+                      }`}
+                      style={
+                        isCustom
+                          ? { background: formData.corPrimaria }
+                          : { background: 'conic-gradient(from 0deg, #ef4444, #eab308, #22c55e, #3b82f6, #a855f7, #ef4444)' }
+                      }
+                    >
+                      {isCustom && <Check className="w-4 h-4 text-white drop-shadow" />}
+                    </button>
+                  );
+                })()}
               </div>
+
+              {showCustomColorPanel && (
+                <div className="flex items-center gap-2.5 p-2.5 bg-white border border-gray-200 rounded-xl">
+                  <span
+                    className="w-8 h-8 rounded-full border border-gray-200 shrink-0"
+                    style={{ background: /^#[0-9a-f]{6}$/i.test(formData.corPrimaria || '') ? formData.corPrimaria : '#ffffff' }}
+                  />
+                  <input
+                    type="text"
+                    value={formData.corPrimaria || ''}
+                    onChange={(e) => {
+                      let v = e.target.value;
+                      if (v && !v.startsWith('#')) v = `#${v}`;
+                      setFormData({ ...formData, corPrimaria: v.slice(0, 7) });
+                    }}
+                    placeholder="#RRGGBB"
+                    spellCheck={false}
+                    className="flex-1 p-2 text-xs font-mono uppercase bg-gray-50 border rounded-lg"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCustomColorPanel(false)}
+                    className="text-[11px] text-gray-500 hover:text-gray-800 font-semibold cursor-pointer px-1.5"
+                  >
+                    Fechar
+                  </button>
+                </div>
+              )}
 
               {/* PRÉVIA AO VIVO — mesma derivação de cor do app de verdade (buildBrandTheme), só que aplicada localmente aqui em vez das variáveis globais, então dá pra ver antes de salvar */}
               {(() => {
