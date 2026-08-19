@@ -7,6 +7,7 @@ import {
 import type { DoctorTenant, ClinicSecretary, TwoFactorConfig, SaasGlobalConfig } from '../types/saas';
 import { getSecretaryLimit } from '../utils/subscription';
 import { buildBrandTheme } from '../utils/theme';
+import { ColorWheelPicker } from './ColorWheelPicker';
 
 // Paleta curada pro seletor de cor (prompt 5) — testada visualmente contra
 // texto claro/escuro via buildBrandTheme, não é só "qualquer hex".
@@ -360,30 +361,21 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
               </div>
 
               {showCustomColorPanel && (
-                <div className="flex items-center gap-2.5 p-2.5 bg-white border border-gray-200 rounded-xl">
-                  <span
-                    className="w-8 h-8 rounded-full border border-gray-200 shrink-0"
-                    style={{ background: /^#[0-9a-f]{6}$/i.test(formData.corPrimaria || '') ? formData.corPrimaria : '#ffffff' }}
+                <div className="p-3.5 bg-white border border-gray-200 rounded-xl">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase text-gray-500">Escolher outra cor</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomColorPanel(false)}
+                      className="text-[11px] text-gray-500 hover:text-gray-800 font-semibold cursor-pointer px-1.5"
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                  <ColorWheelPicker
+                    value={/^#[0-9a-f]{6}$/i.test(formData.corPrimaria || '') ? formData.corPrimaria! : '#2E482A'}
+                    onChange={(hex) => setFormData({ ...formData, corPrimaria: hex })}
                   />
-                  <input
-                    type="text"
-                    value={formData.corPrimaria || ''}
-                    onChange={(e) => {
-                      let v = e.target.value;
-                      if (v && !v.startsWith('#')) v = `#${v}`;
-                      setFormData({ ...formData, corPrimaria: v.slice(0, 7) });
-                    }}
-                    placeholder="#RRGGBB"
-                    spellCheck={false}
-                    className="flex-1 p-2 text-xs font-mono uppercase bg-gray-50 border rounded-lg"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCustomColorPanel(false)}
-                    className="text-[11px] text-gray-500 hover:text-gray-800 font-semibold cursor-pointer px-1.5"
-                  >
-                    Fechar
-                  </button>
                 </div>
               )}
 

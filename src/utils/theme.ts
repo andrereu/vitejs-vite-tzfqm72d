@@ -4,28 +4,18 @@
 // são derivadas dela aqui, em vez de pedir 4 hex diferentes — ninguém escolhe
 // "cor do texto sobre o cabeçalho" sozinho, isso é detalhe de contraste.
 
-const HEX_RE = /^#([0-9a-f]{6})$/i;
-
-function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-  const match = HEX_RE.exec(hex);
-  if (!match) return null;
-  const n = parseInt(match[1], 16);
-  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
-}
-
-function toHex(n: number): string {
-  return Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
-}
+import { HEX_RE, hexToRgb, rgbToHex } from './colorMath';
 
 // Mistura `hex` em direção a `target` (também hex) por `amount` (0 a 1).
 function mix(hex: string, target: string, amount: number): string {
   const a = hexToRgb(hex);
   const b = hexToRgb(target);
   if (!a || !b) return hex;
-  const r = a.r + (b.r - a.r) * amount;
-  const g = a.g + (b.g - a.g) * amount;
-  const bl = a.b + (b.b - a.b) * amount;
-  return `#${toHex(r)}${toHex(g)}${toHex(bl)}`;
+  return rgbToHex(
+    a.r + (b.r - a.r) * amount,
+    a.g + (b.g - a.g) * amount,
+    a.b + (b.b - a.b) * amount
+  );
 }
 
 // Luminância relativa (WCAG) — decide se a cor escolhida é "clara" (precisa
