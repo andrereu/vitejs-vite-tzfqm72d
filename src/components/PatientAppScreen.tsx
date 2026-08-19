@@ -3,7 +3,7 @@ import {
   Upload, Plus, Printer, Syringe, Calculator, AlertCircle,
   Edit3, Bot, MapPin, CalendarPlus, Calendar, Share2, Send, Download, ShieldAlert,
   HeartPulse, Activity, FlaskConical, User, Phone, Mail, CalendarCheck, CalendarClock,
-  LayoutDashboard, History, CreditCard, ClipboardList, BarChart3, FolderOpen, Menu, X
+  LayoutDashboard, History, CreditCard, ClipboardList, BarChart3, FolderOpen, LayoutGrid, X
 } from 'lucide-react';
 import type { Patient, AgendaConsulta, MarcoPersonalizado, UserRole } from '../types/prenatal';
 import type { DoctorTenant } from '../types/saas';
@@ -104,7 +104,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
   const examesPendentes = getTimelineForPatient(currentPatient, currentGest.weeks)
     .filter((m) => m.categoria === 'exame' && m.status === 'atrasado').length;
 
-  const [showMobileNavDrawer, setShowMobileNavDrawer] = useState(false);
+  const [showMoreSheet, setShowMoreSheet] = useState(false);
 
   const [examesExpandidos, setExamesExpandidos] = useState<Set<string>>(new Set());
   const toggleExameExpandido = (id: string) => {
@@ -237,15 +237,23 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
   ];
 
   const allNavItems = NAV_GROUPS.flatMap((group) => group.items);
-  const activeNavItem = allNavItems.find((item) => item.id === activeTab);
 
-  // Compartilhado entre a barra lateral fixa do desktop e a gaveta do
+  // As 3 seções mais usadas ganham ícone fixo na barra inferior do celular
+  // (Resumo/Linha do Tempo/Agenda); o resto mora atrás do "Mais".
+  const PRIMARY_MOBILE_IDS = ['resumo', 'linhaTempo', 'agenda'];
+  const primaryMobileTabs = PRIMARY_MOBILE_IDS
+    .map((id) => allNavItems.find((item) => item.id === id))
+    .filter((item): item is (typeof allNavItems)[number] => !!item && item.allowed);
+
+  // Compartilhado entre a barra lateral fixa do desktop e a folha "Mais" do
   // celular — os dois são a mesma navegação, só muda o container em volta.
-  // onSelect fecha a gaveta no celular; no desktop fica undefined (sempre visível).
-  const renderNavGroups = (onSelect?: () => void) => (
+  // onSelect fecha a folha no celular; no desktop fica undefined (sempre visível).
+  // excludeIds tira, na folha "Mais", os itens que já têm ícone próprio na
+  // barra inferior (senão apareceriam duplicados).
+  const renderNavGroups = (onSelect?: () => void, excludeIds: string[] = []) => (
     <>
       {NAV_GROUPS.map((group) => {
-        const visibleItems = group.items.filter((item) => item.allowed);
+        const visibleItems = group.items.filter((item) => item.allowed && !excludeIds.includes(item.id));
         if (visibleItems.length === 0) return null;
         return (
           <div key={group.label}>
@@ -280,7 +288,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
   );
 
   return (
-        <div className="max-w-5xl lg:max-w-7xl mx-auto px-4 pt-4 space-y-6 lg:space-y-0 print:p-0 print:m-0 print:max-w-none">
+        <div className="max-w-5xl lg:max-w-7xl mx-auto px-4 pt-4 pb-20 lg:pb-0 space-y-6 lg:space-y-0 print:p-0 print:m-0 print:max-w-none">
         <div className="lg:flex lg:gap-6 lg:items-start">
 
           {/* BARRA LATERAL FIXA (DESKTOP) — mesmos grupos da navegação mobile, agrupados por área */}
@@ -339,47 +347,60 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
             </div>
           </div>
 
-                              {/* GATILHO DE NAVEGAÇÃO (CELULAR) — mostra a seção atual e abre a gaveta com os 5 grupos; no desktop a navegação é a barra lateral */}
-          <button
-            type="button"
-            onClick={() => setShowMobileNavDrawer(true)}
-            className="lg:hidden w-full bg-white border border-gray-200 rounded-2xl shadow-xs p-3 flex items-center justify-between gap-3 print:hidden cursor-pointer"
-          >
-            <span className="flex items-center gap-2.5 min-w-0">
-              <span className="w-[30px] h-[30px] rounded-lg bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] flex items-center justify-center shrink-0">
-                {activeNavItem ? <activeNavItem.icon className="w-4 h-4" /> : <LayoutDashboard className="w-4 h-4" />}
-              </span>
-              <span className="text-left min-w-0">
-                <span className="block text-[9px] font-bold uppercase tracking-wider text-gray-400">Você está em</span>
-                <span className="block text-[13.5px] font-bold text-gray-900 truncate">{activeNavItem?.label || 'Resumo'}</span>
-              </span>
-            </span>
-            <span className="w-[34px] h-[34px] rounded-xl bg-[var(--brand-primary)] text-white flex items-center justify-center shrink-0">
-              <Menu className="w-4 h-4" />
-            </span>
-          </button>
-
-          {/* GAVETA DE NAVEGAÇÃO (CELULAR) — os mesmos 5 grupos da barra lateral, em overlay */}
-          {showMobileNavDrawer && (
-            <div className="lg:hidden fixed inset-0 z-50 print:hidden">
-              <div
-                className="absolute inset-0 bg-black/45"
-                onClick={() => setShowMobileNavDrawer(false)}
-              />
-              <div className="absolute top-0 left-0 bottom-0 w-72 max-w-[85vw] bg-white shadow-2xl flex flex-col animate-in fade-in slide-in-from-left duration-200">
-                <div className="flex items-center justify-between p-4 pb-2.5 border-b border-gray-100 shrink-0">
-                  <span className="font-serif font-bold text-sm text-[var(--brand-primary)]">Navegação</span>
+                              {/* BARRA DE NAVEGAÇÃO INFERIOR (CELULAR) — Resumo/Linha do Tempo/Agenda sempre à mão, o resto das 12 seções mora atrás do "Mais"; no desktop a navegação é a barra lateral */}
+          <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-[0_-2px_12px_rgba(0,0,0,0.06)] print:hidden">
+            <div
+              className="grid"
+              style={{ gridTemplateColumns: `repeat(${primaryMobileTabs.length + 1}, 1fr)` }}
+            >
+              {primaryMobileTabs.map((item) => {
+                const Icon = item.icon;
+                const isActive = !showMoreSheet && activeTab === item.id;
+                return (
                   <button
+                    key={item.id}
                     type="button"
-                    onClick={() => setShowMobileNavDrawer(false)}
-                    className="w-[26px] h-[26px] rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center cursor-pointer"
+                    onClick={() => {
+                      setActiveTab(item.id);
+                      setShowMoreSheet(false);
+                    }}
+                    className={`flex flex-col items-center justify-center gap-0.5 pt-2.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] cursor-pointer ${
+                      isActive ? 'text-[var(--brand-primary)]' : 'text-gray-400'
+                    }`}
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <Icon className="w-5 h-5" />
+                    <span className="text-[9px] font-bold leading-tight text-center px-0.5">{item.label}</span>
                   </button>
-                </div>
-                <div className="overflow-y-auto pb-3">
-                  {renderNavGroups(() => setShowMobileNavDrawer(false))}
-                </div>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() => setShowMoreSheet(true)}
+                className={`flex flex-col items-center justify-center gap-0.5 pt-2.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] cursor-pointer ${
+                  showMoreSheet ? 'text-[var(--brand-primary)]' : 'text-gray-400'
+                }`}
+              >
+                <LayoutGrid className="w-5 h-5" />
+                <span className="text-[9px] font-bold">Mais</span>
+              </button>
+            </div>
+          </nav>
+
+          {/* FOLHA "MAIS" (CELULAR) — as demais seções, agrupadas do mesmo jeito que a barra lateral do desktop */}
+          {showMoreSheet && (
+            <div className="lg:hidden fixed inset-0 z-50 bg-white flex flex-col print:hidden animate-in fade-in slide-in-from-bottom duration-200">
+              <div className="flex items-center justify-between p-4 border-b border-gray-100 shrink-0">
+                <span className="font-serif font-bold text-base text-[var(--brand-primary)]">Mais</span>
+                <button
+                  type="button"
+                  onClick={() => setShowMoreSheet(false)}
+                  className="w-8 h-8 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="overflow-y-auto pb-6 flex-1">
+                {renderNavGroups(() => setShowMoreSheet(false), PRIMARY_MOBILE_IDS)}
               </div>
             </div>
           )}
