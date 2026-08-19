@@ -6,6 +6,20 @@ import {
 } from 'lucide-react';
 import type { DoctorTenant, ClinicSecretary, TwoFactorConfig, SaasGlobalConfig } from '../types/saas';
 import { getSecretaryLimit } from '../utils/subscription';
+import { buildBrandTheme } from '../utils/theme';
+
+// Paleta curada pro seletor de cor (prompt 5) — testada visualmente contra
+// texto claro/escuro via buildBrandTheme, não é só "qualquer hex".
+const CORES_SUGERIDAS = [
+  { nome: 'Verde MaternaIA', hex: '#2E482A' },
+  { nome: 'Petróleo', hex: '#1F4B4A' },
+  { nome: 'Azul Noturno', hex: '#223354' },
+  { nome: 'Ameixa', hex: '#4A3B6B' },
+  { nome: 'Bordô', hex: '#6B2E3F' },
+  { nome: 'Terracota', hex: '#8A4A2E' },
+  { nome: 'Rosa Antigo', hex: '#A85374' },
+  { nome: 'Grafite', hex: '#33363B' },
+];
 
 interface DoctorSettingsModalProps {
   isOpen: boolean;
@@ -278,32 +292,105 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
             </div>
 
             <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3">
-              <label className="font-bold text-gray-700 uppercase text-[10px] block">
-                Cor Principal do Consultório
-              </label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  value={formData.corPrimaria || '#2E482A'}
-                  onChange={(e) => setFormData({ ...formData, corPrimaria: e.target.value })}
-                  className="w-12 h-10 rounded-xl border border-gray-200 cursor-pointer bg-white p-1"
-                  title="Escolher cor"
-                />
-                <div className="flex-1 space-y-1">
-                  <p className="text-[11px] text-gray-500">
-                    Substitui o verde padrão no cabeçalho, botões e prontuário da sua carteirinha.
-                  </p>
-                  {formData.corPrimaria && (
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-gray-700 uppercase text-[10px] block">
+                  Cor Principal do Consultório
+                </label>
+                {formData.corPrimaria && (
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, corPrimaria: '' })}
+                    className="text-[11px] text-rose-600 hover:underline font-semibold cursor-pointer"
+                  >
+                    Usar o verde padrão
+                  </button>
+                )}
+              </div>
+              <p className="text-[11px] text-gray-500 -mt-1">
+                Substitui o verde padrão no cabeçalho, botões e prontuário da sua carteirinha.
+              </p>
+
+              {/* PALETA DE SUGESTÕES + CUSTOMIZADA */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                {CORES_SUGERIDAS.map((cor) => {
+                  const isSelected = (formData.corPrimaria || '#2E482A').toLowerCase() === cor.hex.toLowerCase();
+                  return (
                     <button
+                      key={cor.hex}
                       type="button"
-                      onClick={() => setFormData({ ...formData, corPrimaria: '' })}
-                      className="text-[11px] text-rose-600 hover:underline font-semibold cursor-pointer"
+                      title={cor.nome}
+                      onClick={() => setFormData({ ...formData, corPrimaria: cor.hex })}
+                      className={`w-9 h-9 rounded-full shrink-0 cursor-pointer transition-all flex items-center justify-center ${
+                        isSelected ? 'ring-2 ring-offset-2 ring-gray-400' : 'hover:scale-110'
+                      }`}
+                      style={{ background: cor.hex }}
                     >
-                      Voltar para o verde padrão MaternaIA
+                      {isSelected && <Check className="w-4 h-4 text-white drop-shadow" />}
                     </button>
-                  )}
+                  );
+                })}
+
+                {/* Customizada: input nativo estourado e recortado num círculo, pra parecer mais um swatch da paleta do que o widget cru do navegador */}
+                <div
+                  className="relative w-9 h-9 rounded-full shrink-0 overflow-hidden border-2 border-dashed border-gray-300 cursor-pointer hover:scale-110 transition-all"
+                  title="Escolher outra cor"
+                  style={
+                    formData.corPrimaria && !CORES_SUGERIDAS.some((c) => c.hex.toLowerCase() === formData.corPrimaria!.toLowerCase())
+                      ? { background: formData.corPrimaria, borderStyle: 'solid' }
+                      : { background: 'conic-gradient(from 0deg, #ef4444, #eab308, #22c55e, #3b82f6, #a855f7, #ef4444)' }
+                  }
+                >
+                  <input
+                    type="color"
+                    value={formData.corPrimaria || '#2E482A'}
+                    onChange={(e) => setFormData({ ...formData, corPrimaria: e.target.value })}
+                    className="absolute -top-2 -left-2 w-14 h-14 cursor-pointer opacity-0"
+                  />
                 </div>
               </div>
+
+              {/* PRÉVIA AO VIVO — mesma derivação de cor do app de verdade (buildBrandTheme), só que aplicada localmente aqui em vez das variáveis globais, então dá pra ver antes de salvar */}
+              {(() => {
+                const preview = buildBrandTheme(formData.corPrimaria) || {
+                  '--brand-primary': '#2E482A',
+                  '--brand-primary-border': '#3D5C38',
+                  '--brand-on-primary': '#E8ECD8',
+                  '--brand-on-primary-muted': '#A3B18A',
+                };
+                return (
+                  <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-xs">
+                    <div
+                      className="p-3 flex items-center justify-between gap-2"
+                      style={{ background: preview['--brand-primary'] }}
+                    >
+                      <div className="min-w-0">
+                        <div className="text-sm font-bold truncate" style={{ color: preview['--brand-on-primary'] }}>
+                          {formData.clinicaNome || formData.nome || 'Sua Clínica'}
+                        </div>
+                        <div className="text-[9px] uppercase tracking-wide font-bold" style={{ color: preview['--brand-on-primary-muted'] }}>
+                          {formData.especialidade || 'Obstetrícia'}
+                        </div>
+                      </div>
+                      <span
+                        className="px-2.5 py-1 rounded-lg text-[10px] font-bold shrink-0"
+                        style={{ background: 'rgba(255,255,255,0.15)', color: preview['--brand-on-primary'] }}
+                      >
+                        Prévia
+                      </span>
+                    </div>
+                    <div className="p-2.5 bg-white flex items-center gap-1.5">
+                      <span
+                        className="px-3 py-1.5 rounded-xl text-[11px] font-bold"
+                        style={{ background: `${preview['--brand-primary']}1A`, color: preview['--brand-primary'] }}
+                      >
+                        Resumo
+                      </span>
+                      <span className="px-3 py-1.5 rounded-xl text-[11px] font-semibold text-gray-400">Agenda</span>
+                      <span className="px-3 py-1.5 rounded-xl text-[11px] font-semibold text-gray-400">Exames</span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
