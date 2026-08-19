@@ -3,6 +3,7 @@ import { Calendar as CalendarIcon, Clock, AlertTriangle, CheckCircle, List, Chev
 import type { Patient, AgendaConsulta, HorarioBloqueado } from '../types/prenatal';
 import { formatDateBR, getLocalDateString } from '../utils/formatters';
 import { generateAppointmentReminderLink } from '../utils/whatsapp';
+import { compararAgendamentos } from '../utils/agendaScheduling';
 
 interface ClinicScheduleManagerProps {
   patients: Patient[];
@@ -28,14 +29,26 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [newBlockDate, setNewBlockDate] = useState(getLocalDateString());
   const [newBlockReason, setNewBlockReason] = useState('');
+  const [newBlockTipo, setNewBlockTipo] = useState<'dia_inteiro' | 'periodo'>('dia_inteiro');
+  const [newBlockHoraInicio, setNewBlockHoraInicio] = useState('');
+  const [newBlockHoraFim, setNewBlockHoraFim] = useState('');
 
-  // Todas as consultas consolidadas
+  const resetBlockForm = () => {
+    setNewBlockReason('');
+    setNewBlockTipo('dia_inteiro');
+    setNewBlockHoraInicio('');
+    setNewBlockHoraFim('');
+  };
+
+  // Todas as consultas consolidadas — ordenação determinística (nunca monta
+  // Date a partir de horario vazio, que quebraria em solicitações ainda sem
+  // horário confirmado).
   const allAppointments = patients.flatMap((p) =>
     (p.agendaConsultas || []).map((app) => ({
       ...app,
       patient: p,
     }))
-  ).sort((a, b) => new Date(`${a.data}T${a.horario}`).getTime() - new Date(`${b.data}T${b.horario}`).getTime());
+  ).sort(compararAgendamentos);
 
   // Métricas rápidas
   const pendingCount = allAppointments.filter((a) => a.status === 'solicitada').length;
@@ -307,21 +320,99 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
       {/* MODAL BLOQUEIO */}
       {showBlockModal && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl">
-            <h3 className="font-bold text-sm text-gray-900">Bloquear Data de Atendimento</h3>
+          <div className="bg-white rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl max-h-[85vh] overflow-y-auto">
+            <h3 className="font-bold text-sm text-gray-900">Bloquear Data / Folga</h3>
             <form onSubmit={async (e) => {
               e.preventDefault();
-              await onAddBlockedSlot({ id: `blk-${Date.now()}`, data: newBlockDate, diaInteiro: true, motivo: newBlockReason });
-              setNewBlockReason('');
+              if (newBlockTipo === 'periodo') {
+                if (!newBlockHoraInicio || !newBlockHoraFim) {
+                  alert('Informe o horário inicial e o horário final do bloqueio.');
+                  return;
+                }
+                if (newBlockHoraInicio >= newBlockHoraFim) {
+                  alert('O horário inicial precisa ser antes do horário final.');
+                  return;
+                }
+              }
+
+              const novoBloqueio: HorarioBloqueado = newBlockTipo === 'periodo'
+                ? { id: `blk-${Date.now()}`, data: newBlockDate, diaInteiro: false, horarioInicio: newBlockHoraInicio, horarioFim: newBlockHoraFim, motivo: newBlockReason }
+                : { id: `blk-${Date.now()}`, data: newBlockDate, diaInteiro: true, motivo: newBlockReason };
+
+              await onAddBlockedSlot(novoBloqueio);
+              resetBlockForm();
               setShowBlockModal(false);
             }} className="space-y-3 text-xs">
               <input type="date" required value={newBlockDate} onChange={(e) => setNewBlockDate(e.target.value)} className="w-full p-2.5 border rounded-xl" />
+
+              <div className="flex gap-4">
+                <label className="flex items-center gap-1.5 cursor-pointer font-semibold text-gray-700">
+                  <input
+                    type="radio"
+                    name="tipoBloqueio"
+                    checked={newBlockTipo === 'dia_inteiro'}
+                    onChange={() => setNewBlockTipo('dia_inteiro')}
+                  />
+                  Dia inteiro
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer font-semibold text-gray-700">
+                  <input
+                    type="radio"
+                    name="tipoBloqueio"
+                    checked={newBlockTipo === 'periodo'}
+                    onChange={() => setNewBlockTipo('periodo')}
+                  />
+                  Período
+                </label>
+              </div>
+
+              {newBlockTipo === 'periodo' && (
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="time"
+                    required
+                    value={newBlockHoraInicio}
+                    onChange={(e) => setNewBlockHoraInicio(e.target.value)}
+                    className="w-full p-2.5 border rounded-xl"
+                  />
+                  <input
+                    type="time"
+                    required
+                    value={newBlockHoraFim}
+                    onChange={(e) => setNewBlockHoraFim(e.target.value)}
+                    className="w-full p-2.5 border rounded-xl"
+                  />
+                </div>
+              )}
+
               <input type="text" required placeholder="Motivo (ex: Congresso, Folga)" value={newBlockReason} onChange={(e) => setNewBlockReason(e.target.value)} className="w-full p-2.5 border rounded-xl" />
               <div className="flex justify-end gap-2 pt-2 border-t">
-                <button type="button" onClick={() => setShowBlockModal(false)} className="px-3 py-1.5 bg-gray-100 rounded-xl font-bold">Cancelar</button>
+                <button type="button" onClick={() => { resetBlockForm(); setShowBlockModal(false); }} className="px-3 py-1.5 bg-gray-100 rounded-xl font-bold">Cancelar</button>
                 <button type="submit" className="px-4 py-1.5 bg-rose-600 text-white rounded-xl font-bold">Confirmar</button>
               </div>
             </form>
+
+            {blockedSlots.length > 0 && (
+              <div className="space-y-1.5 border-t pt-3">
+                <span className="text-[10px] font-bold text-gray-400 uppercase">Bloqueios ativos</span>
+                <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                  {[...blockedSlots].sort((a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0)).map((b) => (
+                    <div key={b.id} className="flex items-center justify-between gap-2 bg-gray-50 rounded-lg px-2.5 py-1.5">
+                      <span className="text-[11px] text-gray-700 truncate">
+                        {formatDateBR(b.data)} {b.diaInteiro ? '(dia inteiro)' : `(${b.horarioInicio}–${b.horarioFim})`} — {b.motivo}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onRemoveBlockedSlot(b.id)}
+                        className="text-rose-600 hover:text-rose-700 text-[11px] font-bold shrink-0 cursor-pointer"
+                      >
+                        Remover
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

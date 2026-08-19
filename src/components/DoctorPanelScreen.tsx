@@ -21,7 +21,8 @@ interface DoctorPanelScreenProps {
   onOpenNewPatientModal: () => void;
   onSelectPatient: (patientId: string) => void;
   blockedSlots: HorarioBloqueado[];
-  setBlockedSlots: (slots: HorarioBloqueado[]) => void;
+  onAddBlockedSlot: (slot: HorarioBloqueado) => Promise<void>;
+  onRemoveBlockedSlot: (id: string) => Promise<void>;
   onOpenConfirmModal: (app: AgendaConsulta, pat: Patient) => void;
   saveToFirestore: (updatedList: Patient[]) => Promise<void>;
 }
@@ -37,7 +38,8 @@ export const DoctorPanelScreen: React.FC<DoctorPanelScreenProps> = ({
   onOpenNewPatientModal,
   onSelectPatient,
   blockedSlots,
-  setBlockedSlots,
+  onAddBlockedSlot,
+  onRemoveBlockedSlot,
   onOpenConfirmModal,
   saveToFirestore
 }) => {
@@ -219,8 +221,8 @@ export const DoctorPanelScreen: React.FC<DoctorPanelScreenProps> = ({
         <ClinicScheduleManager
           patients={patients}
           blockedSlots={blockedSlots}
-          onAddBlockedSlot={async (newSlot) => setBlockedSlots([...blockedSlots, newSlot])}
-          onRemoveBlockedSlot={async (id) => setBlockedSlots(blockedSlots.filter((b) => b.id !== id))}
+          onAddBlockedSlot={onAddBlockedSlot}
+          onRemoveBlockedSlot={onRemoveBlockedSlot}
           onOpenConfirmModal={onOpenConfirmModal}
           onQuickStatusChange={async (patientId, appointmentId, newStatus) => {
             const targetPat = patients.find((p) => p.id === patientId);

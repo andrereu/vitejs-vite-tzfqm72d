@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { LogOut, Smartphone, WifiOff } from 'lucide-react';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
-import type { Patient, AgendaConsulta, HorarioBloqueado, ResultadoExame } from './types/prenatal';
+import type { Patient, AgendaConsulta, ResultadoExame } from './types/prenatal';
 import type { DoctorTenant, SaasGlobalConfig } from './types/saas';
 
 import { db } from './firebase';
@@ -29,6 +29,7 @@ import { processExamWithGeminiIA } from './services/geminiService';
 import { useDoctorsDirectory } from './hooks/useDoctorsDirectory';
 import { usePatients } from './hooks/usePatients';
 import { useSecretaries } from './hooks/useSecretaries';
+import { useBlockedSlots } from './hooks/useBlockedSlots';
 import { useAuthSession } from './hooks/useAuthSession';
 import { useBrandTheme } from './hooks/useBrandTheme';
 import { LISTA_EXAMES_OFICIAIS } from './constants/examesList';
@@ -64,8 +65,6 @@ export default function App() {
       console.error("Erro ao salvar configuração global:", err);
     }
   };
-
-  const [blockedSlots, setBlockedSlots] = useState<HorarioBloqueado[]>([]);
 
   const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
     id: 'doc-priscila',
@@ -248,6 +247,8 @@ export default function App() {
   });
 
   const { secretaries, saveSecretaries } = useSecretaries(currentDoctorProfile.id, userRole);
+
+  const { blockedSlots, addBlockedSlot, removeBlockedSlot } = useBlockedSlots(currentDoctorProfile.id, userRole);
 
   const handleInstallPWA = async () => {
     if (deferredPrompt) {
@@ -741,7 +742,8 @@ export default function App() {
             onOpenNewPatientModal={() => setShowNewPatientModal(true)}
             onSelectPatient={(patientId) => { setSelectedPatientId(patientId); setCurrentScreen('patient_app'); }}
             blockedSlots={blockedSlots}
-            setBlockedSlots={setBlockedSlots}
+            onAddBlockedSlot={addBlockedSlot}
+            onRemoveBlockedSlot={removeBlockedSlot}
             onOpenConfirmModal={(app, pat) => setSelectedAppointmentForConfirm({ app, pat })}
             saveToFirestore={saveToFirestore}
           />

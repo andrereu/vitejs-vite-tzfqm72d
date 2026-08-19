@@ -108,6 +108,15 @@ service cloud.firestore {
         allow write: if isSuperAdmin() || isOwnerDoctor(doctorId);
       }
 
+      match /blockedSlots/{blockId} {
+        // Bloqueios de agenda (folga/compromisso) pertencem à médica, não à
+        // paciente — só a equipe daquele doctorId (médica ou secretária, que
+        // já tem canManageSchedule) lê e escreve, igual ao acesso que já têm
+        // aos prontuários das pacientes desse consultório.
+        allow read: if isStaffOfDoctor(doctorId);
+        allow write: if isStaffOfDoctor(doctorId);
+      }
+
       match /payments/{paymentId} {
         // Extrato de pagamentos: o médico pode ver o próprio histórico, mas
         // só o Super Admin (ou o webhook do Mercado Pago, via Admin SDK, que
