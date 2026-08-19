@@ -74,12 +74,12 @@ export const PrintCardA4: React.FC<PrintCardA4Props> = ({ currentPatient, LISTA_
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {LISTA_EXAMES_OFICIAIS.map((ex) => {
-                  const d = (currentPatient.examesTabela as any)?.[ex.id] || {};
+                  const [ultimo, anterior] = currentPatient.examesTabela?.[ex.id] || [];
                   return (
                     <tr key={ex.id}>
                       <td className="p-0.5 font-semibold">{ex.label}</td>
-                      <td className="p-0.5">{d.d1 ? `${formatDateDisplay(d.d1)}: ${d.r1}` : '____/____ - __________'}</td>
-                      <td className="p-0.5">{d.d2 ? `${formatDateDisplay(d.d2)}: ${d.r2}` : '____/____ - __________'}</td>
+                      <td className="p-0.5">{ultimo ? `${formatDateDisplay(ultimo.data)}: ${ultimo.resultado}` : '____/____ - __________'}</td>
+                      <td className="p-0.5">{anterior ? `${formatDateDisplay(anterior.data)}: ${anterior.resultado}` : '____/____ - __________'}</td>
                     </tr>
                   );
                 })}

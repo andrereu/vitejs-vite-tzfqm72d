@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { LogOut, Smartphone, WifiOff } from 'lucide-react';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
-import type { Patient, AgendaConsulta, HorarioBloqueado } from './types/prenatal';
+import type { Patient, AgendaConsulta, HorarioBloqueado, ResultadoExame } from './types/prenatal';
 import type { DoctorTenant, SaasGlobalConfig } from './types/saas';
 
 import { db } from './firebase';
@@ -355,27 +355,17 @@ export default function App() {
         enviadoPor: userRole === 'medica' ? currentDoctorProfile.nome : "Paciente"
       };
 
-      // 3. Atualiza os campos da Tabela de Exames Laboratoriais
-      const currentExamesTab = { ...(currentPatient.examesTabela || {}) };
+      // 3. Atualiza os campos da Tabela de Exames Laboratoriais — cada exame
+      // é uma lista (mais recente primeiro), então um novo envio sempre soma
+      // ao histórico em vez de sobrescrever um resultado anterior.
+      const currentExamesTab: Record<string, ResultadoExame[]> = { ...(currentPatient.examesTabela || {}) };
       const todayStr = new Date().toISOString().split('T')[0];
 
       if (resultIA.examesExtraidos && Object.keys(resultIA.examesExtraidos).length > 0) {
         Object.entries(resultIA.examesExtraidos).forEach(([k, val]: any) => {
           if (val && typeof val === 'string' && val.trim() !== '') {
-            const existing = currentExamesTab[k] || { d1: '', r1: '', d2: '', r2: '' };
-            if (existing.r1 && currentGest.weeks > 24) {
-              currentExamesTab[k] = {
-                ...existing,
-                d2: existing.d2 || todayStr,
-                r2: val.trim()
-              };
-            } else {
-              currentExamesTab[k] = {
-                ...existing,
-                d1: existing.d1 || todayStr,
-                r1: val.trim()
-              };
-            }
+            const historico = currentExamesTab[k] || [];
+            currentExamesTab[k] = [{ data: todayStr, resultado: val.trim() }, ...historico];
           }
         });
       }

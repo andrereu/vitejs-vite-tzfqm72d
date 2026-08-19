@@ -477,61 +477,56 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
             
             <div className="space-y-3 text-xs">
               {props.LISTA_EXAMES_OFICIAIS.map(ex => {
-                const currentVal = props.editExamesData[ex.id] || { d1: '', r1: '', d2: '', r2: '' };
+                const historico: { data: string; resultado: string }[] = props.editExamesData[ex.id] || [];
                 return (
                   <div key={ex.id} className="p-3 bg-gray-50 rounded-2xl border space-y-2">
                     <strong className="text-xs text-[#2E482A] block uppercase">{ex.label}</strong>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <span className="text-[10px] text-gray-400 font-bold block mb-0.5">1º TRIMESTRE (Data / Resultado)</span>
-                        <div className="grid grid-cols-2 gap-1">
-                          <input 
-                            type="date" 
-                            value={currentVal.d1 || ''} 
-                            onChange={(e) => props.setEditExamesData({
-                              ...props.editExamesData,
-                              [ex.id]: { ...currentVal, d1: e.target.value }
-                            })} 
-                            className="p-1.5 border rounded-lg text-xs bg-white cursor-pointer" 
-                          />
-                          <input 
-                            type="text" 
-                            placeholder={ex.placeholder} 
-                            value={currentVal.r1 || ''} 
-                            onChange={(e) => props.setEditExamesData({
-                              ...props.editExamesData,
-                              [ex.id]: { ...currentVal, r1: e.target.value }
-                            })} 
-                            className="p-1.5 border rounded-lg text-xs bg-white font-medium" 
-                          />
-                        </div>
-                      </div>
 
-                      <div>
-                        <span className="text-[10px] text-gray-400 font-bold block mb-0.5">3º TRIMESTRE (Data / Resultado)</span>
-                        <div className="grid grid-cols-2 gap-1">
-                          <input 
-                            type="date" 
-                            value={currentVal.d2 || ''} 
-                            onChange={(e) => props.setEditExamesData({
-                              ...props.editExamesData,
-                              [ex.id]: { ...currentVal, d2: e.target.value }
-                            })} 
-                            className="p-1.5 border rounded-lg text-xs bg-white cursor-pointer" 
-                          />
-                          <input 
-                            type="text" 
-                            placeholder={ex.placeholder} 
-                            value={currentVal.r2 || ''} 
-                            onChange={(e) => props.setEditExamesData({
-                              ...props.editExamesData,
-                              [ex.id]: { ...currentVal, r2: e.target.value }
-                            })} 
-                            className="p-1.5 border rounded-lg text-xs bg-white font-medium" 
-                          />
-                        </div>
+                    {historico.map((h, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5">
+                        <input
+                          type="date"
+                          value={h.data}
+                          onChange={(e) => {
+                            const novo = historico.map((item, i) => (i === idx ? { ...item, data: e.target.value } : item));
+                            props.setEditExamesData({ ...props.editExamesData, [ex.id]: novo });
+                          }}
+                          className="p-1.5 border rounded-lg text-xs bg-white cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          placeholder={ex.placeholder}
+                          value={h.resultado}
+                          onChange={(e) => {
+                            const novo = historico.map((item, i) => (i === idx ? { ...item, resultado: e.target.value } : item));
+                            props.setEditExamesData({ ...props.editExamesData, [ex.id]: novo });
+                          }}
+                          className="flex-1 p-1.5 border rounded-lg text-xs bg-white font-medium"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const novo = historico.filter((_, i) => i !== idx);
+                            props.setEditExamesData({ ...props.editExamesData, [ex.id]: novo });
+                          }}
+                          className="text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg cursor-pointer shrink-0"
+                          title="Remover este resultado"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                    </div>
+                    ))}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const novoResultado = { data: new Date().toISOString().split('T')[0], resultado: '' };
+                        props.setEditExamesData({ ...props.editExamesData, [ex.id]: [novoResultado, ...historico] });
+                      }}
+                      className="text-[11px] font-bold text-[#2E482A] underline cursor-pointer"
+                    >
+                      + Adicionar resultado
+                    </button>
                   </div>
                 );
               })}

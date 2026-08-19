@@ -1,8 +1,32 @@
 import { useEffect, useState } from 'react';
 import { addDoc, collection, deleteDoc, doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
-import type { Patient, UserRole } from '../types/prenatal';
+import type { Patient, ResultadoExame, UserRole } from '../types/prenatal';
 import { initialPatientsList } from '../types/prenatal';
+
+// examesTabela mudou de "2 colunas fixas" (d1/r1/d2/r2) pra uma lista livre
+// de resultados — essa função protege contra prontuários salvos antes dessa
+// mudança, convertendo o formato antigo na leitura (sem precisar rodar
+// nenhum script de migração nem tocar no que já está gravado no Firestore).
+function normalizarExamesTabela(raw: any): Record<string, ResultadoExame[]> {
+  const normalizado: Record<string, ResultadoExame[]> = {};
+  for (const [key, val] of Object.entries(raw || {})) {
+    if (Array.isArray(val)) {
+      normalizado[key] = val as ResultadoExame[];
+    } else if (val && typeof val === 'object') {
+      const v = val as { d1?: string; r1?: string; d2?: string; r2?: string };
+      const lista: ResultadoExame[] = [];
+      if (v.d2 && v.r2) lista.push({ data: v.d2, resultado: v.r2 });
+      if (v.d1 && v.r1) lista.push({ data: v.d1, resultado: v.r1 });
+      normalizado[key] = lista;
+    }
+  }
+  return normalizado;
+}
+
+function normalizarPaciente(raw: any): Patient {
+  return { ...raw, examesTabela: normalizarExamesTabela(raw?.examesTabela) } as Patient;
+}
 
 interface UsePatientsOptions {
   doctorId: string;
@@ -51,7 +75,7 @@ export function usePatients({ doctorId, doctorName, userRole, selectedPatientDoc
       const colRef = collection(db, 'doctors', doctorId, 'patients');
       const unsubscribe = onSnapshot(
         colRef,
-        (snapshot) => setPatients(snapshot.docs.map((d) => d.data() as Patient)),
+        (snapshot) => setPatients(snapshot.docs.map((d) => normalizarPaciente(d.data()))),
         (err) => console.warn('Modo offline:', err)
       );
       return () => unsubscribe();
@@ -67,7 +91,7 @@ export function usePatients({ doctorId, doctorName, userRole, selectedPatientDoc
     const unsubscribe = onSnapshot(
       ref,
       (snapshot) => {
-        if (snapshot.exists()) setPatients([snapshot.data() as Patient]);
+        if (snapshot.exists()) setPatients([normalizarPaciente(snapshot.data())]);
       },
       (err) => console.warn('Modo offline:', err)
     );

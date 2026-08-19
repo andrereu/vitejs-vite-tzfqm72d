@@ -3,6 +3,16 @@ import type { Patient } from '../types/prenatal';
 export type MarcoCategoria = 'consulta' | 'exame' | 'vacina' | 'ultrassom';
 export type MarcoStatus = 'realizado' | 'proximo' | 'atrasado' | 'futuro';
 
+// Em que semana de gestação uma data caiu, a partir da DUM — usado pra saber
+// se um resultado de exame (ou upload da Central de Exames) pertence à
+// janela de um marco específico, já que agora cada exame guarda um
+// histórico livre em vez de só "1º trimestre / 3º trimestre".
+function semanaNaData(dum: string, data: string): number {
+  if (!dum || !data) return -1;
+  const diffDias = (new Date(data).getTime() - new Date(dum).getTime()) / (1000 * 60 * 60 * 24);
+  return Math.floor(diffDias / 7);
+}
+
 export interface MarcoDefinicao {
   id: string;
   categoria: MarcoCategoria;
@@ -45,7 +55,11 @@ export const MARCOS_GESTACAO: MarcoDefinicao[] = [
     semanaInicio: 6,
     semanaFim: 13,
     tabAlvo: 'examesTabela',
-    checarFeito: (p) => ({ feito: !!p.examesTabela?.hiv?.d1, em: p.examesTabela?.hiv?.d1 })
+    checarFeito: (p) => {
+      const historico = p.examesTabela?.hiv || [];
+      const maisAntigo = historico[historico.length - 1];
+      return { feito: historico.length > 0, em: maisAntigo?.data };
+    }
   },
   {
     id: 'usg-morfologica-1',
@@ -54,7 +68,8 @@ export const MARCOS_GESTACAO: MarcoDefinicao[] = [
     descricao: 'Medição da Translucência Nucal (TN) e osso nasal.',
     semanaInicio: 11,
     semanaFim: 14,
-    checarFeito: (p) => ({ feito: !!p.marcosTimeline?.['usg-morfologica-1'], em: p.marcosTimeline?.['usg-morfologica-1']?.concluidoEm })
+    tabAlvo: 'examesCentral',
+    checarFeito: (p) => checarUltrassom(p, 'usg-morfologica-1', 10, 17)
   },
   {
     id: 'usg-morfologica-2',
@@ -63,7 +78,8 @@ export const MARCOS_GESTACAO: MarcoDefinicao[] = [
     descricao: 'Avaliação detalhada da anatomia fetal e do coração.',
     semanaInicio: 20,
     semanaFim: 24,
-    checarFeito: (p) => ({ feito: !!p.marcosTimeline?.['usg-morfologica-2'], em: p.marcosTimeline?.['usg-morfologica-2']?.concluidoEm })
+    tabAlvo: 'examesCentral',
+    checarFeito: (p) => checarUltrassom(p, 'usg-morfologica-2', 19, 27)
   },
   {
     id: 'totg',
@@ -73,7 +89,10 @@ export const MARCOS_GESTACAO: MarcoDefinicao[] = [
     semanaInicio: 24,
     semanaFim: 28,
     tabAlvo: 'examesTabela',
-    checarFeito: (p) => ({ feito: !!p.examesTabela?.glicemiaTotg?.d1, em: p.examesTabela?.glicemiaTotg?.d1 })
+    checarFeito: (p) => {
+      const ultimo = p.examesTabela?.glicemiaTotg?.[0];
+      return { feito: !!ultimo, em: ultimo?.data };
+    }
   },
   {
     id: 'vacina-dtpa',
@@ -93,7 +112,11 @@ export const MARCOS_GESTACAO: MarcoDefinicao[] = [
     semanaInicio: 28,
     semanaFim: 34,
     tabAlvo: 'examesTabela',
-    checarFeito: (p) => ({ feito: !!p.examesTabela?.hiv?.d2, em: p.examesTabela?.hiv?.d2 })
+    checarFeito: (p) => {
+      const historico = p.examesTabela?.hiv || [];
+      const doTerceiroTri = historico.find((h) => semanaNaData(p.dum, h.data) >= 28);
+      return { feito: !!doTerceiroTri, em: doTerceiroTri?.data };
+    }
   },
   {
     id: 'gbs',
@@ -103,9 +126,26 @@ export const MARCOS_GESTACAO: MarcoDefinicao[] = [
     semanaInicio: 35,
     semanaFim: 37,
     tabAlvo: 'examesTabela',
-    checarFeito: (p) => ({ feito: !!p.examesTabela?.gbs?.d1, em: p.examesTabela?.gbs?.d1 })
+    checarFeito: (p) => {
+      const ultimo = p.examesTabela?.gbs?.[0];
+      return { feito: !!ultimo, em: ultimo?.data };
+    }
   }
 ];
+
+// Ecografias não têm campo próprio na tabela de exames — mas quase sempre
+// são enviadas pela Central de Exames + IA, então detecta sozinho ali
+// (tipo "Ecografia" enviado dentro da janela do marco, com uma folga de
+// ~3 semanas pra pra não perder um envio um pouco atrasado). Só cai no
+// marcosTimeline (marca manual) quando não veio de nenhum upload — por
+// exemplo, exame feito fora e só comentado verbalmente com a médica.
+function checarUltrassom(p: Patient, marcoId: string, semanaMin: number, semanaMax: number) {
+  const upload = (p.examesEnviados || []).find(
+    (e: any) => e.tipo === 'Ecografia' && semanaNaData(p.dum, e.dataUpload) >= semanaMin && semanaNaData(p.dum, e.dataUpload) <= semanaMax
+  );
+  const manual = p.marcosTimeline?.[marcoId];
+  return { feito: !!upload || !!manual, em: upload?.dataUpload || manual?.concluidoEm };
+}
 
 export interface MarcoComStatus extends MarcoDefinicao {
   status: MarcoStatus;

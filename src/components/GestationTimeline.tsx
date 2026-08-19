@@ -61,7 +61,11 @@ export const GestationTimeline: React.FC<GestationTimelineProps> = ({ patient, s
         {marcos.map((marco, idx) => {
           const estilo = ESTILO_STATUS[marco.status];
           const dataFormatada = formatDataCurta(marco.em);
-          const podeMarcarManual = isStaff && marco.status !== 'realizado' && !marco.tabAlvo;
+          // Ecografia é a única categoria sem campo próprio no prontuário —
+          // por isso é a única que também aceita marcação manual, mesmo já
+          // tendo um link pra Central de Exames (onde normalmente é
+          // detectada sozinha, a partir do upload).
+          const podeMarcarManual = isStaff && marco.status !== 'realizado' && marco.categoria === 'ultrassom';
           const podeIrParaAba = marco.tabAlvo && onIrParaAba;
 
           return (

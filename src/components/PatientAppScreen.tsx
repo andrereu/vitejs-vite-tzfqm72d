@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Upload, Plus, Printer, Syringe, Calculator, AlertCircle,
   Edit3, Bot, MapPin, CalendarPlus, Calendar, Share2, Send, Download, ShieldAlert
@@ -91,6 +91,14 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
   // equipe (agendar direto, enviar lembrete, editar registro) precisam
   // checar o papel explicitamente, não essa permissão compartilhada.
   const isStaff = userRole === 'medica' || userRole === 'secretaria';
+  const [examesExpandidos, setExamesExpandidos] = useState<Set<string>>(new Set());
+  const toggleExameExpandido = (id: string) => {
+    setExamesExpandidos((prev) => {
+      const novo = new Set(prev);
+      if (novo.has(id)) novo.delete(id); else novo.add(id);
+      return novo;
+    });
+  };
 
   const handleSolicitarExclusao = () => {
     const confirmado = window.confirm(
@@ -561,34 +569,46 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                 )}
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="p-3 font-bold text-gray-700">EXAME</th>
-                      <th className="p-3 font-bold text-gray-700">1º TRIMESTRE (Data / Resultado)</th>
-                      <th className="p-3 font-bold text-gray-700">3º TRIMESTRE (Data / Resultado)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {LISTA_EXAMES_OFICIAIS.map(ex => {
-                      const dados = (currentPatient.examesTabela as any)?.[ex.id] || {};
-                      return (
-                        <tr key={ex.id} className="hover:bg-gray-50">
-                          <td className="p-3 font-bold text-gray-900">{ex.label}</td>
-                          <td className="p-3 text-gray-700">
-                            {dados.d1 ? <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md mr-2">{formatDateDisplay(dados.d1)}</span> : null}
-                            {dados.r1 || <span className="text-gray-300 italic">Pendente ({ex.placeholder})</span>}
-                          </td>
-                          <td className="p-3 text-gray-700">
-                            {dados.d2 ? <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md mr-2">{formatDateDisplay(dados.d2)}</span> : null}
-                            {dados.r2 || <span className="text-gray-300 italic">Pendente ({ex.placeholder})</span>}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="border border-gray-100 rounded-2xl divide-y divide-gray-100 overflow-hidden">
+                {LISTA_EXAMES_OFICIAIS.map(ex => {
+                  const historico = currentPatient.examesTabela?.[ex.id] || [];
+                  const [ultimo, ...anteriores] = historico;
+                  const expandido = examesExpandidos.has(ex.id);
+                  return (
+                    <div key={ex.id} className="p-3 hover:bg-gray-50">
+                      <div className="flex justify-between items-center gap-2">
+                        <div className="min-w-0">
+                          <strong className="text-xs text-gray-900 block">{ex.label}</strong>
+                          {ultimo ? (
+                            <span className="text-xs text-gray-700">
+                              <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md mr-2">{formatDateDisplay(ultimo.data)}</span>
+                              {ultimo.resultado}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-300 italic">Pendente ({ex.placeholder})</span>
+                          )}
+                        </div>
+                        {anteriores.length > 0 && (
+                          <button
+                            onClick={() => toggleExameExpandido(ex.id)}
+                            className="text-[10px] font-bold text-gray-500 underline shrink-0 cursor-pointer"
+                          >
+                            {expandido ? 'Ocultar' : `Ver histórico (${anteriores.length})`}
+                          </button>
+                        )}
+                      </div>
+                      {expandido && anteriores.length > 0 && (
+                        <div className="mt-2 pl-2.5 border-l-2 border-gray-200 space-y-1">
+                          {anteriores.map((h, i) => (
+                            <div key={i} className="text-[11px] text-gray-500">
+                              <span className="font-semibold">{formatDateDisplay(h.data)}:</span> {h.resultado}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

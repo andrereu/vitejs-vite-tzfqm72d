@@ -7,11 +7,14 @@ export interface VacinaItem {
   d3?: string;
 }
 
-export interface ExameItem {
-  d1: string;
-  r1: string;
-  d2: string;
-  r2: string;
+// Um exame pode ser repetido quantas vezes for preciso durante a gestação —
+// por isso é uma lista (mais recente primeiro), não um número fixo de
+// colunas. Substituiu o formato antigo (ExameItem com d1/r1/d2/r2), que só
+// guardava 2 resultados por exame e perdia dado quando a paciente repetia
+// um exame mais de duas vezes.
+export interface ResultadoExame {
+  data: string;
+  resultado: string;
 }
 
 export interface ConsultaEvolucao {
@@ -91,7 +94,7 @@ export interface Patient {
   tipoSanguineo: string;
   doencasPrevias: string;
   vacinas: Record<string, VacinaItem>;
-  examesTabela: Record<string, ExameItem>;
+  examesTabela: Record<string, ResultadoExame[]>;
   consultasEvolucao: ConsultaEvolucao[];
   agendaConsultas: AgendaConsulta[];
   examesEnviados?: any[];
@@ -138,23 +141,23 @@ export const initialPatientsList: Patient[] = [
       hepatiteB: { d1: "2026-01-20", d2: "2026-02-20", d3: "" }
     },
     examesTabela: {
-      hbVg: { d1: "2026-02-20", r1: "12.8 g/dL / 38%", d2: "", r2: "" },
-      plaquetas: { d1: "2026-02-20", r1: "245.000 /mm³", d2: "", r2: "" },
-      glicemiaTotg: { d1: "2026-02-20", r1: "82 mg/dL", d2: "", r2: "" },
-      htlv: { d1: "2026-02-20", r1: "Não Reagente", d2: "", r2: "" },
-      hiv: { d1: "2026-02-20", r1: "Não Reagente", d2: "", r2: "" },
-      sifilis: { d1: "2026-02-20", r1: "Não Reagente", d2: "", r2: "" },
-      hbsag: { d1: "2026-02-20", r1: "Não Reagente", d2: "", r2: "" },
-      tsh: { d1: "2026-02-20", r1: "1.8 mIU/L", d2: "", r2: "" },
-      antiHcv: { d1: "2026-02-20", r1: "Não Reagente", d2: "", r2: "" },
-      rubeola: { d1: "2026-02-20", r1: "IgG Imune", d2: "", r2: "" },
-      cmv: { d1: "2026-02-20", r1: "IgG Imune", d2: "", r2: "" },
-      toxo: { d1: "2026-02-20", r1: "IgG+ IgM-", d2: "", r2: "" },
-      vitD: { d1: "2026-02-20", r1: "34 ng/mL", d2: "", r2: "" },
-      ferritina: { d1: "2026-02-20", r1: "65 ng/mL", d2: "", r2: "" },
-      vitB12: { d1: "2026-02-20", r1: "420 pg/mL", d2: "", r2: "" },
-      urinaUrocultura: { d1: "2026-02-20", r1: "Normal / Ausente", d2: "", r2: "" },
-      gbs: { d1: "", r1: "", d2: "", r2: "" }
+      hbVg: [{ data: "2026-02-20", resultado: "12.8 g/dL / 38%" }],
+      plaquetas: [{ data: "2026-02-20", resultado: "245.000 /mm³" }],
+      glicemiaTotg: [{ data: "2026-02-20", resultado: "82 mg/dL" }],
+      htlv: [{ data: "2026-02-20", resultado: "Não Reagente" }],
+      hiv: [{ data: "2026-02-20", resultado: "Não Reagente" }],
+      sifilis: [{ data: "2026-02-20", resultado: "Não Reagente" }],
+      hbsag: [{ data: "2026-02-20", resultado: "Não Reagente" }],
+      tsh: [{ data: "2026-02-20", resultado: "1.8 mIU/L" }],
+      antiHcv: [{ data: "2026-02-20", resultado: "Não Reagente" }],
+      rubeola: [{ data: "2026-02-20", resultado: "IgG Imune" }],
+      cmv: [{ data: "2026-02-20", resultado: "IgG Imune" }],
+      toxo: [{ data: "2026-02-20", resultado: "IgG+ IgM-" }],
+      vitD: [{ data: "2026-02-20", resultado: "34 ng/mL" }],
+      ferritina: [{ data: "2026-02-20", resultado: "65 ng/mL" }],
+      vitB12: [{ data: "2026-02-20", resultado: "420 pg/mL" }],
+      urinaUrocultura: [{ data: "2026-02-20", resultado: "Normal / Ausente" }],
+      gbs: []
     },
     consultasEvolucao: [
       { id: "c-1", data: "2026-02-20", igSem: 6, peso: 71.0, pa: "110/70", au: "NP", bcfMf: "Visível USG", edema: "Ausente", conduta: "Início do Ácido Fólico." },
