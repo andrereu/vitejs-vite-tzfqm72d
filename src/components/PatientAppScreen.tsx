@@ -8,7 +8,6 @@ import {
 } from 'lucide-react';
 import type { Patient, AgendaConsulta, MarcoPersonalizado, UserRole } from '../types/prenatal';
 import type { DoctorTenant } from '../types/saas';
-import { Tooltip } from './Tooltip';
 import { AdBanner } from './AdBanner';
 import { PatientFinancialTab } from './PatientFinancialTab';
 import { PrenatalChatTab } from './PrenatalChatTab';
@@ -316,53 +315,18 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
           {/* COLUNA DE CONTEÚDO */}
           <div className="flex-1 min-w-0 space-y-6">
 
-          <div className="bg-[var(--brand-primary)] text-white p-6 rounded-3xl shadow-md flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
-            <div>
-              <span className="text-[10px] text-[var(--brand-on-primary-muted)] uppercase font-bold">Carteirinha Pré-Natal Digital</span>
-              <h2 className="text-2xl font-bold text-white mt-0.5">{currentPatient.nome}</h2>
-              <p className="text-xs text-gray-200 mt-1">
-                Bebê: <strong>{currentPatient.nomeBebe}</strong> •
-                <span className="inline-flex items-center ml-1">
-                  DPP: <strong>{new Date(currentPatient.dpp).toLocaleDateString('pt-BR')}</strong>
-                  <Tooltip title="DPP" text="Data Provável do Parto calculada pela regra obstétrica (40 semanas)." />
-                </span>
-              </p>
+          {/* Tira de identificação — só pra equipe (médica/secretária navegando entre pacientes);
+              a própria gestante já sabe de quem é o prontuário que está vendo, não precisa repetir.
+              Sem fundo colorido nem botões: as ações (Compartilhar/Imprimir/Meus Dados) moraram pro "Mais". */}
+          {isStaff && (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500 px-1 print:hidden">
+              <span className="font-bold text-gray-800">{currentPatient.nome}</span>
+              <span className="text-gray-300">•</span>
+              <span>Bebê: {currentPatient.nomeBebe}</span>
+              <span className="text-gray-300">•</span>
+              <span>{currentGest.weeks} semanas • DPP {new Date(currentPatient.dpp).toLocaleDateString('pt-BR')}</span>
             </div>
-
-            <div className="flex flex-wrap items-center gap-2.5">
-              <button
-                onClick={() => sharePatientCard(currentPatient)}
-                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-                title="Compartilhar carteirinha via WhatsApp ou redes"
-              >
-                <Share2 className="w-4 h-4" /> Compartilhar
-              </button>
-
-              <button
-                onClick={() => window.print()}
-                className="px-3.5 py-2 bg-[var(--brand-gold)] text-gray-900 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm hover:bg-amber-400 cursor-pointer"
-              >
-                <Printer className="w-4 h-4" /> Imprimir A4
-              </button>
-
-              <button
-                onClick={() => downloadPatientData(currentPatient)}
-                className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
-                title="Baixar uma cópia dos seus dados (LGPD)"
-              >
-                <Download className="w-4 h-4" /> Meus Dados
-              </button>
-
-              <div className="bg-white/10 px-3 py-1.5 rounded-2xl flex items-center gap-2">
-                <span className="text-2xl">👶</span>
-                <div>
-                  <div className="text-base font-bold leading-none">
-                    {currentGest.weeks} <span className="text-[10px] font-normal">sem</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          )}
 
                               {/* BARRA DE NAVEGAÇÃO INFERIOR (CELULAR) — Resumo/Linha do Tempo/Agenda sempre à mão, o resto das 12 seções mora atrás do "Mais"; no desktop a navegação é a barra lateral */}
           <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-[0_-2px_12px_rgba(0,0,0,0.06)] print:hidden">
@@ -417,6 +381,61 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                 </button>
               </div>
               <div className="overflow-y-auto p-4 flex-1 space-y-1">
+                {/* AÇÕES — Compartilhar/Imprimir/Meus Dados moraram aqui, saíram do topo da home */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    sharePatientCard(currentPatient);
+                    setShowMoreSheet(false);
+                  }}
+                  className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer text-left"
+                >
+                  <span className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <Share2 className="w-5 h-5" />
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block font-bold text-sm text-gray-900">Compartilhar</span>
+                    <span className="block text-xs text-gray-500 truncate">Enviar carteirinha via WhatsApp ou redes</span>
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.print();
+                    setShowMoreSheet(false);
+                  }}
+                  className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer text-left"
+                >
+                  <span className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                    <Printer className="w-5 h-5" />
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block font-bold text-sm text-gray-900">Imprimir A4</span>
+                    <span className="block text-xs text-gray-500 truncate">Carteirinha impressa em folha A4</span>
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    downloadPatientData(currentPatient);
+                    setShowMoreSheet(false);
+                  }}
+                  className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer text-left"
+                >
+                  <span className="w-11 h-11 rounded-2xl bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
+                    <Download className="w-5 h-5" />
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block font-bold text-sm text-gray-900">Meus Dados</span>
+                    <span className="block text-xs text-gray-500 truncate">Baixar uma cópia dos seus dados (LGPD)</span>
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+                </button>
+
+                <div className="pt-2" />
+
                 {allNavItems
                   .filter((item) => item.allowed && !PRIMARY_MOBILE_IDS.includes(item.id))
                   .map((item) => {
@@ -463,11 +482,39 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
 
               {/* CABEÇALHO + CARD DA PACIENTE (DESKTOP) — só aqui na aba Resumo; no celular a mesma informação está no bloco "Olá" + pílula abaixo */}
               <div className="hidden lg:block space-y-5">
-                <div className="flex items-center gap-2.5">
-                  <LayoutDashboard className="w-5 h-5 text-[var(--brand-primary)] shrink-0" />
-                  <div>
-                    <h3 className="font-serif text-lg font-bold text-gray-900 leading-tight">Resumo da Paciente</h3>
-                    <p className="text-xs text-gray-500">Visão geral dos dados e acompanhamento gestacional.</p>
+                <div className="flex items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <LayoutDashboard className="w-5 h-5 text-[var(--brand-primary)] shrink-0" />
+                    <div>
+                      <h3 className="font-serif text-lg font-bold text-gray-900 leading-tight">Resumo da Paciente</h3>
+                      <p className="text-xs text-gray-500">Visão geral dos dados e acompanhamento gestacional.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => sharePatientCard(currentPatient)}
+                      title="Compartilhar carteirinha"
+                      className="w-9 h-9 rounded-xl border border-gray-200 bg-white text-gray-500 hover:text-emerald-600 hover:border-emerald-200 flex items-center justify-center cursor-pointer transition-all"
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => window.print()}
+                      title="Imprimir A4"
+                      className="w-9 h-9 rounded-xl border border-gray-200 bg-white text-gray-500 hover:text-amber-600 hover:border-amber-200 flex items-center justify-center cursor-pointer transition-all"
+                    >
+                      <Printer className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => downloadPatientData(currentPatient)}
+                      title="Baixar meus dados (LGPD)"
+                      className="w-9 h-9 rounded-xl border border-gray-200 bg-white text-gray-500 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 flex items-center justify-center cursor-pointer transition-all"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
 
