@@ -4,14 +4,15 @@ import type { Patient, HorarioBloqueado, AgendaConsulta, UserRole } from '../typ
 import type { DoctorTenant, SaasGlobalConfig } from '../types/saas';
 import { SubscriptionPaywall } from './SubscriptionPaywall';
 import { ClinicScheduleManager } from './ClinicScheduleManager';
+import { DoctorMetricsTab } from './DoctorMetricsTab';
 import { hasPermission } from '../utils/rbac';
 import { isDoctorBlocked } from '../utils/subscription';
 
 interface DoctorPanelScreenProps {
   currentDoctorProfile: DoctorTenant;
   globalConfig: SaasGlobalConfig;
-  doctorPanelTab: 'pacientes' | 'agenda_geral';
-  setDoctorPanelTab: (tab: 'pacientes' | 'agenda_geral') => void;
+  doctorPanelTab: 'pacientes' | 'agenda_geral' | 'metricas';
+  setDoctorPanelTab: (tab: 'pacientes' | 'agenda_geral' | 'metricas') => void;
   patients: Patient[];
   userRole: UserRole | null;
   onOpenDoctorSettings: () => void;
@@ -93,6 +94,14 @@ export const DoctorPanelScreen: React.FC<DoctorPanelScreenProps> = ({
       {/* SELETOR DE ABAS DA CLÍNICA */}
       <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
         <button
+          onClick={() => setDoctorPanelTab('metricas')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            doctorPanelTab === 'metricas' ? 'bg-[#2E482A] text-white shadow-xs' : 'bg-white text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          📊 Visão Geral
+        </button>
+        <button
           onClick={() => setDoctorPanelTab('pacientes')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             doctorPanelTab === 'pacientes' ? 'bg-[#2E482A] text-white shadow-xs' : 'bg-white text-gray-600 hover:bg-gray-100'
@@ -109,6 +118,11 @@ export const DoctorPanelScreen: React.FC<DoctorPanelScreenProps> = ({
           📅 Central da Agenda & Recepção
         </button>
       </div>
+
+      {/* ABA 0: VISÃO GERAL (MÉTRICAS DO CONSULTÓRIO) */}
+      {doctorPanelTab === 'metricas' && (
+        <DoctorMetricsTab patients={patients} onSelectPatient={onSelectPatient} />
+      )}
 
       {/* ABA 1: LISTA DE GESTANTES */}
       {doctorPanelTab === 'pacientes' && (
