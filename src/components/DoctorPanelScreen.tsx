@@ -8,6 +8,8 @@ import { DoctorMetricsTab } from './DoctorMetricsTab';
 import { DoctorRemindersTab } from './DoctorRemindersTab';
 import { hasPermission } from '../utils/rbac';
 import { isDoctorBlocked } from '../utils/subscription';
+import { calculateWeeksAndDays } from '../utils/formatters';
+import { getTimelineSummary } from '../utils/gestationTimeline';
 
 interface DoctorPanelScreenProps {
   currentDoctorProfile: DoctorTenant;
@@ -184,10 +186,22 @@ export const DoctorPanelScreen: React.FC<DoctorPanelScreenProps> = ({
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredPatients.map((pat) => (
+            {filteredPatients.map((pat) => {
+              const atrasados = getTimelineSummary(pat, calculateWeeksAndDays(pat.dum).weeks).atrasados;
+              return (
               <div key={pat.id} className="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex justify-between items-center">
                 <div>
-                  <span className="text-[10px] text-gray-400 font-bold uppercase">CPF: {pat.cpf}</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase">CPF: {pat.cpf}</span>
+                    {atrasados > 0 && (
+                      <span
+                        className="px-1.5 py-0.5 bg-rose-50 border border-rose-200 text-rose-700 rounded text-[9px] font-bold"
+                        title="Marcos da Linha do Tempo da Gestação em atraso"
+                      >
+                        ⚠️ {atrasados} atrasado{atrasados > 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
                   <h3 className="font-bold text-gray-900 text-base">{pat.nome}</h3>
                   <p className="text-xs text-gray-600 mt-1">
                     Bebê: <strong>{pat.nomeBebe}</strong> •
@@ -206,7 +220,8 @@ export const DoctorPanelScreen: React.FC<DoctorPanelScreenProps> = ({
                   Abrir Cartão
                 </button>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

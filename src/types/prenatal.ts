@@ -105,6 +105,11 @@ export interface Patient {
   // obrigação legal de retenção por tempo determinado, então a exclusão
   // nem sempre pode ser imediata).
   solicitacaoExclusao?: { em: string; atendida: boolean };
+  // Linha do Tempo da Gestação: só guarda os marcos que não têm nenhum campo
+  // estruturado próprio pra indicar "feito" (ex: ecografias) — os que já são
+  // rastreados em outro lugar (vacinas, exames, consultas) usam esses campos
+  // como fonte da verdade, sem duplicar aqui.
+  marcosTimeline?: Record<string, { concluidoEm: string }>;
 }
 
 export const initialPatientsList: Patient[] = [

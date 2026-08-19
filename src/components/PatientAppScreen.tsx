@@ -10,6 +10,7 @@ import { AdBanner } from './AdBanner';
 import { PatientFinancialTab } from './PatientFinancialTab';
 import { PrenatalChatTab } from './PrenatalChatTab';
 import { PatientAuditLog } from './PatientAuditLog';
+import { GestationTimeline } from './GestationTimeline';
 import { formatDateDisplay, formatDateBR } from '../utils/formatters';
 import { generateAppointmentReminderLink, generateConsultationSummaryLink, sharePatientCard, cleanPhoneNumber } from '../utils/whatsapp';
 import { downloadPatientData } from '../utils/dataExport';
@@ -108,6 +109,14 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
     saveToFirestore(patients.map((p) => (p.id === updated.id ? updated : p)));
   };
 
+  const handleMarcarMarcoRealizado = (marcoId: string) => {
+    const updated: Patient = {
+      ...currentPatient,
+      marcosTimeline: { ...currentPatient.marcosTimeline, [marcoId]: { concluidoEm: new Date().toISOString() } }
+    };
+    saveToFirestore(patients.map((p) => (p.id === updated.id ? updated : p)));
+  };
+
   // A assinatura da médica venceu/foi bloqueada: a paciente não tem culpa
   // disso, mas também não pode continuar acessando o prontuário — mostra um
   // aviso pra ela contactar a clínica em vez da carteirinha normal.
@@ -196,6 +205,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
               { id: 'agenda', label: '📅 Agenda & Lembretes', allowed: hasPermission(userRole, 'canManageSchedule') },
               { id: 'financeiro', label: '💳 Financeiro & Convênio', allowed: hasPermission(userRole, 'canManageFinancial') },
               { id: 'dados', label: 'Dados Clínicos & GPCA', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
+              { id: 'linhaTempo', label: '🗓️ Linha do Tempo', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
               { id: 'vacinas', label: 'Vacinas', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
               { id: 'examesTabela', label: 'Exames Laboratoriais', allowed: hasPermission(userRole, 'canViewExamReports') },
               { id: 'graficos', label: 'Gráfico GPG (MS)', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
@@ -447,6 +457,17 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                 )}
               </div>
             </div>
+          )}
+
+          {/* TAB: LINHA DO TEMPO DA GESTAÇÃO */}
+          {activeTab === 'linhaTempo' && hasPermission(userRole, 'canViewClinicalHistory') && (
+            <GestationTimeline
+              patient={currentPatient}
+              semanaAtual={currentGest.weeks}
+              isStaff={isStaff}
+              onMarcarRealizado={handleMarcarMarcoRealizado}
+              onIrParaAba={setActiveTab}
+            />
           )}
 
           {/* TAB 3: VACINAS */}
