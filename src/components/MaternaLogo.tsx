@@ -91,18 +91,18 @@ export const MaternaLogo: React.FC<MaternaLogoProps> = ({
           <div className="flex items-center gap-1.5 leading-none">
             <span
               className={`font-serif font-black tracking-tight ${textSizes[size]} ${
-                isLight ? 'text-[#F4F6F0]' : 'text-[#2E482A]'
+                isLight ? 'text-[#F4F6F0]' : 'text-[var(--brand-primary)]'
               }`}
             >
-              Materna<span className="text-[#D4AF37] font-sans font-black">IA</span>
+              Materna<span className="text-[var(--brand-gold)] font-sans font-black">IA</span>
             </span>
-            <span className="bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/40 text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
+            <span className="bg-[var(--brand-gold)]/20 text-[var(--brand-gold)] border border-[var(--brand-gold)]/40 text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
               SaaS
             </span>
           </div>
           <span
             className={`text-[8.5px] uppercase tracking-widest font-bold mt-1 ${
-              isLight ? 'text-[#A3B18A]' : 'text-gray-500'
+              isLight ? 'text-[var(--brand-on-primary-muted)]' : 'text-gray-500'
             }`}
           >
             Obstetrícia & IA Gestacional

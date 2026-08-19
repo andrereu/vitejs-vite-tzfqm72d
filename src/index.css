@@ -109,3 +109,17 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+/* === MaternaIA — tokens de marca ===
+   As mesmas cores que já estavam espalhadas pelo app como hex fixo
+   (ex: bg-[#2E482A]), agora como variáveis — visual idêntico ao de
+   hoje, mas com um lugar só pra trocar. Base pro tema por médica
+   (cada médica poderá sobrescrever essas variáveis no próprio painel,
+   sem mexer em cada componente). */
+:root {
+  --brand-primary: #2E482A;          /* verde principal — header, cards, botões */
+  --brand-primary-border: #3D5C38;   /* variação escura do verde, usada em bordas */
+  --brand-on-primary: #E8ECD8;       /* título/texto claro sobre fundo verde */
+  --brand-on-primary-muted: #A3B18A; /* texto secundário (uppercase, legendas) sobre fundo verde */
+  --brand-gold: #D4AF37;             /* dourado — CTA de destaque, plano premium */
+}

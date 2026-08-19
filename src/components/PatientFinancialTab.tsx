@@ -142,7 +142,7 @@ export const PatientFinancialTab: React.FC<PatientFinancialTabProps> = ({
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b pb-3">
           <div>
             <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-[#2E482A]" />
+              <ShieldCheck className="w-4 h-4 text-[var(--brand-primary)]" />
               Tipo de Atendimento & Cobertura
             </h3>
             <p className="text-xs text-gray-500">Defina se a paciente realiza o pré-natal particular ou por plano de saúde</p>
@@ -153,7 +153,7 @@ export const PatientFinancialTab: React.FC<PatientFinancialTabProps> = ({
               type="button"
               onClick={handleSaveConvenioConfig}
               disabled={isSavingConvenio}
-              className="px-3.5 py-1.5 bg-[#2E482A] hover:bg-[#233820] text-white text-xs font-bold rounded-xl cursor-pointer shadow-xs transition-all"
+              className="px-3.5 py-1.5 bg-[var(--brand-primary)] hover:bg-[#233820] text-white text-xs font-bold rounded-xl cursor-pointer shadow-xs transition-all"
             >
               {isSavingConvenio ? 'Salvando...' : 'Salvar Cobertura'}
             </button>
@@ -278,7 +278,7 @@ export const PatientFinancialTab: React.FC<PatientFinancialTabProps> = ({
               <button
                 type="button"
                 onClick={() => setShowAddModal(true)}
-                className="px-3.5 py-2 bg-[#2E482A] hover:bg-[#233820] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
+                className="px-3.5 py-2 bg-[var(--brand-primary)] hover:bg-[#233820] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
               >
                 <Plus className="w-4 h-4" /> + Lançar Pagamento
               </button>
@@ -391,7 +391,7 @@ export const PatientFinancialTab: React.FC<PatientFinancialTabProps> = ({
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 text-gray-800">
             <div className="flex justify-between items-center border-b pb-3">
               <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-[#2E482A]" />
+                <DollarSign className="w-5 h-5 text-[var(--brand-primary)]" />
                 Lançar Pagamento / Procedimento
               </h3>
               <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-700 font-bold">✕</button>
@@ -502,7 +502,7 @@ export const PatientFinancialTab: React.FC<PatientFinancialTabProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-[#2E482A] hover:bg-[#233820] text-white font-bold rounded-xl cursor-pointer shadow-xs"
+                  className="px-5 py-2 bg-[var(--brand-primary)] hover:bg-[#233820] text-white font-bold rounded-xl cursor-pointer shadow-xs"
                 >
                   Salvar Lançamento
                 </button>

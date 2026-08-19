@@ -97,7 +97,7 @@ export const DoctorPanelScreen: React.FC<DoctorPanelScreenProps> = ({
         <button
           onClick={() => setDoctorPanelTab('metricas')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            doctorPanelTab === 'metricas' ? 'bg-[#2E482A] text-white shadow-xs' : 'bg-white text-gray-600 hover:bg-gray-100'
+            doctorPanelTab === 'metricas' ? 'bg-[var(--brand-primary)] text-white shadow-xs' : 'bg-white text-gray-600 hover:bg-gray-100'
           }`}
         >
           📊 Visão Geral
@@ -105,7 +105,7 @@ export const DoctorPanelScreen: React.FC<DoctorPanelScreenProps> = ({
         <button
           onClick={() => setDoctorPanelTab('pacientes')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            doctorPanelTab === 'pacientes' ? 'bg-[#2E482A] text-white shadow-xs' : 'bg-white text-gray-600 hover:bg-gray-100'
+            doctorPanelTab === 'pacientes' ? 'bg-[var(--brand-primary)] text-white shadow-xs' : 'bg-white text-gray-600 hover:bg-gray-100'
           }`}
         >
           Gestantes Cadastradas ({patients.length})
@@ -113,7 +113,7 @@ export const DoctorPanelScreen: React.FC<DoctorPanelScreenProps> = ({
         <button
           onClick={() => setDoctorPanelTab('agenda_geral')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            doctorPanelTab === 'agenda_geral' ? 'bg-[#2E482A] text-white shadow-xs' : 'bg-white text-gray-600 hover:bg-gray-100'
+            doctorPanelTab === 'agenda_geral' ? 'bg-[var(--brand-primary)] text-white shadow-xs' : 'bg-white text-gray-600 hover:bg-gray-100'
           }`}
         >
           📅 Central da Agenda & Recepção
@@ -121,7 +121,7 @@ export const DoctorPanelScreen: React.FC<DoctorPanelScreenProps> = ({
         <button
           onClick={() => setDoctorPanelTab('lembretes')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            doctorPanelTab === 'lembretes' ? 'bg-[#2E482A] text-white shadow-xs' : 'bg-white text-gray-600 hover:bg-gray-100'
+            doctorPanelTab === 'lembretes' ? 'bg-[var(--brand-primary)] text-white shadow-xs' : 'bg-white text-gray-600 hover:bg-gray-100'
           }`}
         >
           🔔 Lembretes do Dia
@@ -159,7 +159,7 @@ export const DoctorPanelScreen: React.FC<DoctorPanelScreenProps> = ({
               {hasPermission(userRole, 'canManageBasicPatientData') && (
                 <button
                   onClick={onOpenNewPatientModal}
-                  className="bg-[#2E482A] hover:bg-[#233820] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
+                  className="bg-[var(--brand-primary)] hover:bg-[#233820] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
                 >
                   <UserPlus className="w-4 h-4" /> + Cadastrar Gestante
                 </button>
@@ -203,7 +203,7 @@ export const DoctorPanelScreen: React.FC<DoctorPanelScreenProps> = ({
                 </div>
                 <button
                   onClick={() => onSelectPatient(pat.id)}
-                  className="px-4 py-2.5 bg-[#2E482A] text-white rounded-xl text-xs font-bold shrink-0 cursor-pointer"
+                  className="px-4 py-2.5 bg-[var(--brand-primary)] text-white rounded-xl text-xs font-bold shrink-0 cursor-pointer"
                 >
                   Abrir Cartão
                 </button>

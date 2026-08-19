@@ -159,7 +159,7 @@ export const AppointmentConfirmModal: React.FC<AppointmentConfirmModalProps> = (
             <button
               type="submit"
               disabled={isSaving}
-              className="px-5 py-2 bg-[#2E482A] hover:bg-[#233820] text-white rounded-xl font-bold flex items-center gap-1.5 shadow-md"
+              className="px-5 py-2 bg-[var(--brand-primary)] hover:bg-[#233820] text-white rounded-xl font-bold flex items-center gap-1.5 shadow-md"
             >
               <Check className="w-4 h-4" /> {isSaving ? 'Salvando...' : 'Confirmar Horário'}
             </button>

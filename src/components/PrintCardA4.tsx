@@ -10,19 +10,19 @@ interface PrintCardA4Props {
 export const PrintCardA4: React.FC<PrintCardA4Props> = ({ currentPatient, LISTA_EXAMES_OFICIAIS }) => {
   return (
     <div className="hidden print:block font-sans text-black w-full text-[8.5px] leading-tight">
-      <div className="grid grid-cols-3 gap-3 border-2 border-[#2E482A] p-2 bg-white rounded-sm">
+      <div className="grid grid-cols-3 gap-3 border-2 border-[var(--brand-primary)] p-2 bg-white rounded-sm">
         
         {/* DOBRA 1: CAPA + IDENTIFICAÇÃO + QUADRO VACINAL + POEMA */}
         <div className="border-r border-gray-400 pr-2 space-y-2 flex flex-col justify-between">
           <div>
             <div className="text-center border-b pb-1 mb-2">
-              <h1 className="font-serif font-bold text-sm text-[#2E482A]">Dra. Priscila Gapski</h1>
+              <h1 className="font-serif font-bold text-sm text-[var(--brand-primary)]">Dra. Priscila Gapski</h1>
               <p className="text-[7.5px] font-bold text-gray-700">CRM: 33439/PR • RQE 24734</p>
-              <p className="text-[7.5px] text-[#2E482A] font-medium">@prigapski.obstetra • Obstetra</p>
+              <p className="text-[7.5px] text-[var(--brand-primary)] font-medium">@prigapski.obstetra • Obstetra</p>
             </div>
 
             <div className="space-y-1 bg-gray-50 p-1.5 border rounded-xs mb-2">
-              <span className="font-bold text-[8px] uppercase block border-b text-[#2E482A]">DADOS DA GESTANTE</span>
+              <span className="font-bold text-[8px] uppercase block border-b text-[var(--brand-primary)]">DADOS DA GESTANTE</span>
               <p><strong>NOME:</strong> {currentPatient.nome}</p>
               <p><strong>IDADE:</strong> {currentPatient.idade} anos • <strong>ALTURA:</strong> {currentPatient.altura}m</p>
               <p><strong>PAI:</strong> {currentPatient.pai}</p>
@@ -43,7 +43,7 @@ export const PrintCardA4: React.FC<PrintCardA4Props> = ({ currentPatient, LISTA_
 
             {/* QUADRO VACINAL */}
             <div className="border p-1 space-y-1 bg-emerald-50/40">
-              <span className="font-bold text-[8px] uppercase block border-b text-[#2E482A] text-center">QUADRO VACINAL</span>
+              <span className="font-bold text-[8px] uppercase block border-b text-[var(--brand-primary)] text-center">QUADRO VACINAL</span>
               <div className="grid grid-cols-3 text-[7px] text-center gap-0.5">
                 <div className="border bg-white p-0.5"><strong>INFLUENZA</strong><br />ANUAL<br />{currentPatient.vacinas?.influenza?.data || '____/____/____'}</div>
                 <div className="border bg-white p-0.5"><strong>VSR</strong><br />32 SEMANAS<br />{currentPatient.vacinas?.vsr?.data || '____/____/____'}</div>
@@ -63,7 +63,7 @@ export const PrintCardA4: React.FC<PrintCardA4Props> = ({ currentPatient, LISTA_
         {/* DOBRA 2: MATRIZ COMPLETA DE EXAMES LABORATORIAIS & USG */}
         <div className="border-r border-gray-400 pr-2 space-y-2">
           <div>
-            <span className="font-bold text-[8px] uppercase block border-b text-[#2E482A] text-center mb-1">EXAMES LABORATORIAIS</span>
+            <span className="font-bold text-[8px] uppercase block border-b text-[var(--brand-primary)] text-center mb-1">EXAMES LABORATORIAIS</span>
             <table className="w-full text-[6.8px] border-collapse text-left">
               <thead>
                 <tr className="border-b bg-gray-100 font-bold">
@@ -88,7 +88,7 @@ export const PrintCardA4: React.FC<PrintCardA4Props> = ({ currentPatient, LISTA_
           </div>
 
           <div className="pt-1 border-t">
-            <span className="font-bold text-[8px] uppercase block text-[#2E482A] text-center mb-1">U.S. OBSTÉTRICO</span>
+            <span className="font-bold text-[8px] uppercase block text-[var(--brand-primary)] text-center mb-1">U.S. OBSTÉTRICO</span>
             <table className="w-full text-[7px] border-collapse text-center">
               <thead>
                 <tr className="border-b bg-gray-100 font-bold">
@@ -117,7 +117,7 @@ export const PrintCardA4: React.FC<PrintCardA4Props> = ({ currentPatient, LISTA_
         {/* DOBRA 3: CONSULTAS DE PRÉ-NATAL E CALENDÁRIO DE AGENDAMENTOS */}
         <div className="space-y-2">
           <div>
-            <span className="font-bold text-[8px] uppercase block border-b text-[#2E482A] text-center mb-1">REGISTRO DE CONSULTAS (EVOLUÇÃO)</span>
+            <span className="font-bold text-[8px] uppercase block border-b text-[var(--brand-primary)] text-center mb-1">REGISTRO DE CONSULTAS (EVOLUÇÃO)</span>
             <table className="w-full text-[7px] border-collapse text-left">
               <thead>
                 <tr className="border-b bg-gray-100 font-bold">
@@ -158,7 +158,7 @@ export const PrintCardA4: React.FC<PrintCardA4Props> = ({ currentPatient, LISTA_
           </div>
 
           <div className="pt-1 border-t">
-            <span className="font-bold text-[8px] uppercase block text-[#2E482A] text-center mb-1">CALENDÁRIO DE CONSULTAS (PRÓXIMAS)</span>
+            <span className="font-bold text-[8px] uppercase block text-[var(--brand-primary)] text-center mb-1">CALENDÁRIO DE CONSULTAS (PRÓXIMAS)</span>
             <div className="grid grid-cols-2 gap-1 text-[7px] border p-1 bg-gray-50">
               {Array.from({ length: 4 }).map((_, idx) => {
                 const item = currentPatient.agendaConsultas?.[idx];

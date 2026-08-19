@@ -558,7 +558,7 @@ export default function App() {
 
       {/* CABEÇALHO */}
       <header className={`text-white shadow-md sticky top-0 z-40 print:hidden ${
-        currentScreen === 'master_admin' ? 'bg-black border-b border-slate-800' : 'bg-[#2E482A] border-b border-[#3D5C38]'
+        currentScreen === 'master_admin' ? 'bg-black border-b border-slate-800' : 'bg-[var(--brand-primary)] border-b border-[var(--brand-primary-border)]'
       }`}>
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           
@@ -584,10 +584,10 @@ export default function App() {
                   <MaternaLogo variant="icon" size="sm" />
                 )}
                 <div>
-                  <h1 className="font-serif text-base md:text-lg font-bold text-[#E8ECD8] leading-none">
+                  <h1 className="font-serif text-base md:text-lg font-bold text-[var(--brand-on-primary)] leading-none">
                     {landingDoctor.nome}
                   </h1>
-                  <p className="text-[9px] uppercase tracking-widest text-[#A3B18A] font-medium mt-0.5">
+                  <p className="text-[9px] uppercase tracking-widest text-[var(--brand-on-primary-muted)] font-medium mt-0.5">
                     {landingDoctor.especialidade || 'OBSTETRA'} • CRM {landingDoctor.crm}
                   </p>
                 </div>
@@ -602,10 +602,10 @@ export default function App() {
                   <MaternaLogo variant="icon" size="sm" />
                 )}
                 <div>
-                  <h1 className="font-serif text-base md:text-lg font-bold text-[#E8ECD8] leading-none">
+                  <h1 className="font-serif text-base md:text-lg font-bold text-[var(--brand-on-primary)] leading-none">
                     {currentDoctorProfile.nome}
                   </h1>
-                  <p className="text-[9px] uppercase tracking-widest text-[#A3B18A] font-medium mt-0.5">
+                  <p className="text-[9px] uppercase tracking-widest text-[var(--brand-on-primary-muted)] font-medium mt-0.5">
                     {currentDoctorProfile.especialidade || 'OBSTETRA'} • CRM {currentDoctorProfile.crm}
                   </p>
                 </div>
@@ -642,7 +642,7 @@ export default function App() {
 
             <button
               onClick={handleInstallPWA}
-              className="bg-[#D4AF37] hover:bg-amber-400 text-gray-900 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              className="bg-[var(--brand-gold)] hover:bg-amber-400 text-gray-900 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
             >
               <Smartphone className="w-4 h-4" />
               <span className="hidden sm:inline">Instalar App</span>
@@ -683,7 +683,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => setShowDoctorLoginModal(true)}
-                  className="bg-[#D4AF37] hover:bg-amber-400 text-gray-900 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+                  className="bg-[var(--brand-gold)] hover:bg-amber-400 text-gray-900 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
                 >
                   🩺 Acesso Profissional
                 </button>

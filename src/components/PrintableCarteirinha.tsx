@@ -87,20 +87,20 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
       <div className="folha-a4 text-gray-800 text-[11px] leading-tight">
         
         {/* COLUNA ESQUERDA: CAPA & DADOS */}
-        <div className="coluna-a4 border-r-2 border-dashed border-[#2E482A]/30 pr-5">
+        <div className="coluna-a4 border-r-2 border-dashed border-[var(--brand-primary)]/30 pr-5">
           <div className="space-y-3">
-            <div className="bg-[#2E482A] text-white p-3.5 rounded-xl flex items-center justify-between shadow-xs">
+            <div className="bg-[var(--brand-primary)] text-white p-3.5 rounded-xl flex items-center justify-between shadow-xs">
               <div>
                 <h1 className="text-base font-black tracking-wider uppercase">Dra. Priscila Gapski</h1>
-                <p className="text-[10px] text-[#E8ECD8] font-medium">Médica Obstetra • CRM 24734</p>
+                <p className="text-[10px] text-[var(--brand-on-primary)] font-medium">Médica Obstetra • CRM 24734</p>
               </div>
               <span className="bg-white/20 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">
                 Carteirinha Oficial
               </span>
             </div>
 
-            <div className="bg-[#F8FAF6] border border-[#2E482A]/20 p-3 rounded-xl space-y-2">
-              <h2 className="text-xs font-bold text-[#2E482A] uppercase border-b border-[#2E482A]/10 pb-1">
+            <div className="bg-[#F8FAF6] border border-[var(--brand-primary)]/20 p-3 rounded-xl space-y-2">
+              <h2 className="text-xs font-bold text-[var(--brand-primary)] uppercase border-b border-[var(--brand-primary)]/10 pb-1">
                 Identificação da Gestante
               </h2>
               <div className="grid grid-cols-2 gap-2 text-[10px]">
@@ -112,21 +112,21 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
             </div>
 
             <div className="bg-white border border-gray-200 p-3 rounded-xl space-y-2">
-              <h2 className="text-xs font-bold text-[#2E482A] uppercase border-b border-gray-100 pb-1">
+              <h2 className="text-xs font-bold text-[var(--brand-primary)] uppercase border-b border-gray-100 pb-1">
                 Parâmetros Gestacionais
               </h2>
               <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
-                <div className="bg-[#F8FAF6] p-2 rounded-lg border border-[#2E482A]/10">
+                <div className="bg-[#F8FAF6] p-2 rounded-lg border border-[var(--brand-primary)]/10">
                   <span className="text-gray-500 block text-[9px]">DUM</span>
                   <strong className="text-gray-800">{patient?.dum || '—'}</strong>
                 </div>
-                <div className="bg-[#F8FAF6] p-2 rounded-lg border border-[#2E482A]/10">
+                <div className="bg-[#F8FAF6] p-2 rounded-lg border border-[var(--brand-primary)]/10">
                   <span className="text-gray-500 block text-[9px]">DPP</span>
                   <strong className="text-emerald-800">{patient?.dpp || '—'}</strong>
                 </div>
-                <div className="bg-[#2E482A]/10 p-2 rounded-lg border border-[#2E482A]/20">
+                <div className="bg-[var(--brand-primary)]/10 p-2 rounded-lg border border-[var(--brand-primary)]/20">
                   <span className="text-gray-600 block text-[9px]">Idade Atual</span>
-                  <strong className="text-[#2E482A]">{weeks} semanas</strong>
+                  <strong className="text-[var(--brand-primary)]">{weeks} semanas</strong>
                 </div>
               </div>
             </div>
@@ -141,8 +141,8 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
         {/* COLUNA DIREITA: GPG */}
         <div className="coluna-a4 pl-2">
           <div className="space-y-3">
-            <div className="bg-[#2E482A]/10 p-2.5 rounded-xl border border-[#2E482A]/20">
-              <h2 className="text-xs font-bold text-[#2E482A] uppercase">
+            <div className="bg-[var(--brand-primary)]/10 p-2.5 rounded-xl border border-[var(--brand-primary)]/20">
+              <h2 className="text-xs font-bold text-[var(--brand-primary)] uppercase">
                 Curva de Ganho Ponderal Gestacional (MS)
               </h2>
               <p className="text-[9px] text-gray-600">Acompanhamento do IMC e peso ao longo das semanas</p>
@@ -172,9 +172,9 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
                     <td className="p-1.5 text-emerald-700 font-semibold">Adequado</td>
                   </tr>
                   <tr className="bg-emerald-50">
-                    <td className="p-1.5 font-black text-[#2E482A]">Atual ({weeks}s)</td>
-                    <td className="p-1.5 font-black text-[#2E482A]">71.2 kg</td>
-                    <td className="p-1.5 font-black text-[#2E482A]">+ 7.7 kg</td>
+                    <td className="p-1.5 font-black text-[var(--brand-primary)]">Atual ({weeks}s)</td>
+                    <td className="p-1.5 font-black text-[var(--brand-primary)]">71.2 kg</td>
+                    <td className="p-1.5 font-black text-[var(--brand-primary)]">+ 7.7 kg</td>
                     <td className="p-1.5 font-black text-emerald-800">Ideal</td>
                   </tr>
                 </tbody>
@@ -203,9 +203,9 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
       <div className="folha-a4 text-gray-800 text-[11px] leading-tight">
         
         {/* COLUNA ESQUERDA: CONSULTAS */}
-        <div className="coluna-a4 border-r-2 border-dashed border-[#2E482A]/30 pr-5">
+        <div className="coluna-a4 border-r-2 border-dashed border-[var(--brand-primary)]/30 pr-5">
           <div>
-            <div className="bg-[#2E482A] text-white p-2.5 rounded-xl mb-3">
+            <div className="bg-[var(--brand-primary)] text-white p-2.5 rounded-xl mb-3">
               <h2 className="text-xs font-bold uppercase tracking-wider">
                 Evolução & Consultas Pré-Natais
               </h2>
@@ -251,7 +251,7 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
         {/* COLUNA DIREITA: EXAMES */}
         <div className="coluna-a4 pl-2">
           <div>
-            <div className="bg-[#2E482A] text-white p-2.5 rounded-xl mb-3">
+            <div className="bg-[var(--brand-primary)] text-white p-2.5 rounded-xl mb-3">
               <h2 className="text-xs font-bold uppercase tracking-wider">
                 Exames Laboratoriais & Sorologias
               </h2>

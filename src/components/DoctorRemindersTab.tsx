@@ -101,7 +101,7 @@ export const DoctorRemindersTab: React.FC<DoctorRemindersTabProps> = ({ patients
                     rel="noreferrer"
                     onClick={() => marcarComoEnviado(item.patient.id, item.agendaId)}
                     className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer transition-all ${
-                      jaEnviado ? 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50' : 'bg-[#2E482A] text-white hover:bg-[#233820]'
+                      jaEnviado ? 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50' : 'bg-[var(--brand-primary)] text-white hover:bg-[#233820]'
                     }`}
                   >
                     <Send className="w-3.5 h-3.5" /> {jaEnviado ? 'Reenviar' : 'Enviar Lembrete'}

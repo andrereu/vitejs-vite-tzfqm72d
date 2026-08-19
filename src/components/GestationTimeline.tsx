@@ -225,7 +225,7 @@ export const GestationTimeline: React.FC<GestationTimelineProps> = ({
                 >
                   Cancelar
                 </button>
-                <button type="submit" className="px-4 py-1.5 bg-[#2E482A] text-white font-bold text-xs rounded-xl cursor-pointer">
+                <button type="submit" className="px-4 py-1.5 bg-[var(--brand-primary)] text-white font-bold text-xs rounded-xl cursor-pointer">
                   Adicionar
                 </button>
               </div>
@@ -233,7 +233,7 @@ export const GestationTimeline: React.FC<GestationTimelineProps> = ({
           ) : (
             <button
               onClick={() => setMostrarForm(true)}
-              className="text-xs font-bold text-[#2E482A] underline cursor-pointer flex items-center gap-1.5"
+              className="text-xs font-bold text-[var(--brand-primary)] underline cursor-pointer flex items-center gap-1.5"
             >
               <Plus className="w-3.5 h-3.5" /> Adicionar item personalizado pra esta paciente
             </button>

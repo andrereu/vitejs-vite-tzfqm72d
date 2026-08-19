@@ -70,7 +70,7 @@ export const DoctorMetricsTab: React.FC<DoctorMetricsTabProps> = ({ patients, on
       label: 'Gestantes Ativas',
       value: String(stats.total),
       icon: <Users className="w-5 h-5" />,
-      accent: 'text-[#2E482A] bg-emerald-50'
+      accent: 'text-[var(--brand-primary)] bg-emerald-50'
     },
     {
       label: 'Aguardando Confirmação',
@@ -142,7 +142,7 @@ export const DoctorMetricsTab: React.FC<DoctorMetricsTabProps> = ({ patients, on
               </div>
               <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-[#2E482A] rounded-full"
+                  className="h-full bg-[var(--brand-primary)] rounded-full"
                   style={{ width: `${(row.value / maxTrimestre) * 100}%` }}
                 />
               </div>

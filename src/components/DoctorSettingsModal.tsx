@@ -165,7 +165,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
         {/* CABEÇALHO */}
         <div className="flex justify-between items-center border-b pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-[#2E482A]/10 text-[#2E482A] rounded-xl">
+            <div className="p-2 bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] rounded-xl">
               <Settings className="w-5 h-5" />
             </div>
             <div>
@@ -188,7 +188,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
             type="button"
             onClick={() => setActiveTab('perfil')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'perfil' ? 'bg-[#2E482A] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              activeTab === 'perfil' ? 'bg-[var(--brand-primary)] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             <Building className="w-4 h-4" /> Dados & Logo
@@ -198,7 +198,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
             type="button"
             onClick={() => setActiveTab('assinatura')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'assinatura' ? 'bg-[#2E482A] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              activeTab === 'assinatura' ? 'bg-[var(--brand-primary)] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             <CreditCard className="w-4 h-4" /> Minha Assinatura
@@ -208,7 +208,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
             type="button"
             onClick={() => setActiveTab('secretarias')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'secretarias' ? 'bg-[#2E482A] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              activeTab === 'secretarias' ? 'bg-[var(--brand-primary)] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             <Users className="w-4 h-4" /> Secretárias ({secList.length})
@@ -218,7 +218,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
             type="button"
             onClick={() => setActiveTab('seguranca')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'seguranca' ? 'bg-[#2E482A] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              activeTab === 'seguranca' ? 'bg-[var(--brand-primary)] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             <ShieldCheck className="w-4 h-4" /> Segurança (A2F)
@@ -248,7 +248,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
 
                 <div className="space-y-1.5 flex-1">
                   <div className="flex items-center gap-2">
-                    <label className="px-3 py-1.5 bg-[#2E482A] hover:bg-[#233820] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all">
+                    <label className="px-3 py-1.5 bg-[var(--brand-primary)] hover:bg-[#233820] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all">
                       <Upload className="w-3.5 h-3.5" />
                       <span>{isResizing ? 'Processando...' : 'Selecionar Imagem'}</span>
                       <input 
@@ -364,7 +364,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
               <button
                 type="submit"
                 disabled={isSaving || isResizing}
-                className="px-5 py-2.5 bg-[#2E482A] hover:bg-[#233820] text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-sm"
+                className="px-5 py-2.5 bg-[var(--brand-primary)] hover:bg-[#233820] text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-sm"
               >
                 <Save className="w-4 h-4" /> {isSaving ? 'Salvando...' : 'Salvar Alterações'}
               </button>
@@ -418,7 +418,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
             </div>
 
             {/* SEÇÃO PIX E RENOVAÇÃO */}
-            <div className="p-4 bg-[#2E482A]/5 rounded-2xl border border-[#2E482A]/20 space-y-3">
+            <div className="p-4 bg-[var(--brand-primary)]/5 rounded-2xl border border-[var(--brand-primary)]/20 space-y-3">
               <div className="flex justify-between items-center">
                 <div>
                   <h4 className="font-bold text-gray-900 text-xs flex items-center gap-1.5">
@@ -440,7 +440,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
                   type="button"
                   onClick={handleCopyPix}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
-                    copiedPix ? 'bg-emerald-600 text-white' : 'bg-[#2E482A] text-white hover:bg-[#233820]'
+                    copiedPix ? 'bg-emerald-600 text-white' : 'bg-[var(--brand-primary)] text-white hover:bg-[#233820]'
                   }`}
                 >
                   {copiedPix ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
@@ -510,7 +510,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
                 </div>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#2E482A] text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer text-xs"
+                  className="px-4 py-2 bg-[var(--brand-primary)] text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer text-xs"
                 >
                   <Plus className="w-4 h-4" /> Adicionar à Equipe
                 </button>
@@ -558,7 +558,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
                 type="button"
                 onClick={handleSubmit}
                 disabled={isSaving}
-                className="px-5 py-2.5 bg-[#2E482A] hover:bg-[#233820] text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-sm"
+                className="px-5 py-2.5 bg-[var(--brand-primary)] hover:bg-[#233820] text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-sm"
               >
                 <Save className="w-4 h-4" /> {isSaving ? 'Salvando...' : 'Salvar Secretárias'}
               </button>
@@ -582,7 +582,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
                     onChange={(e) => setTwoFactorConfig({ ...twoFactorConfig, enabled: e.target.checked })}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2E482A]"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--brand-primary)]"></div>
                 </label>
               </div>
 
@@ -594,7 +594,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
                       type="button"
                       onClick={() => setTwoFactorConfig({ ...twoFactorConfig, method: 'whatsapp' })}
                       className={`p-3 rounded-xl border text-left flex items-center gap-2 cursor-pointer ${
-                        twoFactorConfig.method === 'whatsapp' ? 'border-[#2E482A] bg-[#2E482A]/5 font-bold' : 'bg-white'
+                        twoFactorConfig.method === 'whatsapp' ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/5 font-bold' : 'bg-white'
                       }`}
                     >
                       <span className="text-base">📱</span>
@@ -608,7 +608,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
                       type="button"
                       onClick={() => setTwoFactorConfig({ ...twoFactorConfig, method: 'authenticator' })}
                       className={`p-3 rounded-xl border text-left flex items-center gap-2 cursor-pointer ${
-                        twoFactorConfig.method === 'authenticator' ? 'border-[#2E482A] bg-[#2E482A]/5 font-bold' : 'bg-white'
+                        twoFactorConfig.method === 'authenticator' ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/5 font-bold' : 'bg-white'
                       }`}
                     >
                       <span className="text-base">🔑</span>
@@ -635,7 +635,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
                   {twoFactorConfig.method === 'authenticator' && (
                     <div className="p-3 bg-white rounded-xl border border-gray-200 space-y-1">
                       <span className="text-[10px] font-bold text-gray-400 uppercase block">Chave Secreta para o App</span>
-                      <strong className="text-sm font-mono text-[#2E482A] tracking-wider block">{twoFactorConfig.secret}</strong>
+                      <strong className="text-sm font-mono text-[var(--brand-primary)] tracking-wider block">{twoFactorConfig.secret}</strong>
                       <p className="text-[10px] text-gray-500">Copie e cole essa chave no Google Authenticator ou 1Password.</p>
                     </div>
                   )}
@@ -655,7 +655,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
                 type="button"
                 onClick={handleSubmit}
                 disabled={isSaving}
-                className="px-5 py-2 bg-[#2E482A] hover:bg-[#233820] text-white font-bold rounded-xl cursor-pointer shadow-xs"
+                className="px-5 py-2 bg-[var(--brand-primary)] hover:bg-[#233820] text-white font-bold rounded-xl cursor-pointer shadow-xs"
               >
                 Salvar Configurações de Segurança
               </button>

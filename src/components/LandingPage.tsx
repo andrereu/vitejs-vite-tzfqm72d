@@ -34,11 +34,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
       {/* 1. HERO SECTION */}
       <section className="relative overflow-hidden pt-6 px-4 max-w-5xl mx-auto text-center">
-        <div className="bg-gradient-to-b from-[#2E482A] via-[#233820] to-[#172515] text-white p-8 md:p-12 rounded-3xl shadow-2xl space-y-6 relative border border-[#3D5C38]">
+        <div className="bg-gradient-to-b from-[var(--brand-primary)] via-[#233820] to-[#172515] text-white p-8 md:p-12 rounded-3xl shadow-2xl space-y-6 relative border border-[var(--brand-primary-border)]">
 
           {doctorContext ? (
             <>
-              <div className="inline-flex items-center gap-2 bg-white/10 text-[#E8ECD8] text-[11px] font-bold px-4 py-1.5 rounded-full uppercase border border-white/20 backdrop-blur-xs">
+              <div className="inline-flex items-center gap-2 bg-white/10 text-[var(--brand-on-primary)] text-[11px] font-bold px-4 py-1.5 rounded-full uppercase border border-white/20 backdrop-blur-xs">
                 <Sparkles className="w-3.5 h-3.5 text-amber-300" /> Consultório Digital • Powered by MaternaIA
               </div>
 
@@ -55,7 +55,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </h1>
               </div>
 
-              <p className="text-xs md:text-sm text-[#A3B18A] max-w-2xl mx-auto leading-relaxed">
+              <p className="text-xs md:text-sm text-[var(--brand-on-primary-muted)] max-w-2xl mx-auto leading-relaxed">
                 {doctorContext.especialidade || 'Obstetrícia'} • CRM {doctorContext.crm}
                 {doctorContext.clinicaNome ? ` • ${doctorContext.clinicaNome}` : ''}
               </p>
@@ -63,7 +63,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
                 <button
                   onClick={onOpenPatientLogin}
-                  className="w-full sm:w-auto px-7 py-3.5 bg-[#D4AF37] hover:bg-amber-400 text-gray-900 rounded-2xl font-bold text-xs shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto px-7 py-3.5 bg-[var(--brand-gold)] hover:bg-amber-400 text-gray-900 rounded-2xl font-bold text-xs shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
                   <span>👶 Sou Gestante — Acessar Carteirinha</span>
                 </button>
@@ -90,7 +90,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </>
           ) : (
             <>
-              <div className="inline-flex items-center gap-2 bg-white/10 text-[#E8ECD8] text-[11px] font-bold px-4 py-1.5 rounded-full uppercase border border-white/20 backdrop-blur-xs">
+              <div className="inline-flex items-center gap-2 bg-white/10 text-[var(--brand-on-primary)] text-[11px] font-bold px-4 py-1.5 rounded-full uppercase border border-white/20 backdrop-blur-xs">
                 <Sparkles className="w-3.5 h-3.5 text-amber-300" /> MaternaIA • Plataforma Inteligente de Pré-Natal
               </div>
 
@@ -98,14 +98,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 Acompanhamento gestacional com carinho, precisão e Inteligência Artificial
               </h1>
 
-              <p className="text-xs md:text-sm text-[#A3B18A] max-w-2xl mx-auto leading-relaxed">
+              <p className="text-xs md:text-sm text-[var(--brand-on-primary-muted)] max-w-2xl mx-auto leading-relaxed">
                 Substitua a carteirinha de papel por um ecossistema digital para obstetras e gestantes: leitura de laudos com IA Gemini, curva GPG oficial do Ministério da Saúde, avisos por WhatsApp e PWA Offline.
               </p>
 
               <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
                 <button
                   onClick={onOpenTrialModal}
-                  className="w-full sm:w-auto px-7 py-3.5 bg-[#D4AF37] hover:bg-amber-400 text-gray-900 rounded-2xl font-bold text-xs shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto px-7 py-3.5 bg-[var(--brand-gold)] hover:bg-amber-400 text-gray-900 rounded-2xl font-bold text-xs shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
                   <span>🚀 Teste Grátis de 14 Dias</span>
                 </button>
@@ -117,7 +117,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </button>
               </div>
 
-              <div className="pt-2 text-xs text-[#A3B18A] flex flex-wrap justify-center gap-6">
+              <div className="pt-2 text-xs text-[var(--brand-on-primary-muted)] flex flex-wrap justify-center gap-6">
                 <button onClick={onOpenPatientLogin} className="hover:text-white underline cursor-pointer font-medium">
                   👶 Sou Gestante (Acessar Carteirinha)
                 </button>
@@ -150,7 +150,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       {/* 3. RECURSOS PRINCIPAIS */}
       <section className="max-w-5xl mx-auto px-4 space-y-6">
         <div className="text-center space-y-1.5">
-          <span className="text-[10px] font-bold text-[#2E482A] uppercase tracking-widest bg-emerald-100/70 px-3 py-1 rounded-full">
+          <span className="text-[10px] font-bold text-[var(--brand-primary)] uppercase tracking-widest bg-emerald-100/70 px-3 py-1 rounded-full">
             Tecnologia Médica Especializada
           </span>
           <h2 className="text-2xl font-serif font-bold text-gray-900">
@@ -226,23 +226,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
             <button 
               onClick={onOpenTrialModal}
-              className="w-full py-3 bg-[#2E482A] hover:bg-[#233820] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+              className="w-full py-3 bg-[var(--brand-primary)] hover:bg-[#233820] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
             >
               Começar Teste de 14 Dias Grátis
             </button>
           </div>
 
           {/* PLANO CLÍNICA MULTI-MÉDICOS */}
-          <div className="bg-gradient-to-b from-[#2E482A]/5 to-[#2E482A]/15 p-7 rounded-3xl border-2 border-[#2E482A] shadow-md space-y-5 flex flex-col justify-between relative">
-            <div className="absolute top-4 right-4 bg-[#D4AF37] text-gray-900 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
+          <div className="bg-gradient-to-b from-[var(--brand-primary)]/5 to-[var(--brand-primary)]/15 p-7 rounded-3xl border-2 border-[var(--brand-primary)] shadow-md space-y-5 flex flex-col justify-between relative">
+            <div className="absolute top-4 right-4 bg-[var(--brand-gold)] text-gray-900 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
               Mais Popular
             </div>
             <div className="space-y-3.5">
-              <span className="bg-[#2E482A] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase">
+              <span className="bg-[var(--brand-primary)] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase">
                 Clínica & Maternidade
               </span>
               <h3 className="text-xl font-bold text-gray-900">Clínica Multi-Médicos</h3>
-              <p className="text-3xl font-bold text-[#2E482A]">
+              <p className="text-3xl font-bold text-[var(--brand-primary)]">
                 R$ 199 <span className="text-xs text-gray-500 font-normal">/ mês</span>
               </p>
               <ul className="space-y-2.5 text-xs text-gray-700 font-medium">
@@ -254,7 +254,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
             <button 
               onClick={handleFalarComConsultor}
-              className="w-full py-3 bg-[#D4AF37] hover:bg-amber-400 text-gray-900 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5"
+              className="w-full py-3 bg-[var(--brand-gold)] hover:bg-amber-400 text-gray-900 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5"
             >
               <span>Falar com Consultor Comercial</span>
               <ArrowRight className="w-4 h-4" />

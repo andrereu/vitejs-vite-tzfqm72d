@@ -54,11 +54,11 @@ export const AdBanner: React.FC<AdBannerProps> = ({
     <div className={`my-4 print:hidden ${className}`}>
       <div className="bg-gradient-to-r from-emerald-50 via-[#F4F6F2] to-amber-50 border border-emerald-200/80 rounded-2xl p-3.5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#2E482A]/10 text-[#2E482A] flex items-center justify-center text-xl shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] flex items-center justify-center text-xl shrink-0">
             🍼
           </div>
           <div>
-            <span className="text-[9px] uppercase font-bold tracking-widest text-[#2E482A] bg-white px-2 py-0.5 rounded-md border border-[#2E482A]/20 inline-block mb-1">
+            <span className="text-[9px] uppercase font-bold tracking-widest text-[var(--brand-primary)] bg-white px-2 py-0.5 rounded-md border border-[var(--brand-primary)]/20 inline-block mb-1">
               {placeholderTitle}
             </span>
             <p className="text-xs text-gray-700 font-medium leading-snug">
@@ -69,7 +69,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({
 
         <button
           onClick={() => window.open('https://instagram.com', '_blank')}
-          className="px-3.5 py-1.5 bg-[#2E482A] hover:bg-[#233820] text-white rounded-xl text-[11px] font-bold shrink-0 shadow-xs transition-all cursor-pointer"
+          className="px-3.5 py-1.5 bg-[var(--brand-primary)] hover:bg-[#233820] text-white rounded-xl text-[11px] font-bold shrink-0 shadow-xs transition-all cursor-pointer"
         >
           Conhecer Mais
         </button>

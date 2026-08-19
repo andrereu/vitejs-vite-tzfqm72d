@@ -172,7 +172,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
               href={`https://wa.me/${phone}?text=${encodeURIComponent('Olá! Meu acesso à carteirinha digital do MaternaIA está bloqueado, poderiam me ajudar?')}`}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#2E482A] text-white rounded-xl text-xs font-bold cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[var(--brand-primary)] text-white rounded-xl text-xs font-bold cursor-pointer"
             >
               Falar com a clínica no WhatsApp
             </a>
@@ -184,9 +184,9 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
 
   return (
         <div className="max-w-5xl mx-auto px-4 pt-4 space-y-6 print:p-0 print:m-0 print:max-w-none">
-          <div className="bg-[#2E482A] text-white p-6 rounded-3xl shadow-md flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
+          <div className="bg-[var(--brand-primary)] text-white p-6 rounded-3xl shadow-md flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
             <div>
-              <span className="text-[10px] text-[#A3B18A] uppercase font-bold">Carteirinha Pré-Natal Digital</span>
+              <span className="text-[10px] text-[var(--brand-on-primary-muted)] uppercase font-bold">Carteirinha Pré-Natal Digital</span>
               <h2 className="text-2xl font-bold text-white mt-0.5">{currentPatient.nome}</h2>
               <p className="text-xs text-gray-200 mt-1">
                 Bebê: <strong>{currentPatient.nomeBebe}</strong> •
@@ -208,7 +208,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
 
               <button
                 onClick={() => window.print()}
-                className="px-3.5 py-2 bg-[#D4AF37] text-gray-900 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm hover:bg-amber-400 cursor-pointer"
+                className="px-3.5 py-2 bg-[var(--brand-gold)] text-gray-900 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm hover:bg-amber-400 cursor-pointer"
               >
                 <Printer className="w-4 h-4" /> Imprimir A4
               </button>
@@ -254,7 +254,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap uppercase transition-all cursor-pointer ${
-                  activeTab === tab.id ? 'bg-[#2E482A] text-white' : 'text-gray-600 hover:bg-gray-100'
+                  activeTab === tab.id ? 'bg-[var(--brand-primary)] text-white' : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
                 {tab.label}
@@ -273,13 +273,13 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
             <div className="space-y-4 print:hidden">
 
               {nextAppointment ? (
-                <div className="bg-[#2E482A]/10 border border-[#2E482A]/30 p-5 rounded-3xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/30 p-5 rounded-3xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-[#2E482A] text-white flex items-center justify-center font-bold text-xl shrink-0">
+                    <div className="w-12 h-12 rounded-2xl bg-[var(--brand-primary)] text-white flex items-center justify-center font-bold text-xl shrink-0">
                       🗓️
                     </div>
                     <div>
-                      <span className="text-[10px] text-[#2E482A] font-bold uppercase tracking-wider block">Próxima Consulta Agendada</span>
+                      <span className="text-[10px] text-[var(--brand-primary)] font-bold uppercase tracking-wider block">Próxima Consulta Agendada</span>
                       <strong className="text-base text-gray-900 block">{nextAppointment.tipo}</strong>
                       <p className="text-xs text-gray-600 mt-0.5">
                         📍 {nextAppointment.local} • <strong>{formatDateBR(nextAppointment.data)} às {nextAppointment.horario}</strong>
@@ -300,7 +300,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                     )}
                     <button
                       onClick={() => setActiveTab('agenda')}
-                      className="px-3.5 py-2 bg-[#2E482A] text-white rounded-xl text-xs font-bold shrink-0 cursor-pointer"
+                      className="px-3.5 py-2 bg-[var(--brand-primary)] text-white rounded-xl text-xs font-bold shrink-0 cursor-pointer"
                     >
                       Ver Agenda
                     </button>
@@ -310,12 +310,12 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                 <div className="bg-gray-50 border p-4 rounded-2xl flex justify-between items-center text-xs text-gray-500">
                   <span>Nenhuma consulta agendada no momento.</span>
                   {userRole === 'paciente' && (
-                    <button onClick={() => setShowRequestAppointmentModal(true)} className="text-[#2E482A] font-bold underline cursor-pointer">
+                    <button onClick={() => setShowRequestAppointmentModal(true)} className="text-[var(--brand-primary)] font-bold underline cursor-pointer">
                       + Solicitar Agendamento
                     </button>
                   )}
                   {isStaff && (
-                    <button onClick={() => setShowAddAgendaModal(true)} className="text-[#2E482A] font-bold underline cursor-pointer">
+                    <button onClick={() => setShowAddAgendaModal(true)} className="text-[var(--brand-primary)] font-bold underline cursor-pointer">
                       + Agendar Agora
                     </button>
                   )}
@@ -398,7 +398,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                       });
                       setShowEditProfileModal(true);
                     }}
-                    className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
+                    className="bg-[var(--brand-primary)] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     <Edit3 className="w-4 h-4" /> Editar Perfil & Anamnese
                   </button>
@@ -520,7 +520,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                       setEditVacinasData(currentPatient.vacinas || {});
                       setShowEditVacinasModal(true);
                     }}
-                    className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
+                    className="bg-[var(--brand-primary)] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     <Syringe className="w-4 h-4" /> Registrar / Editar Vacinas
                   </button>
@@ -590,7 +590,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                       setEditExamesData(currentPatient.examesTabela || {});
                       setShowEditExamesModal(true);
                     }}
-                    className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                    className="bg-[var(--brand-primary)] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer"
                   >
                     <Edit3 className="w-4 h-4" /> Preencher / Editar Exames
                   </button>
@@ -647,7 +647,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
               <div className="flex justify-between items-center border-b pb-4">
                 <div>
                   <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
-                    <CalendarPlus className="w-5 h-5 text-[#2E482A]" />
+                    <CalendarPlus className="w-5 h-5 text-[var(--brand-primary)]" />
                     Agenda de Consultas & Lembretes
                   </h3>
                   <p className="text-xs text-gray-500">Próximos compromissos pré-natais da gestante</p>
@@ -657,7 +657,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                   {userRole === 'paciente' && (
                     <button
                       onClick={() => setShowRequestAppointmentModal(true)}
-                      className="bg-[#2E482A] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
+                      className="bg-[var(--brand-primary)] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
                     >
                       <CalendarPlus className="w-4 h-4" /> Solicitar Consulta
                     </button>
@@ -666,7 +666,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                   {isStaff && (
                     <button
                       onClick={() => setShowAddAgendaModal(true)}
-                      className="bg-[#2E482A] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
+                      className="bg-[var(--brand-primary)] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
                     >
                       <Plus className="w-4 h-4" /> Agendar Nova Consulta
                     </button>
@@ -685,7 +685,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                     <div key={item.id} className="p-5 bg-gray-50 rounded-2xl border border-gray-200 space-y-2 relative">
                       <div className="flex justify-between items-start">
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="bg-[#2E482A] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
+                          <span className="bg-[var(--brand-primary)] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
                             {formatDateBR(item.data)} às {item.horario}
                           </span>
 
@@ -747,13 +747,13 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-5 print:hidden">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 gap-3">
                 <div>
-                  <h3 className="font-serif text-lg font-bold text-[#2E482A] uppercase tracking-wide">
+                  <h3 className="font-serif text-lg font-bold text-[var(--brand-primary)] uppercase tracking-wide">
                     Gráfico de Ganho de Peso
                   </h3>
                   <p className="text-xs text-gray-500">Padrão da Caderneta de Saúde da Gestante (MS / Atalah)</p>
                 </div>
                 {userRole === 'medica' && (
-                  <button onClick={() => setShowAddConsultaModal(true)} className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs cursor-pointer">
+                  <button onClick={() => setShowAddConsultaModal(true)} className="bg-[var(--brand-primary)] text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs cursor-pointer">
                     + Registrar Peso na Consulta
                   </button>
                 )}
@@ -823,22 +823,22 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-6 print:hidden">
               <div className="border-b pb-3">
                 <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
-                  <Calculator className="w-5 h-5 text-[#2E482A]" />
+                  <Calculator className="w-5 h-5 text-[var(--brand-primary)]" />
                   Calculadora Gestacional Obstétrica
                 </h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <form onSubmit={handleCalculateUsg} className="space-y-4 bg-gray-50 p-5 rounded-2xl border border-gray-200">
-                  <h4 className="text-xs font-bold uppercase text-[#2E482A]">Cálculo por Ecografia (USG)</h4>
+                  <h4 className="text-xs font-bold uppercase text-[var(--brand-primary)]">Cálculo por Ecografia (USG)</h4>
                   <input type="date" value={calcUsgData} onChange={(e) => setCalcUsgData(e.target.value)} className="w-full text-xs p-2.5 border rounded-xl bg-white" />
                   <div className="grid grid-cols-2 gap-2">
                     <input type="number" placeholder="Semanas" value={calcUsgSemanas} onChange={(e) => setCalcUsgSemanas(e.target.value)} className="w-full text-xs p-2.5 border rounded-xl bg-white" />
                     <input type="number" placeholder="Dias" min="0" max="6" value={calcUsgDias} onChange={(e) => setCalcUsgDias(e.target.value)} className="w-full text-xs p-2.5 border rounded-xl bg-white" />
                   </div>
-                  <button type="submit" className="w-full py-2.5 bg-[#2E482A] text-white rounded-xl text-xs font-bold cursor-pointer">Calcular DPP</button>
+                  <button type="submit" className="w-full py-2.5 bg-[var(--brand-primary)] text-white rounded-xl text-xs font-bold cursor-pointer">Calcular DPP</button>
                 </form>
                 {calcResultado && (
-                  <div className="space-y-3 bg-[#2E482A]/5 p-5 rounded-2xl border">
+                  <div className="space-y-3 bg-[var(--brand-primary)]/5 p-5 rounded-2xl border">
                     <div className="bg-white p-3 rounded-xl border"><span className="text-[10px] text-gray-400 font-bold block">IG HOJE</span><strong>{calcResultado.igHoje}</strong></div>
                     <div className="bg-white p-3 rounded-xl border"><span className="text-[10px] text-gray-400 font-bold block">DPP CALCULADA</span><strong>{calcResultado.dpp}</strong></div>
                   </div>
@@ -917,7 +917,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                   </h3>
                   <p className="text-xs text-gray-500">Envie laudos: o Gemini extrai os dados e resume tudo para a mãe</p>
                 </div>
-                <button onClick={() => setShowUploadExamModal(true)} className="bg-[#2E482A] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+                <button onClick={() => setShowUploadExamModal(true)} className="bg-[var(--brand-primary)] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer">
                   <Upload className="w-4 h-4" /> + Anexar Exame
                 </button>
               </div>

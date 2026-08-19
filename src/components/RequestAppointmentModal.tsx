@@ -125,7 +125,7 @@ export const RequestAppointmentModal: React.FC<RequestAppointmentModalProps> = (
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3 bg-[#2E482A] hover:bg-[#233820] text-white rounded-xl font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md"
+            className="w-full py-3 bg-[var(--brand-primary)] hover:bg-[#233820] text-white rounded-xl font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md"
           >
             <Send className="w-4 h-4" /> {isSubmitting ? 'Enviando Pedido...' : 'Enviar Solicitação de Consulta'}
           </button>

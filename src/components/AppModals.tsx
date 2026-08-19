@@ -110,7 +110,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
           <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-4">
             <div className="flex justify-between items-center border-b pb-2">
               <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
-                <Smartphone className="w-5 h-5 text-[#2E482A]" />
+                <Smartphone className="w-5 h-5 text-[var(--brand-primary)]" />
                 Instalar no Telemóvel
               </h3>
               <button onClick={() => props.setShowInstallModal(false)} className="text-gray-400 hover:text-gray-600">
@@ -139,7 +139,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
 
             <button
               onClick={() => props.setShowInstallModal(false)}
-              className="w-full py-2.5 bg-[#2E482A] text-white font-bold text-xs rounded-xl"
+              className="w-full py-2.5 bg-[var(--brand-primary)] text-white font-bold text-xs rounded-xl"
             >
               Entendi
             </button>
@@ -152,7 +152,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
           <div className="bg-white p-6 rounded-3xl max-w-lg w-full max-h-[85vh] overflow-y-auto space-y-4">
             <h3 className="font-bold text-gray-900 text-base border-b pb-2 flex items-center gap-2">
-              <User className="w-5 h-5 text-[#2E482A]" />
+              <User className="w-5 h-5 text-[var(--brand-primary)]" />
               Editar Dados da Gestante & Anamnese
             </h3>
             
@@ -293,7 +293,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                 <span className="font-bold text-emerald-900 block uppercase text-[10px] mb-1.5">Histórico Obstétrico (GPCA)</span>
                 <div className="grid grid-cols-4 gap-2 text-center">
                   <div>
-                    <label className="font-bold text-[#2E482A] text-[10px] block">G</label>
+                    <label className="font-bold text-[var(--brand-primary)] text-[10px] block">G</label>
                     <input 
                       type="number" min="1" 
                       value={props.editProfileData.g || '1'} 
@@ -302,7 +302,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                     />
                   </div>
                   <div>
-                    <label className="font-bold text-[#2E482A] text-[10px] block">P</label>
+                    <label className="font-bold text-[var(--brand-primary)] text-[10px] block">P</label>
                     <input 
                       type="number" min="0" 
                       value={props.editProfileData.p || '0'} 
@@ -311,7 +311,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                     />
                   </div>
                   <div>
-                    <label className="font-bold text-[#2E482A] text-[10px] block">C</label>
+                    <label className="font-bold text-[var(--brand-primary)] text-[10px] block">C</label>
                     <input 
                       type="number" min="0" 
                       value={props.editProfileData.c || '0'} 
@@ -320,7 +320,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                     />
                   </div>
                   <div>
-                    <label className="font-bold text-[#2E482A] text-[10px] block">A</label>
+                    <label className="font-bold text-[var(--brand-primary)] text-[10px] block">A</label>
                     <input 
                       type="number" min="0" 
                       value={props.editProfileData.a || '0'} 
@@ -342,7 +342,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
 
               <div className="flex justify-end gap-2 pt-2 border-t">
                 <button type="button" onClick={() => props.setShowEditProfileModal(false)} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
-                <button type="submit" className="px-5 py-2 bg-[#2E482A] text-white font-bold text-xs rounded-xl">Salvar Perfil</button>
+                <button type="submit" className="px-5 py-2 bg-[var(--brand-primary)] text-white font-bold text-xs rounded-xl">Salvar Perfil</button>
               </div>
             </form>
           </div>
@@ -354,7 +354,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
           <div className="bg-white p-6 rounded-3xl max-w-lg w-full max-h-[85vh] overflow-y-auto space-y-4">
             <h3 className="font-bold text-gray-900 text-base border-b pb-2 flex items-center gap-2">
-              <Syringe className="w-5 h-5 text-[#2E482A]" />
+              <Syringe className="w-5 h-5 text-[var(--brand-primary)]" />
               Registrar Vacinas da Gestante
             </h3>
 
@@ -369,7 +369,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                 return (
                   <div key={v.key} className="p-3 bg-gray-50 rounded-2xl border space-y-2">
                     <div className="flex justify-between items-center">
-                      <strong className="text-xs text-[#2E482A] block uppercase font-bold">{v.label}</strong>
+                      <strong className="text-xs text-[var(--brand-primary)] block uppercase font-bold">{v.label}</strong>
                       <label className="flex items-center gap-1.5 text-xs cursor-pointer">
                         <input 
                           type="checkbox" 
@@ -378,7 +378,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                             ...props.editVacinasData,
                             [v.key]: { ...currentVac, realizada: e.target.checked }
                           })}
-                          className="rounded text-[#2E482A]"
+                          className="rounded text-[var(--brand-primary)]"
                         />
                         <span>Vacina Aplicada</span>
                       </label>
@@ -419,7 +419,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
 
               {/* HEPATITE B */}
               <div className="p-3 bg-gray-50 rounded-2xl border space-y-2">
-                <strong className="text-xs text-[#2E482A] block uppercase font-bold">HEPATITE B (3 Doses)</strong>
+                <strong className="text-xs text-[var(--brand-primary)] block uppercase font-bold">HEPATITE B (3 Doses)</strong>
                 <div className="grid grid-cols-3 gap-2">
                   <div>
                     <span className="text-[10px] text-gray-400 font-bold block">1ª Dose</span>
@@ -462,7 +462,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
 
               <div className="flex justify-end gap-2 pt-2 border-t">
                 <button type="button" onClick={() => props.setShowEditVacinasModal(false)} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
-                <button type="submit" className="px-5 py-2 bg-[#2E482A] text-white font-bold text-xs rounded-xl">Salvar Vacinas</button>
+                <button type="submit" className="px-5 py-2 bg-[var(--brand-primary)] text-white font-bold text-xs rounded-xl">Salvar Vacinas</button>
               </div>
             </form>
           </div>
@@ -480,7 +480,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                 const historico: { data: string; resultado: string }[] = props.editExamesData[ex.id] || [];
                 return (
                   <div key={ex.id} className="p-3 bg-gray-50 rounded-2xl border space-y-2">
-                    <strong className="text-xs text-[#2E482A] block uppercase">{ex.label}</strong>
+                    <strong className="text-xs text-[var(--brand-primary)] block uppercase">{ex.label}</strong>
 
                     {historico.map((h, idx) => (
                       <div key={idx} className="flex items-center gap-1.5">
@@ -523,7 +523,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                         const novoResultado = { data: new Date().toISOString().split('T')[0], resultado: '' };
                         props.setEditExamesData({ ...props.editExamesData, [ex.id]: [novoResultado, ...historico] });
                       }}
-                      className="text-[11px] font-bold text-[#2E482A] underline cursor-pointer"
+                      className="text-[11px] font-bold text-[var(--brand-primary)] underline cursor-pointer"
                     >
                       + Adicionar resultado
                     </button>
@@ -534,7 +534,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
 
             <div className="flex justify-end gap-2 pt-2 border-t">
               <button onClick={() => props.setShowEditExamesModal(false)} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
-              <button onClick={props.handleSaveTabelaExames} className="px-5 py-2 bg-[#2E482A] text-white font-bold text-xs rounded-xl">Salvar Tabela</button>
+              <button onClick={props.handleSaveTabelaExames} className="px-5 py-2 bg-[var(--brand-primary)] text-white font-bold text-xs rounded-xl">Salvar Tabela</button>
             </div>
           </div>
         </div>
@@ -545,7 +545,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
           <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-3">
             <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
-              <CalendarPlus className="w-5 h-5 text-[#2E482A]" />
+              <CalendarPlus className="w-5 h-5 text-[var(--brand-primary)]" />
               Agendar Próxima Consulta
             </h3>
             
@@ -603,7 +603,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
 
             <div className="flex justify-end gap-2 pt-2">
               <button onClick={() => props.setShowAddAgendaModal(false)} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
-              <button onClick={props.handleAddAgenda} className="px-4 py-1.5 bg-[#2E482A] text-white font-bold text-xs rounded-xl">Salvar Agendamento</button>
+              <button onClick={props.handleAddAgenda} className="px-4 py-1.5 bg-[var(--brand-primary)] text-white font-bold text-xs rounded-xl">Salvar Agendamento</button>
             </div>
           </div>
         </div>
@@ -614,7 +614,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
           <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-3">
             <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
-              <Bot className="w-5 h-5 text-[#2E482A]" />
+              <Bot className="w-5 h-5 text-[var(--brand-primary)]" />
               Anexar Laudo / Ecografia com IA
             </h3>
             
@@ -679,7 +679,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                 <button 
                   type="submit"
                   disabled={props.isUploading} 
-                  className="px-4 py-1.5 bg-[#2E482A] hover:bg-[#233820] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer transition-all disabled:opacity-50"
+                  className="px-4 py-1.5 bg-[var(--brand-primary)] hover:bg-[#233820] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer transition-all disabled:opacity-50"
                 >
                   {props.isUploading ? "Processando..." : "Analisar com IA & Salvar"}
                 </button>
@@ -708,7 +708,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
             <textarea placeholder="Conduta / Recomendações" value={props.newConsulta.conduta} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, conduta: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl h-20" />
             <div className="flex justify-end gap-2 pt-2">
               <button onClick={() => props.setShowAddConsultaModal(false)} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
-              <button onClick={props.handleAddConsulta} className="px-4 py-1.5 bg-[#2E482A] text-white font-bold text-xs rounded-xl">Salvar Registro</button>
+              <button onClick={props.handleAddConsulta} className="px-4 py-1.5 bg-[var(--brand-primary)] text-white font-bold text-xs rounded-xl">Salvar Registro</button>
             </div>
           </div>
         </div>
@@ -760,19 +760,19 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                 <span className="font-bold text-emerald-900 block uppercase text-[10px] mb-1">Histórico Obstétrico (GPCA)</span>
                 <div className="grid grid-cols-4 gap-2 text-center">
                   <div>
-                    <span className="font-bold text-[#2E482A] text-[10px] block">G</span>
+                    <span className="font-bold text-[var(--brand-primary)] text-[10px] block">G</span>
                     <input type="number" min="1" value={props.newPatient.g} onChange={(e) => props.setNewPatient({ ...props.newPatient, g: e.target.value })} className="w-full p-1.5 border rounded-lg text-center font-bold text-xs bg-white" />
                   </div>
                   <div>
-                    <span className="font-bold text-[#2E482A] text-[10px] block">P</span>
+                    <span className="font-bold text-[var(--brand-primary)] text-[10px] block">P</span>
                     <input type="number" min="0" value={props.newPatient.p} onChange={(e) => props.setNewPatient({ ...props.newPatient, p: e.target.value })} className="w-full p-1.5 border rounded-lg text-center font-bold text-xs bg-white" />
                   </div>
                   <div>
-                    <span className="font-bold text-[#2E482A] text-[10px] block">C</span>
+                    <span className="font-bold text-[var(--brand-primary)] text-[10px] block">C</span>
                     <input type="number" min="0" value={props.newPatient.c} onChange={(e) => props.setNewPatient({ ...props.newPatient, c: e.target.value })} className="w-full p-1.5 border rounded-lg text-center font-bold text-xs bg-white" />
                   </div>
                   <div>
-                    <span className="font-bold text-[#2E482A] text-[10px] block">A</span>
+                    <span className="font-bold text-[var(--brand-primary)] text-[10px] block">A</span>
                     <input type="number" min="0" value={props.newPatient.a} onChange={(e) => props.setNewPatient({ ...props.newPatient, a: e.target.value })} className="w-full p-1.5 border rounded-lg text-center font-bold text-xs bg-white" />
                   </div>
                 </div>
@@ -782,7 +782,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
 
               <div className="flex justify-end gap-2 pt-2 border-t">
                 <button type="button" onClick={() => props.setShowNewPatientModal(false)} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
-                <button type="submit" className="px-4 py-1.5 bg-[#2E482A] text-white font-bold text-xs rounded-xl">Salvar Paciente</button>
+                <button type="submit" className="px-4 py-1.5 bg-[var(--brand-primary)] text-white font-bold text-xs rounded-xl">Salvar Paciente</button>
               </div>
             </form>
           </div>
@@ -842,7 +842,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                   placeholder="000.000.000-00"
                   value={props.loginCpf}
                   onChange={(e) => props.setLoginCpf(e.target.value)}
-                  className="w-full text-xs p-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-[#2E482A]"
+                  className="w-full text-xs p-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-[var(--brand-primary)]"
                   required
                 />
               </div>
@@ -855,7 +855,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                   placeholder="Ex: 4821"
                   value={props.loginSenha}
                   onChange={(e) => props.setLoginSenha(e.target.value)}
-                  className="w-full text-xs p-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-[#2E482A]"
+                  className="w-full text-xs p-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-[var(--brand-primary)]"
                   required
                 />
                 <p className="text-[10px] text-gray-400 mt-1">Este PIN foi passado pela sua médica no cadastro.</p>
@@ -863,7 +863,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
 
               <button
                 type="submit"
-                className="w-full py-2.5 bg-[#2E482A] hover:bg-[#233820] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-98"
+                className="w-full py-2.5 bg-[var(--brand-primary)] hover:bg-[#233820] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-98"
               >
                 Entrar com CPF
               </button>
@@ -898,7 +898,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                 onClick={() => props.setLoginRole && props.setLoginRole('medica')}
                 className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 ${
                   (props.loginRole || 'medica') === 'medica'
-                    ? 'bg-[#2E482A] text-white shadow-xs'
+                    ? 'bg-[var(--brand-primary)] text-white shadow-xs'
                     : 'text-gray-600 hover:text-gray-900 bg-transparent'
                 }`}
               >
@@ -909,7 +909,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                 onClick={() => props.setLoginRole && props.setLoginRole('secretaria')}
                 className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 ${
                   props.loginRole === 'secretaria'
-                    ? 'bg-[#2E482A] text-white shadow-xs'
+                    ? 'bg-[var(--brand-primary)] text-white shadow-xs'
                     : 'text-gray-600 hover:text-gray-900 bg-transparent'
                 }`}
               >
@@ -973,7 +973,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                 <button
                   type="button"
                   onClick={() => props.handlePasswordReset(props.doctorEmail)}
-                  className="text-[10px] font-bold text-[#2E482A] underline mt-1.5 cursor-pointer"
+                  className="text-[10px] font-bold text-[var(--brand-primary)] underline mt-1.5 cursor-pointer"
                 >
                   Esqueci minha senha
                 </button>
@@ -993,7 +993,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
 
               <button
                 type="submit"
-                className="w-full py-3 bg-[#2E482A] hover:bg-[#233820] text-white rounded-xl font-bold shadow-md cursor-pointer transition-all"
+                className="w-full py-3 bg-[var(--brand-primary)] hover:bg-[#233820] text-white rounded-xl font-bold shadow-md cursor-pointer transition-all"
               >
                 {props.loginRole === 'secretaria' ? 'Entrar como Secretária' : 'Entrar como Obstetra'}
               </button>

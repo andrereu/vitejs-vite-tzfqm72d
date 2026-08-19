@@ -77,16 +77,16 @@ export const PrenatalChatTab: React.FC<PrenatalChatTabProps> = ({
     <div className="bg-white rounded-3xl border border-gray-200 shadow-sm flex flex-col h-[600px] overflow-hidden print:hidden">
       
       {/* Header do Chat */}
-      <div className="bg-[#2E482A] text-white p-4 flex items-center justify-between">
+      <div className="bg-[var(--brand-primary)] text-white p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center border border-white/20">
             <Bot className="w-5 h-5 text-pink-300" />
           </div>
           <div>
-            <h3 className="font-bold text-sm text-[#E8ECD8] flex items-center gap-1.5">
+            <h3 className="font-bold text-sm text-[var(--brand-on-primary)] flex items-center gap-1.5">
               Assistente Pré-Natal IA <Sparkles className="w-3.5 h-3.5 text-amber-300" />
             </h3>
-            <p className="text-[10px] text-[#A3B18A]">
+            <p className="text-[10px] text-[var(--brand-on-primary-muted)]">
               Tira-dúvidas inteligente • {gestationalWeeks}ª Semana
             </p>
           </div>
@@ -106,14 +106,14 @@ export const PrenatalChatTab: React.FC<PrenatalChatTabProps> = ({
             }`}
           >
             {msg.sender === 'bot' && (
-              <div className="w-7 h-7 rounded-xl bg-[#2E482A] text-white flex items-center justify-center shrink-0 mt-0.5 text-xs">
+              <div className="w-7 h-7 rounded-xl bg-[var(--brand-primary)] text-white flex items-center justify-center shrink-0 mt-0.5 text-xs">
                 👶
               </div>
             )}
             <div
               className={`max-w-[80%] rounded-2xl p-3.5 text-xs leading-relaxed shadow-xs ${
                 msg.sender === 'user'
-                  ? 'bg-[#2E482A] text-white rounded-tr-none'
+                  ? 'bg-[var(--brand-primary)] text-white rounded-tr-none'
                   : 'bg-white text-gray-800 border border-gray-200 rounded-tl-none whitespace-pre-line'
               }`}
             >
@@ -136,7 +136,7 @@ export const PrenatalChatTab: React.FC<PrenatalChatTabProps> = ({
 
         {isLoading && (
           <div className="flex items-center gap-2 text-xs text-gray-500 bg-white p-3 rounded-2xl border border-gray-100 max-w-[50%]">
-            <Loader2 className="w-4 h-4 animate-spin text-[#2E482A]" />
+            <Loader2 className="w-4 h-4 animate-spin text-[var(--brand-primary)]" />
             <span>Assistente digitando...</span>
           </div>
         )}
@@ -163,12 +163,12 @@ export const PrenatalChatTab: React.FC<PrenatalChatTabProps> = ({
           placeholder="Digite sua dúvida sobre a gestação..."
           value={inputMessage}
           onChange={(e) => setInputMessage(e.target.value)}
-          className="flex-1 text-xs p-3 border rounded-2xl focus:outline-none focus:border-[#2E482A] bg-gray-50"
+          className="flex-1 text-xs p-3 border rounded-2xl focus:outline-none focus:border-[var(--brand-primary)] bg-gray-50"
         />
         <button
           type="submit"
           disabled={!inputMessage.trim() || isLoading}
-          className="px-4 bg-[#2E482A] hover:bg-[#243921] disabled:opacity-50 text-white rounded-2xl flex items-center justify-center shrink-0 transition-colors"
+          className="px-4 bg-[var(--brand-primary)] hover:bg-[#243921] disabled:opacity-50 text-white rounded-2xl flex items-center justify-center shrink-0 transition-colors"
         >
           <Send className="w-4 h-4" />
         </button>

@@ -83,7 +83,7 @@ export const TwoFactorVerifyModal: React.FC<TwoFactorVerifyModalProps> = ({
     <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 text-gray-800 text-center">
         
-        <div className="w-14 h-14 rounded-2xl bg-[#2E482A]/10 text-[#2E482A] flex items-center justify-center mx-auto shadow-xs">
+        <div className="w-14 h-14 rounded-2xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] flex items-center justify-center mx-auto shadow-xs">
           <ShieldCheck className="w-7 h-7" />
         </div>
 
@@ -107,14 +107,14 @@ export const TwoFactorVerifyModal: React.FC<TwoFactorVerifyModalProps> = ({
               placeholder="000000"
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-              className="w-48 mx-auto text-center tracking-[0.4em] font-mono text-2xl font-bold p-3 bg-gray-50 border-2 border-[#2E482A]/30 rounded-2xl focus:border-[#2E482A] focus:outline-none"
+              className="w-48 mx-auto text-center tracking-[0.4em] font-mono text-2xl font-bold p-3 bg-gray-50 border-2 border-[var(--brand-primary)]/30 rounded-2xl focus:border-[var(--brand-primary)] focus:outline-none"
             />
             {error && <span className="text-rose-600 font-semibold text-xs block mt-2">{error}</span>}
           </div>
 
           <button
             type="submit"
-            className="w-full py-3 bg-[#2E482A] hover:bg-[#233820] text-white rounded-xl text-xs font-bold shadow-md cursor-pointer transition-all flex items-center justify-center gap-2"
+            className="w-full py-3 bg-[var(--brand-primary)] hover:bg-[#233820] text-white rounded-xl text-xs font-bold shadow-md cursor-pointer transition-all flex items-center justify-center gap-2"
           >
             <Check className="w-4 h-4" /> Confirmar e Entrar
           </button>

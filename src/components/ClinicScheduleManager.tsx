@@ -99,7 +99,7 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
             <button
               onClick={() => setViewMode('calendar')}
               className={`px-3.5 py-1.5 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
-                viewMode === 'calendar' ? 'bg-[#2E482A] text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
+                viewMode === 'calendar' ? 'bg-[var(--brand-primary)] text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <CalendarIcon className="w-3.5 h-3.5" /> Visão Calendário
@@ -107,7 +107,7 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
             <button
               onClick={() => setViewMode('list')}
               className={`px-3.5 py-1.5 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
-                viewMode === 'list' ? 'bg-[#2E482A] text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
+                viewMode === 'list' ? 'bg-[var(--brand-primary)] text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <List className="w-3.5 h-3.5" /> Fila / Lista
@@ -115,7 +115,7 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
           </div>
 
           {selectedDateFilter && (
-            <span className="text-xs bg-emerald-50 text-[#2E482A] font-bold px-3 py-1.5 rounded-xl border border-emerald-200 flex items-center gap-2">
+            <span className="text-xs bg-emerald-50 text-[var(--brand-primary)] font-bold px-3 py-1.5 rounded-xl border border-emerald-200 flex items-center gap-2">
               📅 Filtrado: {formatDateBR(selectedDateFilter)}
               <button onClick={() => setSelectedDateFilter('')} className="hover:text-red-600 text-xs">✕</button>
             </span>
@@ -179,7 +179,7 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
                   key={dayNum}
                   onClick={() => setSelectedDateFilter(isSelected ? '' : dateStr)}
                   className={`min-h-[85px] p-1.5 rounded-2xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
-                    isSelected ? 'ring-2 ring-[#2E482A] bg-emerald-50/40' : 'bg-white hover:bg-gray-50'
+                    isSelected ? 'ring-2 ring-[var(--brand-primary)] bg-emerald-50/40' : 'bg-white hover:bg-gray-50'
                   } ${isBlocked ? 'bg-rose-50/60 border-rose-200' : 'border-gray-200'}`}
                 >
                   <div className="flex justify-between items-center">
@@ -231,7 +231,7 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
       <div className="bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden">
         <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
           <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
-            <List className="w-4 h-4 text-[#2E482A]" /> Consultas Selecionadas
+            <List className="w-4 h-4 text-[var(--brand-primary)]" /> Consultas Selecionadas
           </h3>
           <span className="text-xs text-gray-500">{filteredAppointments.length} agendamento(s)</span>
         </div>
@@ -246,7 +246,7 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
               <div key={item.id} className="p-4 hover:bg-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
                 <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-bold text-xs bg-[#2E482A] text-white px-2.5 py-0.5 rounded-full">
+                    <span className="font-bold text-xs bg-[var(--brand-primary)] text-white px-2.5 py-0.5 rounded-full">
                       {formatDateBR(item.data)} às {item.horario}
                     </span>
                     {item.status === 'solicitada' && (
