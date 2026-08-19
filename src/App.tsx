@@ -29,6 +29,7 @@ import { useDoctorsDirectory } from './hooks/useDoctorsDirectory';
 import { usePatients } from './hooks/usePatients';
 import { useSecretaries } from './hooks/useSecretaries';
 import { useAuthSession } from './hooks/useAuthSession';
+import { useBrandTheme } from './hooks/useBrandTheme';
 import { LISTA_EXAMES_OFICIAIS } from './constants/examesList';
 
 export default function App() {
@@ -226,6 +227,16 @@ export default function App() {
   const patientDoctorProfile = selectedPatientDoctorId
     ? saasDoctors.find((d) => d.id === selectedPatientDoctorId)
     : undefined;
+
+  // Médica "dona" da tela atual, pra decidir de quem é a cor personalizada
+  // (prompt 5): painel/prontuário/landing pessoal usam a cor da médica dona
+  // daquele conteúdo; landing genérica e master admin ficam no verde padrão.
+  const themeDoctor =
+    currentScreen === 'landing' ? landingDoctor
+    : currentScreen === 'patient_app' ? patientDoctorProfile
+    : currentScreen === 'doctor_panel' ? currentDoctorProfile
+    : undefined;
+  useBrandTheme(themeDoctor);
 
   const { patients, saveToFirestore } = usePatients({
     doctorId: currentDoctorProfile.id,

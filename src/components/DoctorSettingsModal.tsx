@@ -277,6 +277,35 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
               </div>
             </div>
 
+            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3">
+              <label className="font-bold text-gray-700 uppercase text-[10px] block">
+                Cor Principal do Consultório
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={formData.corPrimaria || '#2E482A'}
+                  onChange={(e) => setFormData({ ...formData, corPrimaria: e.target.value })}
+                  className="w-12 h-10 rounded-xl border border-gray-200 cursor-pointer bg-white p-1"
+                  title="Escolher cor"
+                />
+                <div className="flex-1 space-y-1">
+                  <p className="text-[11px] text-gray-500">
+                    Substitui o verde padrão no cabeçalho, botões e prontuário da sua carteirinha.
+                  </p>
+                  {formData.corPrimaria && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, corPrimaria: '' })}
+                      className="text-[11px] text-rose-600 hover:underline font-semibold cursor-pointer"
+                    >
+                      Voltar para o verde padrão MaternaIA
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">Nome da Médica / Médico *</label>
