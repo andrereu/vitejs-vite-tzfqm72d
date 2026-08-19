@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { LogOut, Settings, Smartphone, WifiOff } from 'lucide-react';
+import { LogOut, Smartphone, WifiOff } from 'lucide-react';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 import type { Patient, AgendaConsulta, HorarioBloqueado, ResultadoExame } from './types/prenatal';
@@ -19,11 +19,12 @@ import { RequestAppointmentModal } from './components/RequestAppointmentModal';
 import { AppointmentConfirmModal } from './components/AppointmentConfirmModal';
 import { MaternaLogo } from './components/MaternaLogo';
 import { TwoFactorVerifyModal } from './components/TwoFactorVerifyModal';
+import { PatientShell } from './components/PatientShell';
+import { DoctorShell } from './components/DoctorShell';
 
 import { calculateWeeksAndDays, fileToBase64 } from './utils/formatters';
 import { generateAppointmentReminderLink } from './utils/whatsapp';
 import { generatePatientPin } from './utils/pin';
-import { hasPermission } from './utils/rbac';
 import { processExamWithGeminiIA } from './services/geminiService';
 import { useDoctorsDirectory } from './hooks/useDoctorsDirectory';
 import { usePatients } from './hooks/usePatients';
@@ -567,7 +568,10 @@ export default function App() {
         </div>
       )}
 
-      {/* CABEÇALHO */}
+      {/* CABEÇALHO — só sobra pra landing/master admin; paciente e área
+          profissional ganharam moldura própria (PatientShell/DoctorShell,
+          fase 1 da reforma App-First) mais abaixo. */}
+      {(currentScreen === 'landing' || currentScreen === 'master_admin') && (
       <header className={`text-white shadow-md sticky top-0 z-40 print:hidden ${
         currentScreen === 'master_admin' ? 'bg-black border-b border-slate-800' : 'bg-[var(--brand-primary)] border-b border-[var(--brand-primary-border)]'
       }`}>
@@ -640,17 +644,6 @@ export default function App() {
               </button>
             )}
 
-            {currentScreen === 'doctor_panel' && hasPermission(userRole, 'canManageSchedule') && (
-              <button
-                onClick={() => setShowDoctorSettingsModal(true)}
-                className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-all cursor-pointer flex items-center gap-1.5"
-                title="Configurar Consultório"
-              >
-                <Settings className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Configurações</span>
-              </button>
-            )}
-
             <button
               onClick={handleInstallPWA}
               className="bg-[var(--brand-gold)] hover:bg-amber-400 text-gray-900 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
@@ -703,6 +696,7 @@ export default function App() {
           </div>
         </div>
       </header>
+      )}
 
       {/* 1. LANDING PAGE PRINCIPAL */}
       {currentScreen === 'landing' && (
@@ -727,58 +721,121 @@ export default function App() {
         </div>
       )}
 
-      {/* 2. PAINEL DO MÉDICO & SECRETARIA */}
+      {/* 2. PAINEL DO MÉDICO & SECRETARIA — moldura profissional (DoctorShell) */}
       {currentScreen === 'doctor_panel' && (
-        <DoctorPanelScreen
-          currentDoctorProfile={currentDoctorProfile}
-          globalConfig={globalConfig}
-          doctorPanelTab={doctorPanelTab}
-          setDoctorPanelTab={setDoctorPanelTab}
-          patients={patients}
+        <DoctorShell
+          doctorProfile={currentDoctorProfile}
           userRole={userRole}
-          onOpenNewPatientModal={() => setShowNewPatientModal(true)}
-          onSelectPatient={(patientId) => { setSelectedPatientId(patientId); setCurrentScreen('patient_app'); }}
-          blockedSlots={blockedSlots}
-          setBlockedSlots={setBlockedSlots}
-          onOpenConfirmModal={(app, pat) => setSelectedAppointmentForConfirm({ app, pat })}
-          saveToFirestore={saveToFirestore}
-        />
+          onInstallPWA={handleInstallPWA}
+          onLogout={handleLogout}
+          onOpenSettings={() => setShowDoctorSettingsModal(true)}
+          onGoToPatientList={() => setCurrentScreen('doctor_panel')}
+        >
+          <DoctorPanelScreen
+            currentDoctorProfile={currentDoctorProfile}
+            globalConfig={globalConfig}
+            doctorPanelTab={doctorPanelTab}
+            setDoctorPanelTab={setDoctorPanelTab}
+            patients={patients}
+            userRole={userRole}
+            onOpenNewPatientModal={() => setShowNewPatientModal(true)}
+            onSelectPatient={(patientId) => { setSelectedPatientId(patientId); setCurrentScreen('patient_app'); }}
+            blockedSlots={blockedSlots}
+            setBlockedSlots={setBlockedSlots}
+            onOpenConfirmModal={(app, pat) => setSelectedAppointmentForConfirm({ app, pat })}
+            saveToFirestore={saveToFirestore}
+          />
+        </DoctorShell>
       )}
 
-      {/* 3. ÁREA DA PACIENTE */}
-      {currentScreen === 'patient_app' && (
-        <PatientAppScreen
-          currentPatient={currentPatient}
+      {/* 3. ÁREA DA PACIENTE — a moldura depende de QUEM está olhando, não só
+          da tela: a própria gestante ganha o shell leve (PatientShell); a
+          equipe navegando o prontuário de uma paciente continua com o shell
+          profissional (DoctorShell), inclusive o atalho de volta pra Lista
+          de Pacientes — sem isso ela ficaria sem rota de volta. */}
+      {currentScreen === 'patient_app' && userRole === 'paciente' && (
+        <PatientShell
           doctorProfile={patientDoctorProfile}
-          currentGest={currentGest}
+          onInstallPWA={handleInstallPWA}
+          onLogout={handleLogout}
+        >
+          <PatientAppScreen
+            currentPatient={currentPatient}
+            doctorProfile={patientDoctorProfile}
+            currentGest={currentGest}
+            userRole={userRole}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            nextAppointment={nextAppointment}
+            examAlerts={examAlerts}
+            bmiInfo={bmiInfo}
+            patients={patients}
+            saveToFirestore={saveToFirestore}
+            setShowRequestAppointmentModal={setShowRequestAppointmentModal}
+            setShowAddAgendaModal={setShowAddAgendaModal}
+            setEditProfileData={setEditProfileData}
+            setShowEditProfileModal={setShowEditProfileModal}
+            setEditVacinasData={setEditVacinasData}
+            setShowEditVacinasModal={setShowEditVacinasModal}
+            setEditExamesData={setEditExamesData}
+            setShowEditExamesModal={setShowEditExamesModal}
+            setSelectedAppointmentForConfirm={setSelectedAppointmentForConfirm}
+            setShowAddConsultaModal={setShowAddConsultaModal}
+            handleCalculateUsg={handleCalculateUsg}
+            calcUsgData={calcUsgData}
+            setCalcUsgData={setCalcUsgData}
+            calcUsgSemanas={calcUsgSemanas}
+            setCalcUsgSemanas={setCalcUsgSemanas}
+            calcUsgDias={calcUsgDias}
+            setCalcUsgDias={setCalcUsgDias}
+            calcResultado={calcResultado}
+            setShowUploadExamModal={setShowUploadExamModal}
+          />
+        </PatientShell>
+      )}
+
+      {currentScreen === 'patient_app' && (userRole === 'medica' || userRole === 'secretaria') && (
+        <DoctorShell
+          doctorProfile={currentDoctorProfile}
           userRole={userRole}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          nextAppointment={nextAppointment}
-          examAlerts={examAlerts}
-          bmiInfo={bmiInfo}
-          patients={patients}
-          saveToFirestore={saveToFirestore}
-          setShowRequestAppointmentModal={setShowRequestAppointmentModal}
-          setShowAddAgendaModal={setShowAddAgendaModal}
-          setEditProfileData={setEditProfileData}
-          setShowEditProfileModal={setShowEditProfileModal}
-          setEditVacinasData={setEditVacinasData}
-          setShowEditVacinasModal={setShowEditVacinasModal}
-          setEditExamesData={setEditExamesData}
-          setShowEditExamesModal={setShowEditExamesModal}
-          setSelectedAppointmentForConfirm={setSelectedAppointmentForConfirm}
-          setShowAddConsultaModal={setShowAddConsultaModal}
-          handleCalculateUsg={handleCalculateUsg}
-          calcUsgData={calcUsgData}
-          setCalcUsgData={setCalcUsgData}
-          calcUsgSemanas={calcUsgSemanas}
-          setCalcUsgSemanas={setCalcUsgSemanas}
-          calcUsgDias={calcUsgDias}
-          setCalcUsgDias={setCalcUsgDias}
-          calcResultado={calcResultado}
-          setShowUploadExamModal={setShowUploadExamModal}
-        />
+          onInstallPWA={handleInstallPWA}
+          onLogout={handleLogout}
+          onOpenSettings={() => setShowDoctorSettingsModal(true)}
+          onGoToPatientList={() => setCurrentScreen('doctor_panel')}
+        >
+          <PatientAppScreen
+            currentPatient={currentPatient}
+            doctorProfile={patientDoctorProfile}
+            currentGest={currentGest}
+            userRole={userRole}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            nextAppointment={nextAppointment}
+            examAlerts={examAlerts}
+            bmiInfo={bmiInfo}
+            patients={patients}
+            saveToFirestore={saveToFirestore}
+            setShowRequestAppointmentModal={setShowRequestAppointmentModal}
+            setShowAddAgendaModal={setShowAddAgendaModal}
+            setEditProfileData={setEditProfileData}
+            setShowEditProfileModal={setShowEditProfileModal}
+            setEditVacinasData={setEditVacinasData}
+            setShowEditVacinasModal={setShowEditVacinasModal}
+            setEditExamesData={setEditExamesData}
+            setShowEditExamesModal={setShowEditExamesModal}
+            setSelectedAppointmentForConfirm={setSelectedAppointmentForConfirm}
+            setShowAddConsultaModal={setShowAddConsultaModal}
+            handleCalculateUsg={handleCalculateUsg}
+            calcUsgData={calcUsgData}
+            setCalcUsgData={setCalcUsgData}
+            calcUsgSemanas={calcUsgSemanas}
+            setCalcUsgSemanas={setCalcUsgSemanas}
+            calcUsgDias={calcUsgDias}
+            setCalcUsgDias={setCalcUsgDias}
+            calcResultado={calcResultado}
+            setShowUploadExamModal={setShowUploadExamModal}
+          />
+        </DoctorShell>
       )}
 
       {/* 4. PAINEL MASTER ADMIN */}
