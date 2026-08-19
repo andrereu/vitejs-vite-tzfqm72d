@@ -71,7 +71,7 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
           <div className="flex justify-between items-center text-xs">
             <span className="text-gray-500 font-medium">Plano Contratado</span>
             <span className="font-bold text-gray-900 uppercase">
-              {doctor.plano === 'clinica_multi' ? 'Clínica Multi (Até 5 Médicos)' : 'Individual Pro'}
+              {doctor.plano === 'clinica_multi' ? 'Clínica Multi (Até 5 Secretárias)' : 'Individual Pro'}
             </span>
           </div>
           <div className="flex justify-between items-center text-xs">

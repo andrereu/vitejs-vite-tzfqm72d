@@ -5,6 +5,7 @@ import {
   MessageSquare, Clock, CheckCircle2, AlertTriangle, ArrowUpRight
 } from 'lucide-react';
 import type { DoctorTenant, ClinicSecretary, TwoFactorConfig, SaasGlobalConfig } from '../types/saas';
+import { getSecretaryLimit } from '../utils/subscription';
 
 interface DoctorSettingsModalProps {
   isOpen: boolean;
@@ -132,9 +133,12 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
     }
   };
 
+  const secretaryLimit = getSecretaryLimit(formData);
+
   const handleAddSecretary = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSec.nome || !newSec.email) return;
+    if (secList.length >= secretaryLimit) return;
 
     const secretary: ClinicSecretary = {
       id: `sec-${Date.now()}`,
@@ -365,7 +369,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
               <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-1">
                 <span className="text-[10px] font-bold text-gray-400 uppercase block">Plano Contratado</span>
                 <strong className="text-base text-gray-900 block">
-                  {formData.plano === 'clinica_multi' ? 'Clínica Multi (Até 5 Médicos)' : 'Individual Pro'}
+                  {formData.plano === 'clinica_multi' ? 'Clínica Multi (Até 5 Secretárias)' : 'Individual Pro'}
                 </strong>
                 <span className="text-xs text-emerald-700 font-bold block">
                   R$ {valorMensal.toFixed(2)} / mês
@@ -457,44 +461,53 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
         {/* ABA 3: SECRETÁRIAS */}
         {activeTab === 'secretarias' && (
           <div className="space-y-4 text-xs">
-            <form onSubmit={handleAddSecretary} className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3">
-              <span className="font-bold text-gray-900 block text-xs">+ Cadastrar Nova Secretária</span>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <input
-                  type="text"
-                  required
-                  placeholder="Nome completo"
-                  value={newSec.nome}
-                  onChange={(e) => setNewSec({ ...newSec, nome: e.target.value })}
-                  className="p-2 bg-white border rounded-xl text-xs"
-                />
-                <input
-                  type="email"
-                  required
-                  placeholder="E-mail de login"
-                  value={newSec.email}
-                  onChange={(e) => setNewSec({ ...newSec, email: e.target.value })}
-                  className="p-2 bg-white border rounded-xl text-xs"
-                />
-                <input
-                  type="text"
-                  placeholder="WhatsApp"
-                  value={newSec.telefone}
-                  onChange={(e) => setNewSec({ ...newSec, telefone: e.target.value })}
-                  className="p-2 bg-white border rounded-xl text-xs"
-                />
+            {secList.length >= secretaryLimit ? (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-900">
+                <strong className="block mb-1">Limite de equipe atingido ({secList.length} de {secretaryLimit})</strong>
+                {formData.plano === 'clinica_multi'
+                  ? 'O plano Clínica Multi permite até 5 secretárias.'
+                  : 'O plano Individual Pro permite 1 secretária. Faça upgrade para Clínica Multi (até 5) na aba Assinatura.'}
               </div>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-[#2E482A] text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer text-xs"
-              >
-                <Plus className="w-4 h-4" /> Adicionar à Equipe
-              </button>
-            </form>
+            ) : (
+              <form onSubmit={handleAddSecretary} className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3">
+                <span className="font-bold text-gray-900 block text-xs">+ Cadastrar Nova Secretária</span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <input
+                    type="text"
+                    required
+                    placeholder="Nome completo"
+                    value={newSec.nome}
+                    onChange={(e) => setNewSec({ ...newSec, nome: e.target.value })}
+                    className="p-2 bg-white border rounded-xl text-xs"
+                  />
+                  <input
+                    type="email"
+                    required
+                    placeholder="E-mail de login"
+                    value={newSec.email}
+                    onChange={(e) => setNewSec({ ...newSec, email: e.target.value })}
+                    className="p-2 bg-white border rounded-xl text-xs"
+                  />
+                  <input
+                    type="text"
+                    placeholder="WhatsApp"
+                    value={newSec.telefone}
+                    onChange={(e) => setNewSec({ ...newSec, telefone: e.target.value })}
+                    className="p-2 bg-white border rounded-xl text-xs"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[#2E482A] text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer text-xs"
+                >
+                  <Plus className="w-4 h-4" /> Adicionar à Equipe
+                </button>
+              </form>
+            )}
 
             <div className="space-y-2">
               <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">
-                Secretárias Cadastradas ({secList.length})
+                Secretárias Cadastradas ({secList.length} de {secretaryLimit})
               </span>
 
               {secList.length === 0 ? (

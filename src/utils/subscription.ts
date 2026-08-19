@@ -10,3 +10,10 @@ export const isDoctorBlocked = (doctor: DoctorTenant): boolean => {
   }
   return false;
 };
+
+// O plano "Clínica Multi" hoje não dá acesso de múltiplas médicas na mesma
+// conta (isso exigiria repensar o modelo de dados inteiro) — em vez disso,
+// entrega uma equipe maior de secretárias, uma funcionalidade que já existe
+// e funciona de verdade.
+export const getSecretaryLimit = (doctor: DoctorTenant): number =>
+  doctor.plano === 'clinica_multi' ? 5 : 1;

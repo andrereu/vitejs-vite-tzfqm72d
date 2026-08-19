@@ -26,7 +26,6 @@ export interface DoctorTenant {
   enderecoConsultorio: string;
   logoUrl?: string;
   plano: 'individual_pro' | 'clinica_multi';
-  limiteMedicos?: number; // 1 para individual, 5 para multi
   status: 'active' | 'trial' | 'past_due' | 'blocked';
   trialEndsAt: string;
   totalPacientes: number;
