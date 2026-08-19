@@ -4,7 +4,7 @@ import {
   ShieldCheck, Image as ImageIcon, CreditCard, Copy, Check, 
   MessageSquare, Clock, CheckCircle2, AlertTriangle, ArrowUpRight
 } from 'lucide-react';
-import { DoctorTenant, ClinicSecretary, TwoFactorConfig, SaasGlobalConfig } from '../types/saas';
+import type { DoctorTenant, ClinicSecretary, TwoFactorConfig, SaasGlobalConfig } from '../types/saas';
 
 interface DoctorSettingsModalProps {
   isOpen: boolean;

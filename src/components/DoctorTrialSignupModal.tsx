@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Sparkles, X, CheckCircle2, Lock } from 'lucide-react';
-import { DoctorTenant } from '../types/saas';
+import type { DoctorTenant } from '../types/saas';
 
 interface DoctorTrialSignupModalProps {
   isOpen: boolean;

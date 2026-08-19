@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, MessageSquare, KeyRound, Check, RefreshCw, X } from 'lucide-react';
-import { TwoFactorConfig } from '../types/saas';
+import type { TwoFactorConfig } from '../types/saas';
 
 interface TwoFactorVerifyModalProps {
   isOpen: boolean;

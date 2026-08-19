@@ -1,5 +1,5 @@
 import React from 'react';
-import { Patient } from '../types/prenatal';
+import type { Patient } from '../types/prenatal';
 import { formatDateDisplay } from '../utils/formatters';
 
 interface PrintCardA4Props {

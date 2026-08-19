@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bot, Send, Sparkles, User, AlertCircle, Loader2 } from 'lucide-react';
-import { Patient } from '../types/prenatal';
-import { ChatMessage, sendPrenatalChatMessage } from '../services/chatService';
+import type { Patient } from '../types/prenatal';
+import { type ChatMessage, sendPrenatalChatMessage } from '../services/chatService';
 
 interface PrenatalChatTabProps {
   currentPatient: Patient;

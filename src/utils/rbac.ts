@@ -1,4 +1,4 @@
-import { UserRole } from '../types/prenatal';
+import type { UserRole } from '../types/prenatal';
 
 export type Permission = 
   | 'canManageSchedule'           // Agendamentos, lembretes, confirmar horários

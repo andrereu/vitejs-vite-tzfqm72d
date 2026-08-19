@@ -1,4 +1,4 @@
-import { Patient, AgendaConsulta, ConsultaEvolucao } from '../types/prenatal';
+import type { Patient, AgendaConsulta, ConsultaEvolucao } from '../types/prenatal';
 import { formatDateBR } from './formatters';
 
 // Limpa caracteres especiais do telefone deixando apenas números com DDI 55

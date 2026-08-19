@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Calendar as CalendarIcon, Clock, AlertTriangle, CheckCircle, List, ChevronLeft, ChevronRight, User, Send, Ban } from 'lucide-react';
-import { Patient, AgendaConsulta, HorarioBloqueado } from '../types/prenatal';
+import type { Patient, AgendaConsulta, HorarioBloqueado } from '../types/prenatal';
 import { formatDateBR } from '../utils/formatters';
 import { generateAppointmentReminderLink } from '../utils/whatsapp';
 

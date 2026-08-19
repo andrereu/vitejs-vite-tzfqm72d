@@ -2,8 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { LogOut, Smartphone, WifiOff } from 'lucide-react';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
-import { Patient, AgendaConsulta, HorarioBloqueado } from './types/prenatal';
-import { DoctorTenant, SaasGlobalConfig } from './types/saas';
+import type { Patient, AgendaConsulta, HorarioBloqueado } from './types/prenatal';
+import type { DoctorTenant, SaasGlobalConfig } from './types/saas';
 
 import { db } from './firebase';
 import { DoctorPanelScreen } from './components/DoctorPanelScreen';
