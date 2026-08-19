@@ -668,16 +668,21 @@ export default function App() {
               </>
             )}
 
-            {currentScreen === 'landing' && (
+            {/* Na landing pessoal da médica a página é curta — o hero logo
+                abaixo já tem esses mesmos botões, então repeti-los aqui só
+                empilha duas vezes a mesma ação. Na landing genérica de
+                vendas, com bastante conteúdo pra rolar, o atalho fixo ainda
+                vale a pena. */}
+            {currentScreen === 'landing' && !landingDoctor && (
               <>
-                <button 
-                  onClick={() => setShowPatientLoginModal(true)} 
+                <button
+                  onClick={() => setShowPatientLoginModal(true)}
                   className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer"
                 >
                   👶 Sou Gestante
                 </button>
-                <button 
-                  onClick={() => setShowDoctorLoginModal(true)} 
+                <button
+                  onClick={() => setShowDoctorLoginModal(true)}
                   className="bg-[#D4AF37] hover:bg-amber-400 text-gray-900 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
                 >
                   🩺 Acesso Profissional
