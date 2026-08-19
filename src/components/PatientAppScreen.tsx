@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import {
   Upload, Plus, Printer, Syringe, Calculator, AlertCircle,
-  Edit3, Bot, MapPin, CalendarPlus, Calendar, Share2, Send, Download, ShieldAlert
+  Edit3, Bot, MapPin, CalendarPlus, Calendar, Share2, Send, Download, ShieldAlert,
+  HeartPulse, Activity, FlaskConical, User, Phone, Mail, CalendarCheck, CalendarClock
 } from 'lucide-react';
 import type { Patient, AgendaConsulta, MarcoPersonalizado, UserRole } from '../types/prenatal';
 import type { DoctorTenant } from '../types/saas';
@@ -11,7 +12,7 @@ import { PatientFinancialTab } from './PatientFinancialTab';
 import { PrenatalChatTab } from './PrenatalChatTab';
 import { PatientAuditLog } from './PatientAuditLog';
 import { GestationTimeline } from './GestationTimeline';
-import { criarMarcoPersonalizado } from '../utils/gestationTimeline';
+import { criarMarcoPersonalizado, getTimelineForPatient } from '../utils/gestationTimeline';
 import { formatDateDisplay, formatDateBR } from '../utils/formatters';
 import { generateAppointmentReminderLink, generateConsultationSummaryLink, sharePatientCard, cleanPhoneNumber } from '../utils/whatsapp';
 import { downloadPatientData } from '../utils/dataExport';
@@ -92,6 +93,16 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
   // equipe (agendar direto, enviar lembrete, editar registro) precisam
   // checar o papel explicitamente, não essa permissão compartilhada.
   const isStaff = userRole === 'medica' || userRole === 'secretaria';
+
+  // Resumo da paciente: última consulta registrada (última posição da lista,
+  // mesma convenção já usada em gestationTimeline.ts pra "primeira consulta"
+  // = primeira posição) e contagem de exames em atraso — reaproveitando o
+  // cálculo que já existe na Linha do Tempo, em vez de inventar um conceito
+  // novo de "exame pendente" que o prontuário não rastreia hoje.
+  const ultimaConsulta = currentPatient.consultasEvolucao?.[currentPatient.consultasEvolucao.length - 1];
+  const examesPendentes = getTimelineForPatient(currentPatient, currentGest.weeks)
+    .filter((m) => m.categoria === 'exame' && m.status === 'atrasado').length;
+
   const [examesExpandidos, setExamesExpandidos] = useState<Set<string>>(new Set());
   const toggleExameExpandido = (id: string) => {
     setExamesExpandidos((prev) => {
@@ -338,6 +349,70 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                   </div>
                 </div>
               )}
+
+              {hasPermission(userRole, 'canViewClinicalHistory') && (
+                <div className="space-y-2">
+                  <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-1">Visão Geral do Acompanhamento</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div className="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs">
+                      <div className="w-9 h-9 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-2">
+                        <HeartPulse className="w-4.5 h-4.5" />
+                      </div>
+                      <div className="text-[10px] text-gray-400 font-bold uppercase">Batimentos Fetais</div>
+                      <div className="text-base font-bold text-gray-900 mt-0.5">{ultimaConsulta?.bcfMf || 'Sem registro'}</div>
+                      {ultimaConsulta && <p className="text-[10px] text-gray-400 mt-1">Consulta de {formatDateBR(ultimaConsulta.data)}</p>}
+                    </div>
+                    <div className="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs">
+                      <div className="w-9 h-9 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mb-2">
+                        <Activity className="w-4.5 h-4.5" />
+                      </div>
+                      <div className="text-[10px] text-gray-400 font-bold uppercase">Pressão Arterial</div>
+                      <div className="text-base font-bold text-gray-900 mt-0.5">{ultimaConsulta?.pa || 'Sem registro'}</div>
+                      {ultimaConsulta && <p className="text-[10px] text-gray-400 mt-1">Consulta de {formatDateBR(ultimaConsulta.data)}</p>}
+                    </div>
+                    <div className="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs">
+                      <div className={`w-9 h-9 rounded-2xl flex items-center justify-center mb-2 ${examesPendentes > 0 ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                        <FlaskConical className="w-4.5 h-4.5" />
+                      </div>
+                      <div className="text-[10px] text-gray-400 font-bold uppercase">Exames Pendentes</div>
+                      <div className="text-base font-bold text-gray-900 mt-0.5">{examesPendentes}</div>
+                      {examesPendentes > 0 ? (
+                        <button onClick={() => setActiveTab('linhaTempo')} className="text-[10px] text-[var(--brand-primary)] font-bold underline mt-1 cursor-pointer">
+                          Ver na Linha do Tempo
+                        </button>
+                      ) : (
+                        <p className="text-[10px] text-gray-400 mt-1">Tudo em dia</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-1">Dados de Contato</h4>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <div className="bg-white p-3.5 rounded-2xl border border-gray-200">
+                    <div className="flex items-center gap-1.5 text-[9px] text-gray-400 font-bold uppercase"><User className="w-3 h-3" /> CPF</div>
+                    <div className="text-xs font-bold text-gray-900 mt-1 truncate">{currentPatient.cpf}</div>
+                  </div>
+                  <div className="bg-white p-3.5 rounded-2xl border border-gray-200">
+                    <div className="flex items-center gap-1.5 text-[9px] text-gray-400 font-bold uppercase"><Phone className="w-3 h-3" /> Contato</div>
+                    <div className="text-xs font-bold text-gray-900 mt-1 truncate">{currentPatient.telefone || '—'}</div>
+                  </div>
+                  <div className="bg-white p-3.5 rounded-2xl border border-gray-200">
+                    <div className="flex items-center gap-1.5 text-[9px] text-gray-400 font-bold uppercase"><Mail className="w-3 h-3" /> E-mail</div>
+                    <div className="text-xs font-bold text-gray-900 mt-1 truncate">{currentPatient.email || '—'}</div>
+                  </div>
+                  <div className="bg-white p-3.5 rounded-2xl border border-gray-200">
+                    <div className="flex items-center gap-1.5 text-[9px] text-gray-400 font-bold uppercase"><CalendarCheck className="w-3 h-3" /> Última Consulta</div>
+                    <div className="text-xs font-bold text-gray-900 mt-1">{ultimaConsulta ? formatDateBR(ultimaConsulta.data) : '—'}</div>
+                  </div>
+                  <div className="bg-white p-3.5 rounded-2xl border border-gray-200">
+                    <div className="flex items-center gap-1.5 text-[9px] text-gray-400 font-bold uppercase"><CalendarClock className="w-3 h-3" /> Próxima Consulta</div>
+                    <div className="text-xs font-bold text-gray-900 mt-1">{nextAppointment ? formatDateBR(nextAppointment.data) : 'Não agendada'}</div>
+                  </div>
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs">
