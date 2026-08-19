@@ -264,7 +264,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
 
                 <div className="space-y-1.5 flex-1">
                   <div className="flex items-center gap-2">
-                    <label className="px-3 py-1.5 bg-[var(--brand-primary)] hover:bg-[#233820] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all">
+                    <label className="px-3 py-1.5 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all">
                       <Upload className="w-3.5 h-3.5" />
                       <span>{isResizing ? 'Processando...' : 'Selecionar Imagem'}</span>
                       <input 
@@ -383,6 +383,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
               {(() => {
                 const preview = buildBrandTheme(formData.corPrimaria) || {
                   '--brand-primary': '#2E482A',
+                  '--brand-primary-hover': '#233820',
                   '--brand-primary-border': '#3D5C38',
                   '--brand-on-primary': '#E8ECD8',
                   '--brand-on-primary-muted': '#A3B18A',
@@ -510,7 +511,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
               <button
                 type="submit"
                 disabled={isSaving || isResizing}
-                className="px-5 py-2.5 bg-[var(--brand-primary)] hover:bg-[#233820] text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-sm"
+                className="px-5 py-2.5 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-sm"
               >
                 <Save className="w-4 h-4" /> {isSaving ? 'Salvando...' : 'Salvar Alterações'}
               </button>
@@ -586,7 +587,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
                   type="button"
                   onClick={handleCopyPix}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
-                    copiedPix ? 'bg-emerald-600 text-white' : 'bg-[var(--brand-primary)] text-white hover:bg-[#233820]'
+                    copiedPix ? 'bg-emerald-600 text-white' : 'bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-primary-hover)]'
                   }`}
                 >
                   {copiedPix ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
@@ -704,7 +705,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
                 type="button"
                 onClick={handleSubmit}
                 disabled={isSaving}
-                className="px-5 py-2.5 bg-[var(--brand-primary)] hover:bg-[#233820] text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-sm"
+                className="px-5 py-2.5 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-sm"
               >
                 <Save className="w-4 h-4" /> {isSaving ? 'Salvando...' : 'Salvar Secretárias'}
               </button>
@@ -801,7 +802,7 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
                 type="button"
                 onClick={handleSubmit}
                 disabled={isSaving}
-                className="px-5 py-2 bg-[var(--brand-primary)] hover:bg-[#233820] text-white font-bold rounded-xl cursor-pointer shadow-xs"
+                className="px-5 py-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white font-bold rounded-xl cursor-pointer shadow-xs"
               >
                 Salvar Configurações de Segurança
               </button>

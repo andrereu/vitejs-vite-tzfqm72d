@@ -159,7 +159,7 @@ export const DoctorPanelScreen: React.FC<DoctorPanelScreenProps> = ({
               {hasPermission(userRole, 'canManageBasicPatientData') && (
                 <button
                   onClick={onOpenNewPatientModal}
-                  className="bg-[var(--brand-primary)] hover:bg-[#233820] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
+                  className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
                 >
                   <UserPlus className="w-4 h-4" /> + Cadastrar Gestante
                 </button>

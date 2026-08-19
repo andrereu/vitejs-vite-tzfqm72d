@@ -88,7 +88,7 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
             type="button"
             onClick={handlePagarAgora}
             disabled={isCreatingCheckout}
-            className="w-full py-3.5 bg-[var(--brand-primary)] hover:bg-[#233820] disabled:opacity-60 text-white rounded-2xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
+            className="w-full py-3.5 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] disabled:opacity-60 text-white rounded-2xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
           >
             {isCreatingCheckout ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -145,7 +145,7 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
                     type="button"
                     onClick={handleCopyPix}
                     className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                      copied ? 'bg-emerald-600 text-white' : 'bg-[var(--brand-primary)] text-white hover:bg-[#233820]'
+                      copied ? 'bg-emerald-600 text-white' : 'bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-primary-hover)]'
                     }`}
                   >
                     {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}

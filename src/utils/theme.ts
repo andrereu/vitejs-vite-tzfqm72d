@@ -32,6 +32,7 @@ function relativeLuminance(hex: string): number {
 
 export const BRAND_THEME_VARS = [
   '--brand-primary',
+  '--brand-primary-hover',
   '--brand-primary-border',
   '--brand-on-primary',
   '--brand-on-primary-muted',
@@ -39,7 +40,7 @@ export const BRAND_THEME_VARS = [
 
 export type BrandThemeVars = Record<(typeof BRAND_THEME_VARS)[number], string>;
 
-// Retorna as 4 variáveis derivadas de `corPrimaria`, ou null se não for um hex
+// Retorna as variáveis derivadas de `corPrimaria`, ou null se não for um hex
 // válido (inclui undefined/'' — médica sem tema customizado, usa o padrão do
 // index.css sem nenhuma sobrescrita).
 export function buildBrandTheme(corPrimaria: string | undefined | null): BrandThemeVars | null {
@@ -50,6 +51,9 @@ export function buildBrandTheme(corPrimaria: string | undefined | null): BrandTh
 
   return {
     '--brand-primary': corPrimaria,
+    // Hover sempre escurece em direção ao preto, independente de a cor base
+    // ser clara ou escura — é o mesmo gesto de "botão pressionado" de sempre.
+    '--brand-primary-hover': mix(corPrimaria, '#000000', 0.22),
     '--brand-primary-border': mix(corPrimaria, tintTarget, 0.12),
     '--brand-on-primary': mix(corPrimaria, tintTarget, isLight ? 0.75 : 0.87),
     '--brand-on-primary-muted': mix(corPrimaria, tintTarget, isLight ? 0.45 : 0.55),

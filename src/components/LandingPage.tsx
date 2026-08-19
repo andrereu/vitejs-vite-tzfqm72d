@@ -34,7 +34,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
       {/* 1. HERO SECTION */}
       <section className="relative overflow-hidden pt-6 px-4 max-w-5xl mx-auto text-center">
-        <div className="bg-gradient-to-b from-[var(--brand-primary)] via-[#233820] to-[#172515] text-white p-8 md:p-12 rounded-3xl shadow-2xl space-y-6 relative border border-[var(--brand-primary-border)]">
+        <div className="bg-gradient-to-b from-[var(--brand-primary)] via-[var(--brand-primary-hover)] to-[#172515] text-white p-8 md:p-12 rounded-3xl shadow-2xl space-y-6 relative border border-[var(--brand-primary-border)]">
 
           {doctorContext ? (
             <>
@@ -226,7 +226,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
             <button 
               onClick={onOpenTrialModal}
-              className="w-full py-3 bg-[var(--brand-primary)] hover:bg-[#233820] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+              className="w-full py-3 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
             >
               Começar Teste de 14 Dias Grátis
             </button>

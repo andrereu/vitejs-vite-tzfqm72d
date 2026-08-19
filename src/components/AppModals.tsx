@@ -679,7 +679,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                 <button 
                   type="submit"
                   disabled={props.isUploading} 
-                  className="px-4 py-1.5 bg-[var(--brand-primary)] hover:bg-[#233820] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer transition-all disabled:opacity-50"
+                  className="px-4 py-1.5 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer transition-all disabled:opacity-50"
                 >
                   {props.isUploading ? "Processando..." : "Analisar com IA & Salvar"}
                 </button>
@@ -863,7 +863,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
 
               <button
                 type="submit"
-                className="w-full py-2.5 bg-[var(--brand-primary)] hover:bg-[#233820] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-98"
+                className="w-full py-2.5 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-98"
               >
                 Entrar com CPF
               </button>
@@ -993,7 +993,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
 
               <button
                 type="submit"
-                className="w-full py-3 bg-[var(--brand-primary)] hover:bg-[#233820] text-white rounded-xl font-bold shadow-md cursor-pointer transition-all"
+                className="w-full py-3 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white rounded-xl font-bold shadow-md cursor-pointer transition-all"
               >
                 {props.loginRole === 'secretaria' ? 'Entrar como Secretária' : 'Entrar como Obstetra'}
               </button>

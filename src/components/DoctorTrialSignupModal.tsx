@@ -137,7 +137,7 @@ export const DoctorTrialSignupModal: React.FC<DoctorTrialSignupModalProps> = ({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3 bg-[var(--brand-primary)] hover:bg-[#233820] text-white rounded-xl font-bold shadow-md cursor-pointer transition-all mt-2"
+            className="w-full py-3 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white rounded-xl font-bold shadow-md cursor-pointer transition-all mt-2"
           >
             {isSubmitting ? 'Liberando Acesso...' : 'Ativar Meu Teste Grátis de 14 Dias'}
           </button>

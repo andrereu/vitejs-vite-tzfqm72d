@@ -991,10 +991,10 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                     return (
                       <g>
                         {realPoints.length > 1 && (
-                          <polyline fill="none" stroke="#2E482A" strokeWidth="3.5" points={realPoints.map(p => `${p.x},${p.y}`).join(" ")} />
+                          <polyline fill="none" stroke="var(--brand-primary)" strokeWidth="3.5" points={realPoints.map(p => `${p.x},${p.y}`).join(" ")} />
                         )}
                         {realPoints.map(p => (
-                          <circle key={p.id} cx={p.x} cy={p.y} r="5" fill="#D4AF37" stroke="#2E482A" strokeWidth="2" />
+                          <circle key={p.id} cx={p.x} cy={p.y} r="5" fill="var(--brand-gold)" stroke="var(--brand-primary)" strokeWidth="2" />
                         ))}
                       </g>
                     );

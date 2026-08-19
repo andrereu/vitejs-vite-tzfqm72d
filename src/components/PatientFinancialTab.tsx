@@ -153,7 +153,7 @@ export const PatientFinancialTab: React.FC<PatientFinancialTabProps> = ({
               type="button"
               onClick={handleSaveConvenioConfig}
               disabled={isSavingConvenio}
-              className="px-3.5 py-1.5 bg-[var(--brand-primary)] hover:bg-[#233820] text-white text-xs font-bold rounded-xl cursor-pointer shadow-xs transition-all"
+              className="px-3.5 py-1.5 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white text-xs font-bold rounded-xl cursor-pointer shadow-xs transition-all"
             >
               {isSavingConvenio ? 'Salvando...' : 'Salvar Cobertura'}
             </button>
@@ -278,7 +278,7 @@ export const PatientFinancialTab: React.FC<PatientFinancialTabProps> = ({
               <button
                 type="button"
                 onClick={() => setShowAddModal(true)}
-                className="px-3.5 py-2 bg-[var(--brand-primary)] hover:bg-[#233820] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
+                className="px-3.5 py-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
               >
                 <Plus className="w-4 h-4" /> + Lançar Pagamento
               </button>
@@ -502,7 +502,7 @@ export const PatientFinancialTab: React.FC<PatientFinancialTabProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-[var(--brand-primary)] hover:bg-[#233820] text-white font-bold rounded-xl cursor-pointer shadow-xs"
+                  className="px-5 py-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white font-bold rounded-xl cursor-pointer shadow-xs"
                 >
                   Salvar Lançamento
                 </button>

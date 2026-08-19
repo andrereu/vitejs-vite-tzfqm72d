@@ -69,7 +69,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({
 
         <button
           onClick={() => window.open('https://instagram.com', '_blank')}
-          className="px-3.5 py-1.5 bg-[var(--brand-primary)] hover:bg-[#233820] text-white rounded-xl text-[11px] font-bold shrink-0 shadow-xs transition-all cursor-pointer"
+          className="px-3.5 py-1.5 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white rounded-xl text-[11px] font-bold shrink-0 shadow-xs transition-all cursor-pointer"
         >
           Conhecer Mais
         </button>

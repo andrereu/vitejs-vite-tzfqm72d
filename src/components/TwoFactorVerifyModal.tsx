@@ -114,7 +114,7 @@ export const TwoFactorVerifyModal: React.FC<TwoFactorVerifyModalProps> = ({
 
           <button
             type="submit"
-            className="w-full py-3 bg-[var(--brand-primary)] hover:bg-[#233820] text-white rounded-xl text-xs font-bold shadow-md cursor-pointer transition-all flex items-center justify-center gap-2"
+            className="w-full py-3 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white rounded-xl text-xs font-bold shadow-md cursor-pointer transition-all flex items-center justify-center gap-2"
           >
             <Check className="w-4 h-4" /> Confirmar e Entrar
           </button>
