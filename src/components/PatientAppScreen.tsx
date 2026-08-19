@@ -2,18 +2,18 @@ import React, { useState } from 'react';
 import {
   Upload, Plus, Printer, Syringe, Calculator, AlertCircle,
   Edit3, Bot, MapPin, CalendarPlus, Calendar, Share2, Send, Download, ShieldAlert,
-  HeartPulse, Activity, FlaskConical, User, Phone, Mail, CalendarCheck, CalendarClock,
+  Activity, FlaskConical, CalendarClock,
   LayoutDashboard, History, CreditCard, ClipboardList, BarChart3, FolderOpen, LayoutGrid, X,
-  ChevronRight, Scale
+  ChevronRight
 } from 'lucide-react';
 import type { Patient, AgendaConsulta, MarcoPersonalizado, UserRole } from '../types/prenatal';
 import type { DoctorTenant } from '../types/saas';
-import { AdBanner } from './AdBanner';
+import { PatientHome } from './PatientHome';
 import { PatientFinancialTab } from './PatientFinancialTab';
 import { PrenatalChatTab } from './PrenatalChatTab';
 import { PatientAuditLog } from './PatientAuditLog';
 import { GestationTimeline } from './GestationTimeline';
-import { criarMarcoPersonalizado, getTimelineForPatient } from '../utils/gestationTimeline';
+import { criarMarcoPersonalizado } from '../utils/gestationTimeline';
 import { formatDateDisplay, formatDateBR } from '../utils/formatters';
 import { generateAppointmentReminderLink, generateConsultationSummaryLink, sharePatientCard, cleanPhoneNumber } from '../utils/whatsapp';
 import { downloadPatientData } from '../utils/dataExport';
@@ -97,12 +97,8 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
 
   // Resumo da paciente: última consulta registrada (última posição da lista,
   // mesma convenção já usada em gestationTimeline.ts pra "primeira consulta"
-  // = primeira posição) e contagem de exames em atraso — reaproveitando o
-  // cálculo que já existe na Linha do Tempo, em vez de inventar um conceito
-  // novo de "exame pendente" que o prontuário não rastreia hoje.
+  // = primeira posição).
   const ultimaConsulta = currentPatient.consultasEvolucao?.[currentPatient.consultasEvolucao.length - 1];
-  const examesPendentes = getTimelineForPatient(currentPatient, currentGest.weeks)
-    .filter((m) => m.categoria === 'exame' && m.status === 'atrasado').length;
 
   const [showMoreSheet, setShowMoreSheet] = useState(false);
 
@@ -471,309 +467,21 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
           )}
 
 
-          <AdBanner
-            placeholderTitle="Dicas & Cuidados"
-            placeholderSubtitle="Enxoval, amamentação e cuidados no pós-parto"
-          />
-
-                    {/* TAB 1: RESUMO */}
+          {/* TAB 1: RESUMO — nova Home (Fase 2A): saudação, hero de IG, próxima consulta, indicadores e Dicas & Cuidados */}
           {activeTab === 'resumo' && (
-            <div className="space-y-5 print:hidden">
-
-              {/* CABEÇALHO + CARD DA PACIENTE (DESKTOP) — só aqui na aba Resumo; no celular a mesma informação está no bloco "Olá" + pílula abaixo */}
-              <div className="hidden lg:block space-y-5">
-                <div className="flex items-center justify-between gap-2.5">
-                  <div className="flex items-center gap-2.5">
-                    <LayoutDashboard className="w-5 h-5 text-[var(--brand-primary)] shrink-0" />
-                    <div>
-                      <h3 className="font-serif text-lg font-bold text-gray-900 leading-tight">Resumo da Paciente</h3>
-                      <p className="text-xs text-gray-500">Visão geral dos dados e acompanhamento gestacional.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => sharePatientCard(currentPatient)}
-                      title="Compartilhar carteirinha"
-                      className="w-9 h-9 rounded-xl border border-gray-200 bg-white text-gray-500 hover:text-emerald-600 hover:border-emerald-200 flex items-center justify-center cursor-pointer transition-all"
-                    >
-                      <Share2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => window.print()}
-                      title="Imprimir A4"
-                      className="w-9 h-9 rounded-xl border border-gray-200 bg-white text-gray-500 hover:text-amber-600 hover:border-amber-200 flex items-center justify-center cursor-pointer transition-all"
-                    >
-                      <Printer className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => downloadPatientData(currentPatient)}
-                      title="Baixar meus dados (LGPD)"
-                      className="w-9 h-9 rounded-xl border border-gray-200 bg-white text-gray-500 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 flex items-center justify-center cursor-pointer transition-all"
-                    >
-                      <Download className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-3xl border border-gray-200 shadow-xs p-5 flex flex-wrap items-center gap-x-8 gap-y-4">
-                  <div className="flex items-center gap-3">
-                    <span className="w-14 h-14 rounded-full bg-[var(--brand-primary)]/10 flex items-center justify-center text-2xl shrink-0">🤰</span>
-                    <div>
-                      <div className="font-bold text-gray-900">{currentPatient.nome}</div>
-                      {currentPatient.idade && (
-                        <span className="inline-block mt-1 px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-bold rounded-full">
-                          {currentPatient.idade} anos
-                        </span>
-                      )}
-                      <div className="text-xs text-gray-500 mt-1">
-                        {currentPatient.g === '1' ? 'Primigesta' : `G${currentPatient.g || 0}P${currentPatient.p || 0}`} • {currentGest.weeks} semanas e {currentGest.days} dias de gestação
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5 text-xs text-gray-600 border-l border-gray-100 pl-8">
-                    <div className="flex items-center gap-1.5"><User className="w-3.5 h-3.5 text-gray-400 shrink-0" /> CPF <strong className="text-gray-900">{currentPatient.cpf}</strong></div>
-                    <div className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-gray-400 shrink-0" /> Contato <strong className="text-gray-900">{currentPatient.telefone || '—'}</strong></div>
-                    <div className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-gray-400 shrink-0" /> E-mail <strong className="text-gray-900">{currentPatient.email || '—'}</strong></div>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5 text-xs text-gray-500 border-l border-gray-100 pl-8 ml-auto">
-                    <div>Última consulta <strong className="text-gray-900 block">{ultimaConsulta ? formatDateBR(ultimaConsulta.data) : '—'}</strong></div>
-                    <div>Próxima consulta agendada <strong className="text-gray-900 block">{nextAppointment ? `${formatDateBR(nextAppointment.data)} • ${nextAppointment.horario}` : 'Não agendada'}</strong></div>
-                  </div>
-                </div>
-
-                {hasPermission(userRole, 'canViewClinicalHistory') && (
-                  <div className="space-y-2">
-                    <div>
-                      <h4 className="font-bold text-gray-900 text-sm">Visão geral do acompanhamento</h4>
-                      <p className="text-xs text-gray-500">Acompanhe os principais indicadores da gestação.</p>
-                    </div>
-                    <div className="grid grid-cols-4 gap-4">
-                      <div className="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs">
-                        <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-2">
-                          <HeartPulse className="w-5 h-5" />
-                        </div>
-                        <div className="text-[10px] text-gray-400 font-bold uppercase">Batimentos Cardíacos Fetais</div>
-                        <div className="text-xl font-bold text-gray-900 mt-0.5">{ultimaConsulta?.bcfMf || 'Sem registro'}</div>
-                        {ultimaConsulta && <p className="text-[10px] text-gray-400 mt-1">Consulta de {formatDateBR(ultimaConsulta.data)}</p>}
-                      </div>
-                      <div className="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs">
-                        <div className="w-10 h-10 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center mb-2">
-                          <Scale className="w-5 h-5" />
-                        </div>
-                        <div className="text-[10px] text-gray-400 font-bold uppercase">Peso</div>
-                        <div className="text-xl font-bold text-gray-900 mt-0.5">
-                          {ultimaConsulta ? `${ultimaConsulta.peso.toFixed(1).replace('.', ',')} kg` : (currentPatient.pesoInicial ? `${parseFloat(currentPatient.pesoInicial).toFixed(1).replace('.', ',')} kg` : 'Sem registro')}
-                        </div>
-                        {ultimaConsulta && currentPatient.pesoInicial && (
-                          <p className="text-[10px] text-gray-400 mt-1">
-                            {(ultimaConsulta.peso - parseFloat(currentPatient.pesoInicial)) >= 0 ? '+' : ''}
-                            {(ultimaConsulta.peso - parseFloat(currentPatient.pesoInicial)).toFixed(1).replace('.', ',')} kg desde o início
-                          </p>
-                        )}
-                      </div>
-                      <div className="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs">
-                        <div className="w-10 h-10 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mb-2">
-                          <Activity className="w-5 h-5" />
-                        </div>
-                        <div className="text-[10px] text-gray-400 font-bold uppercase">Pressão Arterial</div>
-                        <div className="text-xl font-bold text-gray-900 mt-0.5">{ultimaConsulta?.pa || 'Sem registro'}</div>
-                        {ultimaConsulta && <p className="text-[10px] text-gray-400 mt-1">Consulta de {formatDateBR(ultimaConsulta.data)}</p>}
-                      </div>
-                      <div className="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs">
-                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center mb-2 ${examesPendentes > 0 ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                          <FlaskConical className="w-5 h-5" />
-                        </div>
-                        <div className="text-[10px] text-gray-400 font-bold uppercase">Exames Pendentes</div>
-                        <div className="text-xl font-bold text-gray-900 mt-0.5">{examesPendentes}</div>
-                        {examesPendentes > 0 ? (
-                          <button onClick={() => setActiveTab('linhaTempo')} className="text-[10px] text-[var(--brand-primary)] font-bold mt-1 cursor-pointer flex items-center gap-0.5">
-                            Ver exames <ChevronRight className="w-3 h-3" />
-                          </button>
-                        ) : (
-                          <p className="text-[10px] text-gray-400 mt-1">Tudo em dia</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* SAUDAÇÃO (CELULAR) — só faz sentido em 2ª pessoa quando é a própria gestante lendo; no desktop, o card acima já mostra os mesmos dados em 3ª pessoa pra equipe */}
-              <div className="lg:hidden space-y-5">
-              {userRole === 'paciente' && (
-                <div>
-                  <p className="text-sm text-gray-500">Olá, {currentPatient.nome.split(' ')[0]} 👋</p>
-                  <p className="text-xl font-bold text-gray-900 mt-0.5">
-                    Bem-vinda à <span className="text-[var(--brand-primary)]">sua jornada</span>.
-                  </p>
-                </div>
-              )}
-
-              {/* PÍLULA DE SEMANAS DE GESTAÇÃO */}
-              <button
-                onClick={() => setActiveTab('linhaTempo')}
-                className="w-full bg-white rounded-3xl border border-gray-200 shadow-xs p-4 flex items-center gap-3 text-left cursor-pointer hover:bg-gray-50 transition-all"
-              >
-                <span className="w-12 h-12 rounded-full bg-[var(--brand-primary)]/10 flex items-center justify-center text-2xl shrink-0">🤰</span>
-                <span className="flex-1 min-w-0">
-                  <span className="block font-bold text-gray-900">{currentGest.weeks} semanas de gestação</span>
-                  <span className="block text-xs text-gray-400 capitalize">
-                    {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                  </span>
-                </span>
-                <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
-              </button>
-
-              {/* RESUMO DA GESTAÇÃO — 4 indicadores principais */}
-              {hasPermission(userRole, 'canViewClinicalHistory') && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between px-1">
-                    <h4 className="font-bold text-gray-900 text-sm">Resumo da gestação</h4>
-                    <button onClick={() => setActiveTab('linhaTempo')} className="text-xs text-[var(--brand-primary)] font-bold cursor-pointer">
-                      Ver detalhes
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs">
-                      <div className="w-9 h-9 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center mb-2">
-                        <Scale className="w-4.5 h-4.5" />
-                      </div>
-                      <div className="text-[10px] text-gray-400 font-bold uppercase">Peso</div>
-                      <div className="text-base font-bold text-gray-900 mt-0.5">
-                        {ultimaConsulta ? `${ultimaConsulta.peso.toFixed(1).replace('.', ',')} kg` : (currentPatient.pesoInicial ? `${parseFloat(currentPatient.pesoInicial).toFixed(1).replace('.', ',')} kg` : 'Sem registro')}
-                      </div>
-                    </div>
-                    <div className="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs">
-                      <div className="w-9 h-9 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mb-2">
-                        <Activity className="w-4.5 h-4.5" />
-                      </div>
-                      <div className="text-[10px] text-gray-400 font-bold uppercase">Pressão</div>
-                      <div className="text-base font-bold text-gray-900 mt-0.5">{ultimaConsulta?.pa || 'Sem registro'}</div>
-                    </div>
-                    <div className="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs">
-                      <div className="w-9 h-9 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-2">
-                        <HeartPulse className="w-4.5 h-4.5" />
-                      </div>
-                      <div className="text-[10px] text-gray-400 font-bold uppercase">Batimentos fetais</div>
-                      <div className="text-base font-bold text-gray-900 mt-0.5">{ultimaConsulta?.bcfMf || 'Sem registro'}</div>
-                    </div>
-                    <div className="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs">
-                      <div className="w-9 h-9 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-2">
-                        <CalendarCheck className="w-4.5 h-4.5" />
-                      </div>
-                      <div className="text-[10px] text-gray-400 font-bold uppercase">Última consulta</div>
-                      <div className="text-base font-bold text-gray-900 mt-0.5">{ultimaConsulta ? formatDateBR(ultimaConsulta.data) : '—'}</div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* PRÓXIMA CONSULTA */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between px-1">
-                  <h4 className="font-bold text-gray-900 text-sm">Próxima consulta</h4>
-                  <button onClick={() => setActiveTab('agenda')} className="text-xs text-[var(--brand-primary)] font-bold cursor-pointer">
-                    Ver agenda
-                  </button>
-                </div>
-
-                {nextAppointment ? (
-                  <div className="bg-white rounded-3xl border border-gray-200 shadow-xs p-4 flex items-center gap-3">
-                    <span className="w-11 h-11 rounded-2xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] flex items-center justify-center shrink-0">
-                      <CalendarClock className="w-5 h-5" />
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <strong className="text-sm text-gray-900 block truncate">{nextAppointment.tipo}</strong>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {formatDateBR(nextAppointment.data)} às {nextAppointment.horario}
-                        {doctorProfile?.nome ? ` • ${doctorProfile.nome}` : ''}
-                      </p>
-                    </div>
-                    {isStaff ? (
-                      <a
-                        href={generateAppointmentReminderLink(currentPatient, nextAppointment)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-[11px] font-bold flex items-center gap-1.5 shadow-xs shrink-0"
-                      >
-                        <Send className="w-3.5 h-3.5" /> Zap
-                      </a>
-                    ) : (
-                      <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
-                    )}
-                  </div>
-                ) : (
-                  <div className="bg-gray-50 border border-gray-200 p-4 rounded-3xl flex justify-between items-center text-xs text-gray-500">
-                    <span>Nenhuma consulta agendada no momento.</span>
-                    {userRole === 'paciente' && (
-                      <button onClick={() => setShowRequestAppointmentModal(true)} className="text-[var(--brand-primary)] font-bold underline cursor-pointer shrink-0">
-                        + Solicitar
-                      </button>
-                    )}
-                    {isStaff && (
-                      <button onClick={() => setShowAddAgendaModal(true)} className="text-[var(--brand-primary)] font-bold underline cursor-pointer shrink-0">
-                        + Agendar
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {examAlerts.length > 0 && (
-                  <div className="bg-rose-50 border border-rose-100 rounded-2xl px-4 py-3 text-xs text-rose-800 font-medium">
-                    Lembrete: {examAlerts[0].titulo}
-                    {examAlerts.length > 1 ? ` e mais ${examAlerts.length - 1} exame(s) recomendado(s) para esta fase.` : '.'}
-                  </div>
-                )}
-              </div>
-              </div>
-
-              {/* Dados de Contato: só no celular — no desktop o card do topo já mostra CPF/Contato/E-mail/Última/Próxima consulta */}
-              <div className="lg:hidden space-y-2">
-                <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-1">Dados de Contato</h4>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                  <div className="bg-white p-3.5 rounded-2xl border border-gray-200">
-                    <div className="flex items-center gap-1.5 text-[9px] text-gray-400 font-bold uppercase"><User className="w-3 h-3" /> CPF</div>
-                    <div className="text-xs font-bold text-gray-900 mt-1 truncate">{currentPatient.cpf}</div>
-                  </div>
-                  <div className="bg-white p-3.5 rounded-2xl border border-gray-200">
-                    <div className="flex items-center gap-1.5 text-[9px] text-gray-400 font-bold uppercase"><Phone className="w-3 h-3" /> Contato</div>
-                    <div className="text-xs font-bold text-gray-900 mt-1 truncate">{currentPatient.telefone || '—'}</div>
-                  </div>
-                  <div className="bg-white p-3.5 rounded-2xl border border-gray-200">
-                    <div className="flex items-center gap-1.5 text-[9px] text-gray-400 font-bold uppercase"><Mail className="w-3 h-3" /> E-mail</div>
-                    <div className="text-xs font-bold text-gray-900 mt-1 truncate">{currentPatient.email || '—'}</div>
-                  </div>
-                  <div className="bg-white p-3.5 rounded-2xl border border-gray-200">
-                    <div className="flex items-center gap-1.5 text-[9px] text-gray-400 font-bold uppercase"><CalendarCheck className="w-3 h-3" /> Última Consulta</div>
-                    <div className="text-xs font-bold text-gray-900 mt-1">{ultimaConsulta ? formatDateBR(ultimaConsulta.data) : '—'}</div>
-                  </div>
-                  <div className="bg-white p-3.5 rounded-2xl border border-gray-200">
-                    <div className="flex items-center gap-1.5 text-[9px] text-gray-400 font-bold uppercase"><CalendarClock className="w-3 h-3" /> Próxima Consulta</div>
-                    <div className="text-xs font-bold text-gray-900 mt-1">{nextAppointment ? formatDateBR(nextAppointment.data) : 'Não agendada'}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs">
-                  <div className="flex items-center text-[10px] text-gray-400 font-bold uppercase">Idade Gestacional (IG)</div>
-                  <div className="text-2xl font-bold text-gray-900 mt-1">{currentGest.weeks} Semanas e {currentGest.days} dias</div>
-                </div>
-                <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs">
-                  <div className="flex items-center text-[10px] text-gray-400 font-bold uppercase">Data Provável do Parto (DPP)</div>
-                  <div className="text-2xl font-bold text-gray-900 mt-1">{new Date(currentPatient.dpp).toLocaleDateString('pt-BR')}</div>
-                </div>
-                <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-xs">
-                  <div className="flex items-center text-[10px] text-gray-400 font-bold uppercase">Tipo Sanguíneo & Fator Rh</div>
-                  <div className="text-2xl font-bold text-gray-900 mt-1">{currentPatient.tipoSanguineo}</div>
-                </div>
-              </div>
-            </div>
+            <PatientHome
+              currentPatient={currentPatient}
+              doctorProfile={doctorProfile}
+              currentGest={currentGest}
+              userRole={userRole}
+              isStaff={isStaff}
+              nextAppointment={nextAppointment}
+              examAlerts={examAlerts}
+              ultimaConsulta={ultimaConsulta}
+              onViewAgenda={() => setActiveTab('agenda')}
+              onRequestAppointment={() => setShowRequestAppointmentModal(true)}
+              onAddAgenda={() => setShowAddAgendaModal(true)}
+            />
           )}
 
           {/* TAB FINANCEIRO & CONVÊNIO */}
