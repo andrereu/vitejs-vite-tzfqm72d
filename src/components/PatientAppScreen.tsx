@@ -3,7 +3,7 @@ import {
   Upload, Plus, Printer, Syringe, Calculator, AlertCircle,
   Edit3, Bot, MapPin, CalendarPlus, Calendar, Share2, Send, Download, ShieldAlert
 } from 'lucide-react';
-import type { Patient, AgendaConsulta, UserRole } from '../types/prenatal';
+import type { Patient, AgendaConsulta, MarcoPersonalizado, UserRole } from '../types/prenatal';
 import type { DoctorTenant } from '../types/saas';
 import { Tooltip } from './Tooltip';
 import { AdBanner } from './AdBanner';
@@ -11,6 +11,7 @@ import { PatientFinancialTab } from './PatientFinancialTab';
 import { PrenatalChatTab } from './PrenatalChatTab';
 import { PatientAuditLog } from './PatientAuditLog';
 import { GestationTimeline } from './GestationTimeline';
+import { criarMarcoPersonalizado } from '../utils/gestationTimeline';
 import { formatDateDisplay, formatDateBR } from '../utils/formatters';
 import { generateAppointmentReminderLink, generateConsultationSummaryLink, sharePatientCard, cleanPhoneNumber } from '../utils/whatsapp';
 import { downloadPatientData } from '../utils/dataExport';
@@ -118,9 +119,34 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
   };
 
   const handleMarcarMarcoRealizado = (marcoId: string) => {
+    const marcoPersonalizado = currentPatient.marcosPersonalizados?.find((m) => m.id === marcoId);
+    const updated: Patient = marcoPersonalizado
+      ? {
+          ...currentPatient,
+          marcosPersonalizados: currentPatient.marcosPersonalizados!.map((m) =>
+            m.id === marcoId ? { ...m, concluidoEm: new Date().toISOString() } : m
+          )
+        }
+      : {
+          ...currentPatient,
+          marcosTimeline: { ...currentPatient.marcosTimeline, [marcoId]: { concluidoEm: new Date().toISOString() } }
+        };
+    saveToFirestore(patients.map((p) => (p.id === updated.id ? updated : p)));
+  };
+
+  const handleAdicionarMarcoPersonalizado = (dados: Omit<MarcoPersonalizado, 'id'>) => {
+    const novoMarco = criarMarcoPersonalizado(dados);
     const updated: Patient = {
       ...currentPatient,
-      marcosTimeline: { ...currentPatient.marcosTimeline, [marcoId]: { concluidoEm: new Date().toISOString() } }
+      marcosPersonalizados: [...(currentPatient.marcosPersonalizados || []), novoMarco]
+    };
+    saveToFirestore(patients.map((p) => (p.id === updated.id ? updated : p)));
+  };
+
+  const handleRemoverMarcoPersonalizado = (marcoId: string) => {
+    const updated: Patient = {
+      ...currentPatient,
+      marcosPersonalizados: (currentPatient.marcosPersonalizados || []).filter((m) => m.id !== marcoId)
     };
     saveToFirestore(patients.map((p) => (p.id === updated.id ? updated : p)));
   };
@@ -475,6 +501,8 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
               isStaff={isStaff}
               onMarcarRealizado={handleMarcarMarcoRealizado}
               onIrParaAba={setActiveTab}
+              onAdicionarPersonalizado={handleAdicionarMarcoPersonalizado}
+              onRemoverPersonalizado={handleRemoverMarcoPersonalizado}
             />
           )}
 

@@ -1,6 +1,6 @@
-import React from 'react';
-import { Stethoscope, FlaskConical, Syringe, Baby, CheckCircle2, Clock, AlertTriangle, Circle } from 'lucide-react';
-import type { Patient } from '../types/prenatal';
+import React, { useState } from 'react';
+import { Stethoscope, FlaskConical, Syringe, Baby, Pill, CheckCircle2, Clock, AlertTriangle, Circle, Plus } from 'lucide-react';
+import type { Patient, MarcoPersonalizado } from '../types/prenatal';
 import type { MarcoCategoria, MarcoComStatus, MarcoStatus } from '../utils/gestationTimeline';
 import { getTimelineForPatient } from '../utils/gestationTimeline';
 
@@ -10,13 +10,24 @@ interface GestationTimelineProps {
   isStaff: boolean;
   onMarcarRealizado: (marcoId: string) => void;
   onIrParaAba?: (tab: string) => void;
+  onAdicionarPersonalizado: (marco: Omit<MarcoPersonalizado, 'id'>) => void;
+  onRemoverPersonalizado: (id: string) => void;
 }
 
 const ICONE_CATEGORIA: Record<MarcoCategoria, React.ReactNode> = {
   consulta: <Stethoscope className="w-4 h-4" />,
   exame: <FlaskConical className="w-4 h-4" />,
   vacina: <Syringe className="w-4 h-4" />,
-  ultrassom: <Baby className="w-4 h-4" />
+  ultrassom: <Baby className="w-4 h-4" />,
+  suplementacao: <Pill className="w-4 h-4" />
+};
+
+const LABEL_CATEGORIA: Record<MarcoCategoria, string> = {
+  consulta: 'Consulta',
+  exame: 'Exame',
+  vacina: 'Vacina',
+  ultrassom: 'Ecografia',
+  suplementacao: 'Suplementação'
 };
 
 const ESTILO_STATUS: Record<MarcoStatus, { cor: string; bg: string; borda: string; icone: React.ReactNode; label: string }> = {
@@ -33,15 +44,37 @@ function formatDataCurta(dataStr?: string) {
   return d.toLocaleDateString('pt-BR');
 }
 
+const NOVO_ITEM_PADRAO = { titulo: '', categoria: 'consulta' as MarcoCategoria, semanaInicio: 0, semanaFim: 40 };
+
 // Linha do tempo visual da gestação: cada marco (consulta, exame, vacina,
-// ecografia) numa janela de semanas, com status calculado automaticamente
-// a partir do que já está preenchido no prontuário. Mesmo componente serve
-// pro painel da médica e pro app da paciente — só muda o que cada um pode
-// clicar (a paciente só acompanha; a equipe pode marcar ecografias e pular
-// direto pra aba onde o dado é editado).
-export const GestationTimeline: React.FC<GestationTimelineProps> = ({ patient, semanaAtual, isStaff, onMarcarRealizado, onIrParaAba }) => {
+// ecografia, suplementação) numa janela de semanas, com status calculado
+// automaticamente a partir do que já está preenchido no prontuário — mais
+// os itens que a médica adicionar especificamente pra essa paciente. Mesmo
+// componente serve pro painel da médica e pro app da paciente — só muda o
+// que cada um pode clicar (a paciente só acompanha; a equipe pode marcar
+// itens manuais, adicionar/remover personalizados e pular pra aba certa).
+export const GestationTimeline: React.FC<GestationTimelineProps> = ({
+  patient,
+  semanaAtual,
+  isStaff,
+  onMarcarRealizado,
+  onIrParaAba,
+  onAdicionarPersonalizado,
+  onRemoverPersonalizado
+}) => {
   const marcos = getTimelineForPatient(patient, semanaAtual);
   const atrasados = marcos.filter((m: MarcoComStatus) => m.status === 'atrasado').length;
+
+  const [mostrarForm, setMostrarForm] = useState(false);
+  const [novoItem, setNovoItem] = useState(NOVO_ITEM_PADRAO);
+
+  const handleAdicionar = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!novoItem.titulo.trim()) return;
+    onAdicionarPersonalizado(novoItem);
+    setNovoItem(NOVO_ITEM_PADRAO);
+    setMostrarForm(false);
+  };
 
   return (
     <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-5 print:hidden">
@@ -61,11 +94,12 @@ export const GestationTimeline: React.FC<GestationTimelineProps> = ({ patient, s
         {marcos.map((marco, idx) => {
           const estilo = ESTILO_STATUS[marco.status];
           const dataFormatada = formatDataCurta(marco.em);
-          // Ecografia é a única categoria sem campo próprio no prontuário —
-          // por isso é a única que também aceita marcação manual, mesmo já
-          // tendo um link pra Central de Exames (onde normalmente é
-          // detectada sozinha, a partir do upload).
-          const podeMarcarManual = isStaff && marco.status !== 'realizado' && marco.categoria === 'ultrassom';
+          // Ecografia e suplementação não têm campo próprio no prontuário
+          // (diferente de consulta/exame/vacina, que são derivados de dados
+          // já existentes) — por isso são as únicas que aceitam marcação
+          // manual, junto com qualquer item personalizado.
+          const podeMarcarManual =
+            isStaff && marco.status !== 'realizado' && (marco.categoria === 'ultrassom' || marco.categoria === 'suplementacao' || marco.personalizado);
           const podeIrParaAba = marco.tabAlvo && onIrParaAba;
 
           return (
@@ -87,7 +121,14 @@ export const GestationTimeline: React.FC<GestationTimelineProps> = ({ patient, s
                 <div className={`p-3.5 rounded-2xl border ${estilo.borda} ${estilo.bg}`}>
                   <div className="flex flex-wrap justify-between items-start gap-2">
                     <div>
-                      <strong className="text-sm text-gray-900 block">{marco.titulo}</strong>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <strong className="text-sm text-gray-900 block">{marco.titulo}</strong>
+                        {marco.personalizado && (
+                          <span className="px-1.5 py-0.5 bg-violet-50 border border-violet-200 text-violet-700 rounded text-[9px] font-bold uppercase shrink-0">
+                            Personalizado
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[11px] text-gray-500 mt-0.5">{marco.descricao}</p>
                     </div>
                     <span className={`shrink-0 px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 ${estilo.cor} bg-white/70`}>
@@ -99,8 +140,8 @@ export const GestationTimeline: React.FC<GestationTimelineProps> = ({ patient, s
                     <p className="text-[11px] text-gray-500 mt-2">Registrado em <strong>{dataFormatada}</strong></p>
                   )}
 
-                  {(podeMarcarManual || podeIrParaAba) && (
-                    <div className="flex gap-2 mt-2.5">
+                  {(podeMarcarManual || podeIrParaAba || (isStaff && marco.personalizado)) && (
+                    <div className="flex gap-2 mt-2.5 flex-wrap">
                       {podeIrParaAba && (
                         <button
                           onClick={() => onIrParaAba!(marco.tabAlvo!)}
@@ -117,6 +158,14 @@ export const GestationTimeline: React.FC<GestationTimelineProps> = ({ patient, s
                           Marcar como realizado
                         </button>
                       )}
+                      {isStaff && marco.personalizado && (
+                        <button
+                          onClick={() => onRemoverPersonalizado(marco.id)}
+                          className="px-3 py-1.5 bg-white border border-rose-200 rounded-lg text-[11px] font-bold text-rose-600 hover:bg-rose-50 cursor-pointer"
+                        >
+                          Remover
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -125,6 +174,72 @@ export const GestationTimeline: React.FC<GestationTimelineProps> = ({ patient, s
           );
         })}
       </div>
+
+      {isStaff && (
+        <div className="pt-2 border-t">
+          {mostrarForm ? (
+            <form onSubmit={handleAdicionar} className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3">
+              <strong className="text-xs text-gray-900 block">+ Adicionar Item Personalizado</strong>
+              <input
+                type="text"
+                required
+                placeholder="Ex: Consulta com endocrinologista"
+                value={novoItem.titulo}
+                onChange={(e) => setNovoItem({ ...novoItem, titulo: e.target.value })}
+                className="w-full text-xs p-2.5 border rounded-xl bg-white"
+              />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <select
+                  value={novoItem.categoria}
+                  onChange={(e) => setNovoItem({ ...novoItem, categoria: e.target.value as MarcoCategoria })}
+                  className="text-xs p-2.5 border rounded-xl bg-white"
+                >
+                  {(Object.keys(LABEL_CATEGORIA) as MarcoCategoria[]).map((cat) => (
+                    <option key={cat} value={cat}>{LABEL_CATEGORIA[cat]}</option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  min={0}
+                  max={42}
+                  placeholder="Semana início"
+                  value={novoItem.semanaInicio}
+                  onChange={(e) => setNovoItem({ ...novoItem, semanaInicio: Number(e.target.value) })}
+                  className="text-xs p-2.5 border rounded-xl bg-white"
+                />
+                <input
+                  type="number"
+                  min={0}
+                  max={42}
+                  placeholder="Semana fim"
+                  value={novoItem.semanaFim}
+                  onChange={(e) => setNovoItem({ ...novoItem, semanaFim: Number(e.target.value) })}
+                  className="text-xs p-2.5 border rounded-xl bg-white"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setMostrarForm(false); setNovoItem(NOVO_ITEM_PADRAO); }}
+                  className="px-3 py-1.5 text-xs text-gray-500 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button type="submit" className="px-4 py-1.5 bg-[#2E482A] text-white font-bold text-xs rounded-xl cursor-pointer">
+                  Adicionar
+                </button>
+              </div>
+            </form>
+          ) : (
+            <button
+              onClick={() => setMostrarForm(true)}
+              className="text-xs font-bold text-[#2E482A] underline cursor-pointer flex items-center gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5" /> Adicionar item personalizado pra esta paciente
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };

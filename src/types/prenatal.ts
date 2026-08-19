@@ -72,6 +72,25 @@ export interface PatientFinancialRecord {
   statusPagamento: 'pago' | 'pendente' | 'glosado';
   formaPagamento?: 'pix' | 'cartao_credito' | 'cartao_debito' | 'dinheiro' | 'faturamento_guia';
 }
+// Categorias da Linha do Tempo da Gestação — vive aqui (não em
+// utils/gestationTimeline.ts) porque tanto o protocolo padrão quanto os
+// itens personalizados por paciente (MarcoPersonalizado, logo abaixo)
+// precisam dela, e Patient não pode depender de um arquivo de lógica.
+export type MarcoCategoria = 'consulta' | 'exame' | 'vacina' | 'ultrassom' | 'suplementacao';
+
+// Item que a própria médica adiciona pra uma paciente específica (ex: "consulta
+// com endocrinologista" pra uma gestante diabética) — além dos marcos padrão
+// do protocolo, que são iguais pra todo mundo.
+export interface MarcoPersonalizado {
+  id: string;
+  titulo: string;
+  descricao?: string;
+  categoria: MarcoCategoria;
+  semanaInicio: number;
+  semanaFim: number;
+  concluidoEm?: string;
+}
+
 export interface Patient {
   id: string;
   doctorId: string;
@@ -113,6 +132,9 @@ export interface Patient {
   // rastreados em outro lugar (vacinas, exames, consultas) usam esses campos
   // como fonte da verdade, sem duplicar aqui.
   marcosTimeline?: Record<string, { concluidoEm: string }>;
+  // Itens da Linha do Tempo criados pela médica só pra essa paciente —
+  // somados aos marcos padrão do protocolo, não os substituem.
+  marcosPersonalizados?: MarcoPersonalizado[];
 }
 
 export const initialPatientsList: Patient[] = [

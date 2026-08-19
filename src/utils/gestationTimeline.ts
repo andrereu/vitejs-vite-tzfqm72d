@@ -1,7 +1,17 @@
-import type { Patient } from '../types/prenatal';
+import type { MarcoCategoria, MarcoPersonalizado, Patient } from '../types/prenatal';
 
-export type MarcoCategoria = 'consulta' | 'exame' | 'vacina' | 'ultrassom';
+export type { MarcoCategoria };
 export type MarcoStatus = 'realizado' | 'proximo' | 'atrasado' | 'futuro';
+
+// Mesma regra pros marcos do protocolo e pros personalizados por paciente:
+// feito vale sempre; sem feito, olha se a janela de semanas já passou,
+// já abriu, ou ainda nem chegou.
+function calcularStatus(feito: boolean, semanaInicio: number, semanaFim: number, semanaAtual: number): MarcoStatus {
+  if (feito) return 'realizado';
+  if (semanaAtual > semanaFim) return 'atrasado';
+  if (semanaAtual >= semanaInicio) return 'proximo';
+  return 'futuro';
+}
 
 // Em que semana de gestação uma data caiu, a partir da DUM — usado pra saber
 // se um resultado de exame (ou upload da Central de Exames) pertence à
@@ -130,6 +140,30 @@ export const MARCOS_GESTACAO: MarcoDefinicao[] = [
       const ultimo = p.examesTabela?.gbs?.[0];
       return { feito: !!ultimo, em: ultimo?.data };
     }
+  },
+  {
+    id: 'suplemento-acido-folico',
+    categoria: 'suplementacao',
+    titulo: 'Suplementação de Ácido Fólico',
+    descricao: 'Prevenção de defeitos do tubo neural — do início até a 12ª/14ª semana.',
+    semanaInicio: 0,
+    semanaFim: 13,
+    checarFeito: (p) => {
+      const m = p.marcosTimeline?.['suplemento-acido-folico'];
+      return { feito: !!m, em: m?.concluidoEm };
+    }
+  },
+  {
+    id: 'suplemento-sulfato-ferroso',
+    categoria: 'suplementacao',
+    titulo: 'Suplementação de Sulfato Ferroso',
+    descricao: 'Prevenção de anemia gestacional — a partir da 20ª semana.',
+    semanaInicio: 20,
+    semanaFim: 40,
+    checarFeito: (p) => {
+      const m = p.marcosTimeline?.['suplemento-sulfato-ferroso'];
+      return { feito: !!m, em: m?.concluidoEm };
+    }
   }
 ];
 
@@ -150,18 +184,35 @@ function checarUltrassom(p: Patient, marcoId: string, semanaMin: number, semanaM
 export interface MarcoComStatus extends MarcoDefinicao {
   status: MarcoStatus;
   em?: string;
+  // true só nos itens que a médica criou pra essa paciente específica — os
+  // do protocolo padrão (MARCOS_GESTACAO) não têm essa marca.
+  personalizado?: boolean;
 }
 
 export function getTimelineForPatient(patient: Patient, semanaAtual: number): MarcoComStatus[] {
-  return MARCOS_GESTACAO.map((marco) => {
+  const doProtocolo: MarcoComStatus[] = MARCOS_GESTACAO.map((marco) => {
     const { feito, em } = marco.checarFeito(patient);
-    let status: MarcoStatus;
-    if (feito) status = 'realizado';
-    else if (semanaAtual > marco.semanaFim) status = 'atrasado';
-    else if (semanaAtual >= marco.semanaInicio) status = 'proximo';
-    else status = 'futuro';
-    return { ...marco, status, em };
+    return { ...marco, em, status: calcularStatus(feito, marco.semanaInicio, marco.semanaFim, semanaAtual) };
   });
+
+  const personalizados: MarcoComStatus[] = (patient.marcosPersonalizados || []).map((item) => ({
+    id: item.id,
+    categoria: item.categoria,
+    titulo: item.titulo,
+    descricao: item.descricao || 'Item adicionado pela médica para esta paciente.',
+    semanaInicio: item.semanaInicio,
+    semanaFim: item.semanaFim,
+    checarFeito: () => ({ feito: !!item.concluidoEm, em: item.concluidoEm }),
+    em: item.concluidoEm,
+    status: calcularStatus(!!item.concluidoEm, item.semanaInicio, item.semanaFim, semanaAtual),
+    personalizado: true
+  }));
+
+  return [...doProtocolo, ...personalizados].sort((a, b) => a.semanaInicio - b.semanaInicio);
+}
+
+export function criarMarcoPersonalizado(dados: Omit<MarcoPersonalizado, 'id'>): MarcoPersonalizado {
+  return { id: `marco-${Date.now()}`, ...dados };
 }
 
 export function getTimelineSummary(patient: Patient, semanaAtual: number) {
