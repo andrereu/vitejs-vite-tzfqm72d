@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Settings, UserPlus } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import type { Patient, HorarioBloqueado, AgendaConsulta, UserRole } from '../types/prenatal';
 import type { DoctorTenant, SaasGlobalConfig } from '../types/saas';
 import { SubscriptionPaywall } from './SubscriptionPaywall';
@@ -18,7 +18,6 @@ interface DoctorPanelScreenProps {
   setDoctorPanelTab: (tab: 'pacientes' | 'agenda_geral' | 'metricas' | 'lembretes') => void;
   patients: Patient[];
   userRole: UserRole | null;
-  onOpenDoctorSettings: () => void;
   onOpenNewPatientModal: () => void;
   onSelectPatient: (patientId: string) => void;
   blockedSlots: HorarioBloqueado[];
@@ -35,7 +34,6 @@ export const DoctorPanelScreen: React.FC<DoctorPanelScreenProps> = ({
   setDoctorPanelTab,
   patients,
   userRole,
-  onOpenDoctorSettings,
   onOpenNewPatientModal,
   onSelectPatient,
   blockedSlots,
@@ -157,16 +155,6 @@ export const DoctorPanelScreen: React.FC<DoctorPanelScreenProps> = ({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full sm:w-64 text-xs p-2.5 border rounded-xl"
               />
-
-              {hasPermission(userRole, 'canManageSchedule') && (
-                <button
-                  onClick={onOpenDoctorSettings}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer border border-gray-200"
-                  title="Configurar Logo, CRM e endereço do consultório"
-                >
-                  <Settings className="w-4 h-4 text-[#2E482A]" /> Configurar Consultório
-                </button>
-              )}
 
               {hasPermission(userRole, 'canManageBasicPatientData') && (
                 <button

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { LogOut, Smartphone, WifiOff } from 'lucide-react';
+import { LogOut, Settings, Smartphone, WifiOff } from 'lucide-react';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 import type { Patient, AgendaConsulta, HorarioBloqueado, ResultadoExame } from './types/prenatal';
@@ -23,6 +23,7 @@ import { TwoFactorVerifyModal } from './components/TwoFactorVerifyModal';
 import { calculateWeeksAndDays, fileToBase64 } from './utils/formatters';
 import { generateAppointmentReminderLink } from './utils/whatsapp';
 import { generatePatientPin } from './utils/pin';
+import { hasPermission } from './utils/rbac';
 import { processExamWithGeminiIA } from './services/geminiService';
 import { useDoctorsDirectory } from './hooks/useDoctorsDirectory';
 import { usePatients } from './hooks/usePatients';
@@ -612,6 +613,17 @@ export default function App() {
               </button>
             )}
 
+            {currentScreen === 'doctor_panel' && hasPermission(userRole, 'canManageSchedule') && (
+              <button
+                onClick={() => setShowDoctorSettingsModal(true)}
+                className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-all cursor-pointer flex items-center gap-1.5"
+                title="Configurar Consultório"
+              >
+                <Settings className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Configurações</span>
+              </button>
+            )}
+
             <button
               onClick={handleInstallPWA}
               className="bg-[#D4AF37] hover:bg-amber-400 text-gray-900 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
@@ -692,7 +704,6 @@ export default function App() {
           setDoctorPanelTab={setDoctorPanelTab}
           patients={patients}
           userRole={userRole}
-          onOpenDoctorSettings={() => setShowDoctorSettingsModal(true)}
           onOpenNewPatientModal={() => setShowNewPatientModal(true)}
           onSelectPatient={(patientId) => { setSelectedPatientId(patientId); setCurrentScreen('patient_app'); }}
           blockedSlots={blockedSlots}
