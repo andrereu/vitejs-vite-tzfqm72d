@@ -42,9 +42,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <Sparkles className="w-3.5 h-3.5 text-amber-300" /> Consultório Digital • Powered by MaternaIA
               </div>
 
-              <h1 className="text-3xl md:text-5xl font-serif font-bold text-[#F4F6F0] leading-tight max-w-3xl mx-auto">
-                {doctorContext.nome}
-              </h1>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                {doctorContext.logoUrl && (
+                  <img
+                    src={doctorContext.logoUrl}
+                    alt={`Logo de ${doctorContext.nome}`}
+                    className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-contain bg-white/10 border border-white/20 shrink-0"
+                  />
+                )}
+                <h1 className="text-3xl md:text-5xl font-serif font-bold text-[#F4F6F0] leading-tight max-w-3xl">
+                  {doctorContext.nome}
+                </h1>
+              </div>
 
               <p className="text-xs md:text-sm text-[#A3B18A] max-w-2xl mx-auto leading-relaxed">
                 {doctorContext.especialidade || 'Obstetrícia'} • CRM {doctorContext.crm}

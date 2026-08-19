@@ -576,7 +576,23 @@ export default function App() {
             }} 
             className="cursor-pointer"
           >
-            {currentScreen === 'landing' || currentScreen === 'master_admin' ? (
+            {currentScreen === 'landing' && landingDoctor ? (
+              <div className="flex items-center gap-3">
+                {landingDoctor.logoUrl ? (
+                  <img src={landingDoctor.logoUrl} alt="Logo" className="w-9 h-9 rounded-xl object-contain bg-white/10 p-0.5 border border-white/20" />
+                ) : (
+                  <MaternaLogo variant="icon" size="sm" />
+                )}
+                <div>
+                  <h1 className="font-serif text-base md:text-lg font-bold text-[#E8ECD8] leading-none">
+                    {landingDoctor.nome}
+                  </h1>
+                  <p className="text-[9px] uppercase tracking-widest text-[#A3B18A] font-medium mt-0.5">
+                    {landingDoctor.especialidade || 'OBSTETRA'} • CRM {landingDoctor.crm}
+                  </p>
+                </div>
+              </div>
+            ) : currentScreen === 'landing' || currentScreen === 'master_admin' ? (
               <MaternaLogo variant="full" theme="light" size="md" />
             ) : (
               <div className="flex items-center gap-3">
