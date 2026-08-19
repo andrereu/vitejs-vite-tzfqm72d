@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Smartphone, CheckCircle2, ArrowRight, MessageCircle, Bot, LineChart, ShieldCheck, HeartHandshake, Instagram } from 'lucide-react';
+import { Sparkles, Smartphone, CheckCircle2, ArrowRight, MessageCircle, Bot, LineChart, ShieldCheck, Instagram, HeartPulse, Activity, FlaskConical } from 'lucide-react';
 import { AdBanner } from './AdBanner';
 import type { DoctorTenant } from '../types/saas';
 
@@ -34,6 +34,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
       {/* 1. HERO SECTION */}
       <section className="relative overflow-hidden pt-6 px-4 max-w-5xl mx-auto text-center">
+        {/* Glows decorativos — só profundidade, sem disputar atenção com o conteúdo */}
+        <div className="absolute -top-10 -left-16 w-72 h-72 bg-[var(--brand-primary)]/25 rounded-full blur-3xl pointer-events-none" aria-hidden="true" />
+        <div className="absolute -bottom-16 -right-10 w-80 h-80 bg-[var(--brand-gold)]/15 rounded-full blur-3xl pointer-events-none" aria-hidden="true" />
+
         <div className="bg-gradient-to-b from-[var(--brand-primary)] via-[var(--brand-primary-hover)] to-[#172515] text-white p-8 md:p-12 rounded-3xl shadow-2xl space-y-6 relative border border-[var(--brand-primary-border)]">
 
           {doctorContext ? (
@@ -87,6 +91,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   </a>
                 </div>
               )}
+
+              <div className="pt-3 flex items-center justify-center gap-1.5 text-[10px] text-[var(--brand-on-primary-muted)]">
+                <ShieldCheck className="w-3.5 h-3.5" /> Prontuário digital com segurança e privacidade LGPD
+              </div>
             </>
           ) : (
             <>
@@ -133,6 +141,98 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         </div>
       </section>
+
+      {/* Landing pessoal (/slug): sem pitch de venda nem preço — só o que
+          ajuda a paciente ou colega a entender o que ela ganha ao acessar. */}
+      {doctorContext && (
+        <>
+          {/* DIFERENCIAIS DO CONSULTÓRIO */}
+          <section className="max-w-5xl mx-auto px-4 space-y-6">
+            <div className="text-center space-y-1.5">
+              <h2 className="text-2xl font-serif font-bold text-gray-900">
+                O que você ganha como paciente de {doctorContext.nome}
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] flex items-center justify-center">
+                  <Bot className="w-6 h-6" />
+                </div>
+                <h3 className="font-bold text-base text-gray-900">Leitura de Laudos com IA</h3>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Envie a foto da ecografia ou do exame de sangue e receba um resumo acolhedor, em linguagem simples, sobre o que os resultados significam.
+                </p>
+              </div>
+
+              <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] flex items-center justify-center">
+                  <LineChart className="w-6 h-6" />
+                </div>
+                <h3 className="font-bold text-base text-gray-900">Curva GPG Oficial (MS)</h3>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Acompanhamento do ganho de peso gestacional nos padrões do Ministério da Saúde, direto na sua carteirinha digital.
+                </p>
+              </div>
+
+              <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] flex items-center justify-center">
+                  <MessageCircle className="w-6 h-6" />
+                </div>
+                <h3 className="font-bold text-base text-gray-900">Lembretes no WhatsApp</h3>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Avisos de consulta e resumos da sua evolução gestacional direto no seu celular, sem precisar instalar nada extra.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* PRÉVIA ILUSTRATIVA DA CARTEIRINHA — mesmo visual da aba Resumo de
+              verdade (cabeçalho + cards de acompanhamento), com dado fictício,
+              só pra dar confiança antes do login. */}
+          <section className="max-w-3xl mx-auto px-4 space-y-3">
+            <div className="text-center space-y-1.5">
+              <h2 className="text-2xl font-serif font-bold text-gray-900">
+                Sua carteirinha pré-natal, sempre à mão
+              </h2>
+              <p className="text-xs text-gray-500 max-w-lg mx-auto">
+                Prévia ilustrativa — os dados reais aparecem só depois do seu login.
+              </p>
+            </div>
+
+            <div className="rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-[var(--brand-primary)] text-white p-5">
+                <span className="text-[10px] text-[var(--brand-on-primary-muted)] uppercase font-bold">Carteirinha Pré-Natal Digital</span>
+                <div className="text-lg font-bold mt-0.5">Ana Beatriz</div>
+                <p className="text-xs text-gray-200 mt-1">Bebê: <strong>Sofia</strong> • 28 semanas de gestação</p>
+              </div>
+              <div className="bg-white p-4 grid grid-cols-3 gap-3">
+                <div className="p-3 rounded-2xl border border-gray-100">
+                  <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center mb-1.5">
+                    <HeartPulse className="w-4 h-4" />
+                  </div>
+                  <div className="text-[9px] text-gray-400 font-bold uppercase">Batimentos</div>
+                  <div className="text-sm font-bold text-gray-900 mt-0.5">148 bpm</div>
+                </div>
+                <div className="p-3 rounded-2xl border border-gray-100">
+                  <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center mb-1.5">
+                    <Activity className="w-4 h-4" />
+                  </div>
+                  <div className="text-[9px] text-gray-400 font-bold uppercase">Pressão</div>
+                  <div className="text-sm font-bold text-gray-900 mt-0.5">110/70</div>
+                </div>
+                <div className="p-3 rounded-2xl border border-gray-100">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-1.5">
+                    <FlaskConical className="w-4 h-4" />
+                  </div>
+                  <div className="text-[9px] text-gray-400 font-bold uppercase">Exames</div>
+                  <div className="text-sm font-bold text-gray-900 mt-0.5">Tudo em dia</div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </>
+      )}
 
       {/* Sem contexto de médica: mostra vitrine de vendas (anúncios, recursos,
           planos). Numa página /slug de uma médica específica, isso não faz
