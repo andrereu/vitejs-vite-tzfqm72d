@@ -25,6 +25,7 @@ export interface DoctorTenant {
   especialidade: string;
   enderecoConsultorio: string;
   logoUrl?: string;
+  instagram?: string; // Ex: "drapriscila" (sem @) -> exibido como botão de cross-promote na landing
   plano: 'individual_pro' | 'clinica_multi';
   status: 'active' | 'trial' | 'past_due' | 'blocked';
   trialEndsAt: string;

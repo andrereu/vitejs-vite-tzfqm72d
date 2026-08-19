@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Smartphone, CheckCircle2, ArrowRight, MessageCircle, Bot, LineChart, ShieldCheck, HeartHandshake } from 'lucide-react';
+import { Sparkles, Smartphone, CheckCircle2, ArrowRight, MessageCircle, Bot, LineChart, ShieldCheck, HeartHandshake, Instagram } from 'lucide-react';
 import { AdBanner } from './AdBanner';
 import type { DoctorTenant } from '../types/saas';
 
@@ -75,11 +75,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </button>
               </div>
 
-              <div className="pt-2 text-xs text-[#A3B18A]">
-                <button onClick={onInstallPWA} className="hover:text-white underline cursor-pointer font-medium inline-flex items-center gap-1">
-                  <Smartphone className="w-3.5 h-3.5" /> Instalar App
-                </button>
-              </div>
+              {doctorContext.instagram && (
+                <div className="pt-1">
+                  <a
+                    href={`https://instagram.com/${doctorContext.instagram}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-xs text-white shadow-lg cursor-pointer transition-transform hover:scale-105 bg-gradient-to-tr from-amber-400 via-pink-500 to-purple-600"
+                  >
+                    <Instagram className="w-4 h-4" /> Siga @{doctorContext.instagram} no Instagram
+                  </a>
+                </div>
+              )}
             </>
           ) : (
             <>

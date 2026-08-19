@@ -341,6 +341,18 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
               />
             </div>
 
+            <div>
+              <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">Instagram (usuário, sem @)</label>
+              <input
+                type="text"
+                placeholder="drapriscila"
+                value={formData.instagram || ''}
+                onChange={(e) => setFormData({ ...formData, instagram: e.target.value.replace(/^@+/, '').trim() })}
+                className="w-full p-2.5 bg-gray-50 border rounded-xl"
+              />
+              <p className="text-[10px] text-gray-400 mt-1">Preenchido, aparece um botão "Siga no Instagram" na sua landing pessoal.</p>
+            </div>
+
             <div className="flex justify-end gap-2 pt-2 border-t">
               <button
                 type="button"
