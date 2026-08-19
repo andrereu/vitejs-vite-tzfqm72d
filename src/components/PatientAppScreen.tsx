@@ -284,8 +284,8 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
   );
 
   return (
-        <div className="max-w-5xl lg:max-w-7xl mx-auto px-4 pt-4 pb-20 lg:pb-0 space-y-6 lg:space-y-0 print:p-0 print:m-0 print:max-w-none">
-        <div className="lg:flex lg:gap-6 lg:items-start">
+        <div className="max-w-5xl lg:max-w-7xl xl:max-w-[90rem] 2xl:max-w-[100rem] mx-auto px-4 pt-4 pb-20 lg:pb-0 space-y-6 lg:space-y-0 print:p-0 print:m-0 print:max-w-none">
+        <div className="lg:flex lg:gap-6 xl:gap-8 lg:items-start">
 
           {/* BARRA LATERAL FIXA (DESKTOP) — mesmos grupos da navegação mobile, agrupados por área */}
           <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 bg-white border border-gray-200 rounded-3xl shadow-sm p-3 print:hidden">
