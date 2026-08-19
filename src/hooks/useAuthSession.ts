@@ -36,7 +36,7 @@ export function useAuthSession({
   const [currentScreen, setCurrentScreen] = useState<AppScreen>('landing');
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [loginRole, setLoginRole] = useState<'medica' | 'secretaria'>('medica');
-  const [doctorPanelTab, setDoctorPanelTab] = useState<'pacientes' | 'agenda_geral' | 'metricas'>('pacientes');
+  const [doctorPanelTab, setDoctorPanelTab] = useState<'pacientes' | 'agenda_geral' | 'metricas' | 'lembretes'>('pacientes');
 
   const [showPatientLoginModal, setShowPatientLoginModal] = useState(false);
   const [showDoctorLoginModal, setShowDoctorLoginModal] = useState(false);

@@ -47,6 +47,7 @@ export interface AgendaConsulta {
   solicitadoEm?: string;
   motivoCancelamento?: string;
   notaSecretaria?: string;
+  lembreteEnviadoEm?: string;
 }
 
 export interface HorarioBloqueado {
