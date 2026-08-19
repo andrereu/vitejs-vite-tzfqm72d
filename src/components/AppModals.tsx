@@ -97,6 +97,8 @@ setLoginRole?: (role: 'medica' | 'secretaria') => void;
   handleDoctorLogin: (e: React.FormEvent) => void;
   handleGoogleDoctorLogin: () => void;
   loginError: string;
+  resetMessage: string;
+  handlePasswordReset: (email: string) => void;
 }
 
 export const AppModals: React.FC<AppModalsProps> = (props) => {
@@ -973,11 +975,24 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                   onChange={(e) => props.setDoctorPassword(e.target.value)}
                   className="w-full p-2.5 bg-gray-50 border rounded-xl"
                 />
+                <button
+                  type="button"
+                  onClick={() => props.handlePasswordReset(props.doctorEmail)}
+                  className="text-[10px] font-bold text-[#2E482A] underline mt-1.5 cursor-pointer"
+                >
+                  Esqueci minha senha
+                </button>
               </div>
 
               {props.loginError && (
                 <div className="p-2.5 bg-red-50 text-red-700 rounded-xl text-[11px] font-medium border border-red-200">
                   {props.loginError}
+                </div>
+              )}
+
+              {props.resetMessage && (
+                <div className="p-2.5 bg-emerald-50 text-emerald-800 rounded-xl text-[11px] font-medium border border-emerald-200">
+                  {props.resetMessage}
                 </div>
               )}
 
@@ -1017,6 +1032,12 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
               </div>
             )}
 
+            {props.resetMessage && (
+              <div className="p-3 bg-emerald-950/80 border border-emerald-800 text-emerald-300 text-xs rounded-xl font-medium">
+                {props.resetMessage}
+              </div>
+            )}
+
             <form onSubmit={props.handleMasterLogin} className="space-y-3">
               <div>
                 <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase tracking-wider">
@@ -1040,14 +1061,21 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                   type="password" 
                   required
                   placeholder="••••••••" 
-                  value={props.masterPassword} 
-                  onChange={(e) => props.setMasterPassword(e.target.value)} 
-                  className="w-full text-xs p-3 border border-slate-700 rounded-xl bg-slate-800 text-white focus:outline-amber-500" 
+                  value={props.masterPassword}
+                  onChange={(e) => props.setMasterPassword(e.target.value)}
+                  className="w-full text-xs p-3 border border-slate-700 rounded-xl bg-slate-800 text-white focus:outline-amber-500"
                 />
+                <button
+                  type="button"
+                  onClick={() => props.handlePasswordReset(props.masterEmail)}
+                  className="text-[10px] font-bold text-amber-500 underline mt-1.5 cursor-pointer"
+                >
+                  Esqueci minha senha
+                </button>
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black transition-all shadow-md cursor-pointer mt-2"
               >
                 Acessar Painel Franqueador

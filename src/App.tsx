@@ -191,6 +191,7 @@ export default function App() {
     loginCpf, setLoginCpf,
     loginSenha, setLoginSenha,
     loginError,
+    resetMessage,
     showTwoFactorModal, setShowTwoFactorModal,
     pendingTwoFactorUser, setPendingTwoFactorUser,
     handleDoctorLogin,
@@ -198,6 +199,7 @@ export default function App() {
     handleGooglePatientLogin,
     handlePatientLogin,
     handleGoogleDoctorLogin,
+    handlePasswordReset,
     handleLogout
   } = useAuthSession({
     saasDoctors,
@@ -890,6 +892,8 @@ export default function App() {
         setMasterPassword={setMasterPassword}
         handleMasterLogin={handleMasterLogin}
         loginError={loginError}
+        resetMessage={resetMessage}
+        handlePasswordReset={handlePasswordReset}
       />
       {/* MODAL DE VALIDAÇÃO DE DOIS FATORES (A2F) */}
       {pendingTwoFactorUser && (

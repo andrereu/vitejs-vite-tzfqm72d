@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { collectionGroup, getDocs, query, where } from 'firebase/firestore';
-import { onAuthStateChanged, signInWithCustomToken, signInWithEmailAndPassword, signInWithPopup, signOut } from 'firebase/auth';
+import { onAuthStateChanged, sendPasswordResetEmail, signInWithCustomToken, signInWithEmailAndPassword, signInWithPopup, signOut } from 'firebase/auth';
 import { auth, db, googleProvider } from '../firebase';
 import type { ClinicSecretary, DoctorTenant, TwoFactorConfig } from '../types/saas';
 import type { UserRole } from '../types/prenatal';
@@ -49,6 +49,7 @@ export function useAuthSession({
   const [loginCpf, setLoginCpf] = useState('');
   const [loginSenha, setLoginSenha] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [resetMessage, setResetMessage] = useState('');
 
   const [showTwoFactorModal, setShowTwoFactorModal] = useState(false);
   const [pendingTwoFactorUser, setPendingTwoFactorUser] = useState<PendingTwoFactorUser | null>(null);
@@ -93,6 +94,7 @@ export function useAuthSession({
   const handleDoctorLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
+    setResetMessage('');
     try {
       await signInWithEmailAndPassword(auth, doctorEmail.trim(), doctorPassword);
       if (loginRole === 'secretaria') {
@@ -112,6 +114,7 @@ export function useAuthSession({
   const handleMasterLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
+    setResetMessage('');
     const emailNorm = masterEmail.toLowerCase().trim();
 
     try {
@@ -255,6 +258,34 @@ export function useAuthSession({
     }
   };
 
+  // "Esqueci minha senha" pra médica/secretária/admin. A mensagem de retorno
+  // é sempre a mesma, exista ou não o e-mail — assim ninguém descobre, por
+  // tentativa e erro, quais e-mails têm cadastro no sistema.
+  const handlePasswordReset = async (email: string) => {
+    setLoginError('');
+    setResetMessage('');
+    const emailNorm = email.trim();
+
+    if (!emailNorm) {
+      setLoginError('Digite seu e-mail no campo acima primeiro.');
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, emailNorm);
+    } catch (err: any) {
+      if (err.code === 'auth/invalid-email') {
+        setLoginError('Esse e-mail não parece válido.');
+        return;
+      }
+      // Outros erros (ex.: e-mail não cadastrado) são silenciados de propósito.
+    }
+
+    setResetMessage(
+      `Se ${emailNorm} estiver cadastrado, você vai receber um link de redefinição de senha em instantes. Confira sua caixa de entrada (e o spam).`
+    );
+  };
+
   const handleLogout = async () => {
     await signOut(auth);
     setUserRole(null);
@@ -278,6 +309,7 @@ export function useAuthSession({
     loginCpf, setLoginCpf,
     loginSenha, setLoginSenha,
     loginError, setLoginError,
+    resetMessage, setResetMessage,
 
     showTwoFactorModal, setShowTwoFactorModal,
     pendingTwoFactorUser, setPendingTwoFactorUser,
@@ -287,6 +319,7 @@ export function useAuthSession({
     handleGooglePatientLogin,
     handlePatientLogin,
     handleGoogleDoctorLogin,
+    handlePasswordReset,
     handleLogout
   };
 }
