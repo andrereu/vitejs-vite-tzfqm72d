@@ -19,9 +19,9 @@ export const PregnancyHero: React.FC<PregnancyHeroProps> = ({ weeks, days, dpp, 
   const offset = circunferencia * (1 - progresso);
 
   return (
-    <div className="bg-white rounded-3xl border border-gray-200 shadow-xs p-5 sm:p-6 flex items-center gap-5">
+    <div className="bg-white rounded-3xl border border-gray-200 shadow-xs p-5 sm:p-6 lg:p-8 flex items-center gap-5 lg:gap-8">
       {hasGestationalData ? (
-        <div className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0">
+        <div className="relative w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 xl:w-36 xl:h-36 shrink-0">
           <svg viewBox="0 0 96 96" className="w-full h-full -rotate-90">
             <circle cx="48" cy="48" r={raio} fill="none" stroke="currentColor" strokeWidth="8" className="text-gray-100" />
             <circle
@@ -37,31 +37,31 @@ export const PregnancyHero: React.FC<PregnancyHeroProps> = ({ weeks, days, dpp, 
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-2xl sm:text-3xl font-bold text-gray-900 leading-none">{weeks}</span>
-            <span className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">semanas</span>
+            <span className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 leading-none">{weeks}</span>
+            <span className="text-[10px] lg:text-xs text-gray-400 font-bold uppercase mt-0.5">semanas</span>
           </div>
         </div>
       ) : (
-        <span className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-[var(--brand-primary)]/10 flex items-center justify-center text-4xl shrink-0">🤰</span>
+        <span className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 xl:w-36 xl:h-36 rounded-full bg-[var(--brand-primary)]/10 flex items-center justify-center text-4xl lg:text-5xl shrink-0">🤰</span>
       )}
 
       <div className="min-w-0">
         {hasGestationalData ? (
           <>
-            <span className="inline-block px-2 py-0.5 bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] text-[10px] font-bold rounded-full">
+            <span className="inline-block px-2 py-0.5 lg:px-2.5 lg:py-1 bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] text-[10px] lg:text-xs font-bold rounded-full">
               {trimestre}
             </span>
-            <p className="text-lg font-bold text-gray-900 mt-1.5 leading-tight">
+            <p className="text-lg lg:text-2xl font-bold text-gray-900 mt-1.5 lg:mt-2.5 leading-tight">
               {weeks} semanas e {days} dia{days === 1 ? '' : 's'}
             </p>
             {dpp && (
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs lg:text-sm text-gray-500 mt-0.5 lg:mt-1.5">
                 Data provável do parto: <strong className="text-gray-700">{new Date(dpp).toLocaleDateString('pt-BR')}</strong>
               </p>
             )}
           </>
         ) : (
-          <p className="text-sm text-gray-500">Data da última menstruação ainda não cadastrada.</p>
+          <p className="text-sm lg:text-base text-gray-500">Data da última menstruação ainda não cadastrada.</p>
         )}
       </div>
     </div>

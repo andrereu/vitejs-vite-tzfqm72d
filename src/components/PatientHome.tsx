@@ -50,8 +50,8 @@ export const PatientHome: React.FC<PatientHomeProps> = ({
         </p>
       )}
 
-      <div className="lg:grid lg:grid-cols-3 lg:gap-5 space-y-5 lg:space-y-0">
-        <div className="lg:col-span-2 space-y-5">
+      <div className="lg:grid lg:grid-cols-5 lg:gap-6 xl:gap-8 space-y-5 lg:space-y-0">
+        <div className="lg:col-span-3 space-y-5 lg:space-y-6">
           <PregnancyHero
             weeks={currentGest.weeks}
             days={currentGest.days}
@@ -72,7 +72,7 @@ export const PatientHome: React.FC<PatientHomeProps> = ({
           />
         </div>
 
-        <div className="space-y-5">
+        <div className="lg:col-span-2 space-y-5 lg:space-y-6">
           {canViewIndicadores && (
             <PregnancyStats ultimaConsulta={ultimaConsulta} pesoInicial={currentPatient.pesoInicial} />
           )}
