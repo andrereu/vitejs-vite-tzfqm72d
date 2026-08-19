@@ -100,6 +100,11 @@ export interface Patient {
   convenioNome?: string;
   numeroCarteirinhaConvenio?: string;
   historicoFinanceiro?: PatientFinancialRecord[];
+  // LGPD: pedido da própria paciente pra remover os dados dela. Não apaga
+  // nada sozinho — só avisa a médica, que decide/executa (o prontuário tem
+  // obrigação legal de retenção por tempo determinado, então a exclusão
+  // nem sempre pode ser imediata).
+  solicitacaoExclusao?: { em: string; atendida: boolean };
 }
 
 export const initialPatientsList: Patient[] = [

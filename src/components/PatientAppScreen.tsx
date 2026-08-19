@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Upload, Plus, Printer, Syringe, Calculator, AlertCircle,
-  Edit3, Bot, MapPin, CalendarPlus, Calendar, Share2, Send
+  Edit3, Bot, MapPin, CalendarPlus, Calendar, Share2, Send, Download, ShieldAlert
 } from 'lucide-react';
 import type { Patient, AgendaConsulta, UserRole } from '../types/prenatal';
 import type { DoctorTenant } from '../types/saas';
@@ -12,6 +12,7 @@ import { PrenatalChatTab } from './PrenatalChatTab';
 import { PatientAuditLog } from './PatientAuditLog';
 import { formatDateDisplay, formatDateBR } from '../utils/formatters';
 import { generateAppointmentReminderLink, generateConsultationSummaryLink, sharePatientCard, cleanPhoneNumber } from '../utils/whatsapp';
+import { downloadPatientData } from '../utils/dataExport';
 import { hasPermission } from '../utils/rbac';
 import { isDoctorBlocked } from '../utils/subscription';
 import { LISTA_EXAMES_OFICIAIS } from '../constants/examesList';
@@ -90,6 +91,23 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
   // checar o papel explicitamente, não essa permissão compartilhada.
   const isStaff = userRole === 'medica' || userRole === 'secretaria';
 
+  const handleSolicitarExclusao = () => {
+    const confirmado = window.confirm(
+      'Isso avisa sua médica que você quer remover seus dados do MaternaIA. ' +
+      'Alguns dados de saúde precisam ser mantidos por um tempo por obrigação legal do prontuário médico, ' +
+      'então a exclusão pode não ser imediata — sua médica vai analisar e entrar em contato. Confirmar solicitação?'
+    );
+    if (!confirmado) return;
+    const updated: Patient = { ...currentPatient, solicitacaoExclusao: { em: new Date().toISOString(), atendida: false } };
+    saveToFirestore(patients.map((p) => (p.id === updated.id ? updated : p)));
+  };
+
+  const handleMarcarExclusaoAtendida = () => {
+    if (!currentPatient.solicitacaoExclusao) return;
+    const updated: Patient = { ...currentPatient, solicitacaoExclusao: { ...currentPatient.solicitacaoExclusao, atendida: true } };
+    saveToFirestore(patients.map((p) => (p.id === updated.id ? updated : p)));
+  };
+
   // A assinatura da médica venceu/foi bloqueada: a paciente não tem culpa
   // disso, mas também não pode continuar acessando o prontuário — mostra um
   // aviso pra ela contactar a clínica em vez da carteirinha normal.
@@ -150,6 +168,14 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                 className="px-3.5 py-2 bg-[#D4AF37] text-gray-900 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm hover:bg-amber-400 cursor-pointer"
               >
                 <Printer className="w-4 h-4" /> Imprimir A4
+              </button>
+
+              <button
+                onClick={() => downloadPatientData(currentPatient)}
+                className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Baixar uma cópia dos seus dados (LGPD)"
+              >
+                <Download className="w-4 h-4" /> Meus Dados
               </button>
 
               <div className="bg-white/10 px-3 py-1.5 rounded-2xl flex items-center gap-2">
@@ -382,6 +408,44 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
               </div>
 
               {isStaff && <PatientAuditLog doctorId={currentPatient.doctorId} patientId={currentPatient.id} />}
+
+              {/* PRIVACIDADE / LGPD */}
+              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-xs space-y-3">
+                <span className="text-gray-500 font-bold block uppercase text-[10px] flex items-center gap-1.5">
+                  <ShieldAlert className="w-3.5 h-3.5" /> Privacidade dos Dados (LGPD)
+                </span>
+
+                {currentPatient.solicitacaoExclusao && !currentPatient.solicitacaoExclusao.atendida ? (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 space-y-2">
+                    <p>
+                      {userRole === 'paciente'
+                        ? `Sua solicitação de exclusão de dados foi enviada em ${new Date(currentPatient.solicitacaoExclusao.em).toLocaleDateString('pt-BR')}. A clínica vai analisar e entrar em contato.`
+                        : `⚠️ Esta paciente solicitou a exclusão dos dados dela em ${new Date(currentPatient.solicitacaoExclusao.em).toLocaleDateString('pt-BR')}.`}
+                    </p>
+                    {isStaff && (
+                      <button
+                        onClick={handleMarcarExclusaoAtendida}
+                        className="px-3 py-1.5 bg-white border border-amber-300 text-amber-800 font-bold rounded-lg text-[11px] cursor-pointer"
+                      >
+                        Marcar como atendida
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  userRole === 'paciente' && (
+                    <button
+                      onClick={handleSolicitarExclusao}
+                      className="px-3.5 py-2 bg-white border border-gray-300 text-gray-700 font-bold rounded-xl text-[11px] cursor-pointer hover:bg-gray-100"
+                    >
+                      Solicitar exclusão dos meus dados
+                    </button>
+                  )
+                )}
+
+                {isStaff && !currentPatient.solicitacaoExclusao && (
+                  <p className="text-gray-400">Nenhuma solicitação de exclusão de dados até o momento.</p>
+                )}
+              </div>
             </div>
           )}
 

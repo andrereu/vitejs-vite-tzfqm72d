@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Users, Clock, CalendarCheck, Wallet } from 'lucide-react';
+import { Users, Clock, CalendarCheck, Wallet, ShieldAlert } from 'lucide-react';
 import type { Patient } from '../types/prenatal';
 import { calculateWeeksAndDays, formatDateBR } from '../utils/formatters';
 
@@ -27,6 +27,7 @@ export const DoctorMetricsTab: React.FC<DoctorMetricsTabProps> = ({ patients, on
     const anoAtual = now.getFullYear();
 
     let aguardandoConfirmacao: { patientId: string; nome: string; data: string; horario: string }[] = [];
+    let solicitacoesExclusao: { patientId: string; nome: string; em: string }[] = [];
     let proximos7Dias = 0;
     let receitaMes = 0;
     const trimestres = { t1: 0, t2: 0, t3: 0 };
@@ -36,6 +37,10 @@ export const DoctorMetricsTab: React.FC<DoctorMetricsTabProps> = ({ patients, on
       if (weeks < 14) trimestres.t1++;
       else if (weeks < 28) trimestres.t2++;
       else trimestres.t3++;
+
+      if (p.solicitacaoExclusao && !p.solicitacaoExclusao.atendida) {
+        solicitacoesExclusao.push({ patientId: p.id, nome: p.nome, em: p.solicitacaoExclusao.em });
+      }
 
       for (const ag of p.agendaConsultas || []) {
         const dataAg = new Date(ag.data);
@@ -57,7 +62,7 @@ export const DoctorMetricsTab: React.FC<DoctorMetricsTabProps> = ({ patients, on
 
     aguardandoConfirmacao.sort((a, b) => a.data.localeCompare(b.data));
 
-    return { aguardandoConfirmacao, proximos7Dias, receitaMes, trimestres, total: patients.length };
+    return { aguardandoConfirmacao, solicitacoesExclusao, proximos7Dias, receitaMes, trimestres, total: patients.length };
   }, [patients]);
 
   const tiles: StatTile[] = [
@@ -91,6 +96,25 @@ export const DoctorMetricsTab: React.FC<DoctorMetricsTabProps> = ({ patients, on
 
   return (
     <div className="space-y-6">
+      {stats.solicitacoesExclusao.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-2">
+          <span className="text-amber-900 font-bold text-xs flex items-center gap-1.5">
+            <ShieldAlert className="w-4 h-4" /> {stats.solicitacoesExclusao.length} solicitação(ões) de exclusão de dados (LGPD)
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {stats.solicitacoesExclusao.map((item) => (
+              <button
+                key={item.patientId}
+                onClick={() => onSelectPatient(item.patientId)}
+                className="px-3 py-1.5 bg-white border border-amber-200 text-amber-800 rounded-lg text-[11px] font-bold cursor-pointer hover:bg-amber-100"
+              >
+                {item.nome} — {new Date(item.em).toLocaleDateString('pt-BR')}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {tiles.map((tile) => (
           <div key={tile.label} className="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm space-y-3">
