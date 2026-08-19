@@ -9,6 +9,7 @@ import { Tooltip } from './Tooltip';
 import { AdBanner } from './AdBanner';
 import { PatientFinancialTab } from './PatientFinancialTab';
 import { PrenatalChatTab } from './PrenatalChatTab';
+import { PatientAuditLog } from './PatientAuditLog';
 import { formatDateDisplay, formatDateBR } from '../utils/formatters';
 import { generateAppointmentReminderLink, generateConsultationSummaryLink, sharePatientCard, cleanPhoneNumber } from '../utils/whatsapp';
 import { hasPermission } from '../utils/rbac';
@@ -379,6 +380,8 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                 <span className="text-gray-400 font-bold block uppercase text-[10px] mb-1">Doenças Prévias / Alergias</span>
                 <p className="text-gray-800 text-sm font-medium whitespace-pre-line">{currentPatient.doencasPrevias || 'Nenhuma alteração registrada.'}</p>
               </div>
+
+              {isStaff && <PatientAuditLog doctorId={currentPatient.doctorId} patientId={currentPatient.id} />}
             </div>
           )}
 

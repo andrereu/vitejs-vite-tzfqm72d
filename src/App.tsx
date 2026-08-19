@@ -228,6 +228,7 @@ export default function App() {
 
   const { patients, saveToFirestore } = usePatients({
     doctorId: currentDoctorProfile.id,
+    doctorName: currentDoctorProfile.nome,
     userRole,
     selectedPatientDoctorId,
     selectedPatientId

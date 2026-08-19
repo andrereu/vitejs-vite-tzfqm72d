@@ -60,6 +60,15 @@ service cloud.firestore {
         resource.data.emailLower == request.auth.token.email.lower();
     }
 
+    // Mesma checagem, mas buscando o prontuário direto (em vez de "resource")
+    // — necessária em subcoleções como /logs, onde o documento sendo criado
+    // não tem um campo emailLower próprio pra comparar.
+    function isPatientByEmailInDoc(doctorId, patientId) {
+      return isSignedIn() &&
+        request.auth.token.email != null &&
+        get(/databases/$(database)/documents/doctors/$(doctorId)/patients/$(patientId)).data.emailLower == request.auth.token.email.lower();
+    }
+
     match /doctors/{doctorId} {
       // Legível por qualquer visitante, mesmo sem login: é o "diretório" usado
       // para reconhecer, no login com Google, se o e-mail pertence a um médico
@@ -81,6 +90,17 @@ service cloud.firestore {
         // solicitar consultas na agenda (grava no mesmo documento).
         allow read: if isStaffOfDoctor(doctorId) || isPatientSelf(doctorId, patientId) || isPatientByEmail();
         allow write: if isStaffOfDoctor(doctorId) || isPatientSelf(doctorId, patientId) || isPatientByEmail();
+
+        match /logs/{logId} {
+          // Trilha de auditoria (quem alterou o prontuário, quando e em qual
+          // seção): só a equipe da médica lê; a criação segue a mesma regra
+          // de quem pode escrever no prontuário (a própria paciente também
+          // gera um registro quando solicita uma consulta, por exemplo).
+          // Nunca pode ser editado ou apagado — é um histórico, não um dado.
+          allow read: if isStaffOfDoctor(doctorId);
+          allow create: if isStaffOfDoctor(doctorId) || isPatientSelf(doctorId, patientId) || isPatientByEmailInDoc(doctorId, patientId);
+          allow update, delete: if false;
+        }
       }
 
       match /secretaries/{secretaryEmail} {

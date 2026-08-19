@@ -1,20 +1,48 @@
 import { useEffect, useState } from 'react';
-import { collection, deleteDoc, doc, onSnapshot, setDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { addDoc, collection, deleteDoc, doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 import type { Patient, UserRole } from '../types/prenatal';
 import { initialPatientsList } from '../types/prenatal';
 
 interface UsePatientsOptions {
   doctorId: string;
+  doctorName?: string;
   userRole: UserRole | null;
   selectedPatientDoctorId: string | null;
   selectedPatientId: string;
 }
 
+// Nomes amigáveis dos campos do prontuário, pro log de auditoria — várias
+// chaves internas (g/p/c/a, historicoFinanceiro/tipoAtendimentoPadrao)
+// caem no mesmo rótulo porque, pra quem lê o histórico, são a mesma seção.
+const CAMPOS_LABEL: Record<string, string> = {
+  nome: 'Nome', cpf: 'CPF', telefone: 'Telefone', email: 'E-mail', senhaAcc: 'Senha de acesso',
+  idade: 'Idade', pai: 'Pai/Acompanhante', nomeBebe: 'Nome do bebê', dum: 'DUM',
+  g: 'Histórico obstétrico (GPCA)', p: 'Histórico obstétrico (GPCA)', c: 'Histórico obstétrico (GPCA)', a: 'Histórico obstétrico (GPCA)',
+  pesoInicial: 'Peso inicial', altura: 'Altura', tipoSanguineo: 'Tipo sanguíneo', doencasPrevias: 'Doenças prévias',
+  vacinas: 'Vacinas', examesTabela: 'Exames laboratoriais', consultasEvolucao: 'Evolução clínica',
+  agendaConsultas: 'Agenda', examesEnviados: 'Central de exames',
+  tipoAtendimentoPadrao: 'Financeiro', convenioNome: 'Financeiro', numeroCarteirinhaConvenio: 'Financeiro',
+  historicoFinanceiro: 'Financeiro'
+};
+
+// Compara o antes/depois e devolve os nomes das seções que mudaram, sem
+// expor os valores em si (o log é "o que mudou", não "virou o quê").
+function describeChanges(prev: Patient | undefined, next: Patient): string[] {
+  if (!prev) return ['Cadastro criado'];
+  const labels = new Set<string>();
+  for (const key of Object.keys(CAMPOS_LABEL) as (keyof Patient)[]) {
+    if (JSON.stringify(prev[key]) !== JSON.stringify(next[key])) {
+      labels.add(CAMPOS_LABEL[key]);
+    }
+  }
+  return labels.size > 0 ? Array.from(labels) : ['Cadastro atualizado'];
+}
+
 // Pacientes de cada médico ficam em "doctors/{doctorId}/patients/{patientId}" —
 // uma subcoleção isolada por tenant, em vez de uma lista global compartilhada por
 // todos os médicos (o que vazava dados entre clínicas diferentes).
-export function usePatients({ doctorId, userRole, selectedPatientDoctorId, selectedPatientId }: UsePatientsOptions) {
+export function usePatients({ doctorId, doctorName, userRole, selectedPatientDoctorId, selectedPatientId }: UsePatientsOptions) {
   const [patients, setPatients] = useState<Patient[]>(initialPatientsList);
 
   useEffect(() => {
@@ -49,27 +77,47 @@ export function usePatients({ doctorId, userRole, selectedPatientDoctorId, selec
   // Mesma assinatura de sempre (recebe a lista inteira do médico atual), mas por
   // dentro só grava/apaga os pacientes que de fato mudaram, em documentos
   // individuais dentro de "doctors/{doctorId}/patients/{patientId}".
+  const actorLabel =
+    userRole === 'medica' ? (doctorName || 'Médica') :
+    userRole === 'secretaria' ? (auth.currentUser?.email || 'Secretária') :
+    userRole === 'paciente' ? 'Paciente (autoatendimento)' :
+    userRole === 'master_admin' ? 'Super Admin' :
+    'Sistema';
+
   const saveToFirestore = async (updatedList: Patient[]) => {
     const previous = patients;
     setPatients(updatedList);
     try {
       const prevMap = new Map(previous.map((p) => [p.id, p]));
       const nextIds = new Set(updatedList.map((p) => p.id));
+      const changed = updatedList.filter((p) => prevMap.get(p.id) !== p);
 
-      const writes = updatedList
-        .filter((p) => prevMap.get(p.id) !== p)
-        .map((p) => {
-          const pDoctorId = p.doctorId || doctorId;
-          const cpfDigits = (p.cpf || '').replace(/\D/g, '');
-          const emailLower = (p.email || '').toLowerCase().trim();
-          return setDoc(doc(db, 'doctors', pDoctorId, 'patients', p.id), { ...p, doctorId: pDoctorId, cpfDigits, emailLower }, { merge: true });
-        });
+      const writes = changed.map((p) => {
+        const pDoctorId = p.doctorId || doctorId;
+        const cpfDigits = (p.cpf || '').replace(/\D/g, '');
+        const emailLower = (p.email || '').toLowerCase().trim();
+        return setDoc(doc(db, 'doctors', pDoctorId, 'patients', p.id), { ...p, doctorId: pDoctorId, cpfDigits, emailLower }, { merge: true });
+      });
+
+      // Log de auditoria: quem mexeu no prontuário, quando e em qual seção —
+      // não bloqueia o salvamento principal se falhar (não deixa a médica
+      // sem conseguir editar só porque o log deu erro).
+      const logs = changed.map((p) => {
+        const pDoctorId = p.doctorId || doctorId;
+        const campos = describeChanges(prevMap.get(p.id), p);
+        return addDoc(collection(db, 'doctors', pDoctorId, 'patients', p.id, 'logs'), {
+          quando: serverTimestamp(),
+          quem: actorLabel,
+          papel: userRole,
+          campos
+        }).catch((err) => console.warn('Erro ao registrar log de auditoria:', err));
+      });
 
       const deletes = previous
         .filter((p) => !nextIds.has(p.id))
         .map((p) => deleteDoc(doc(db, 'doctors', p.doctorId || doctorId, 'patients', p.id)));
 
-      await Promise.all([...writes, ...deletes]);
+      await Promise.all([...writes, ...logs, ...deletes]);
     } catch (err) {
       console.error('Erro ao salvar no Firestore:', err);
     }
