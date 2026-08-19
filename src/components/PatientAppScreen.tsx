@@ -3,7 +3,7 @@ import {
   Upload, Plus, Printer, Syringe, Calculator, AlertCircle,
   Edit3, Bot, MapPin, CalendarPlus, Calendar, Share2, Send, Download, ShieldAlert,
   HeartPulse, Activity, FlaskConical, User, Phone, Mail, CalendarCheck, CalendarClock,
-  LayoutDashboard, History, CreditCard, ClipboardList, BarChart3, FolderOpen
+  LayoutDashboard, History, CreditCard, ClipboardList, BarChart3, FolderOpen, Menu, X
 } from 'lucide-react';
 import type { Patient, AgendaConsulta, MarcoPersonalizado, UserRole } from '../types/prenatal';
 import type { DoctorTenant } from '../types/saas';
@@ -103,6 +103,8 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
   const ultimaConsulta = currentPatient.consultasEvolucao?.[currentPatient.consultasEvolucao.length - 1];
   const examesPendentes = getTimelineForPatient(currentPatient, currentGest.weeks)
     .filter((m) => m.categoria === 'exame' && m.status === 'atrasado').length;
+
+  const [showMobileNavDrawer, setShowMobileNavDrawer] = useState(false);
 
   const [examesExpandidos, setExamesExpandidos] = useState<Set<string>>(new Set());
   const toggleExameExpandido = (id: string) => {
@@ -234,41 +236,56 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
     },
   ];
 
+  const allNavItems = NAV_GROUPS.flatMap((group) => group.items);
+  const activeNavItem = allNavItems.find((item) => item.id === activeTab);
+
+  // Compartilhado entre a barra lateral fixa do desktop e a gaveta do
+  // celular — os dois são a mesma navegação, só muda o container em volta.
+  // onSelect fecha a gaveta no celular; no desktop fica undefined (sempre visível).
+  const renderNavGroups = (onSelect?: () => void) => (
+    <>
+      {NAV_GROUPS.map((group) => {
+        const visibleItems = group.items.filter((item) => item.allowed);
+        if (visibleItems.length === 0) return null;
+        return (
+          <div key={group.label}>
+            <div className="px-3 pt-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+              {group.label}
+            </div>
+            {visibleItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    onSelect?.();
+                  }}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 lg:py-2 rounded-xl text-xs text-left transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] font-bold'
+                      : 'text-gray-600 font-semibold hover:bg-gray-100'
+                  }`}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+        );
+      })}
+    </>
+  );
+
   return (
         <div className="max-w-5xl lg:max-w-7xl mx-auto px-4 pt-4 space-y-6 lg:space-y-0 print:p-0 print:m-0 print:max-w-none">
         <div className="lg:flex lg:gap-6 lg:items-start">
 
           {/* BARRA LATERAL FIXA (DESKTOP) — mesmos grupos da navegação mobile, agrupados por área */}
           <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 bg-white border border-gray-200 rounded-3xl shadow-sm p-3 print:hidden">
-            {NAV_GROUPS.map((group) => {
-              const visibleItems = group.items.filter((item) => item.allowed);
-              if (visibleItems.length === 0) return null;
-              return (
-                <div key={group.label}>
-                  <div className="px-3 pt-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                    {group.label}
-                  </div>
-                  {visibleItems.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = activeTab === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => setActiveTab(item.id)}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-left transition-all cursor-pointer ${
-                          isActive
-                            ? 'bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] font-bold'
-                            : 'text-gray-600 font-semibold hover:bg-gray-100'
-                        }`}
-                      >
-                        <Icon className="w-4 h-4 shrink-0" />
-                        {item.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })}
+            {renderNavGroups()}
           </aside>
 
           {/* COLUNA DE CONTEÚDO */}
@@ -322,35 +339,50 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
             </div>
           </div>
 
-                              {/* LISTA DE ABAS COM RESTRIÇÃO RBAC (celular — no desktop a navegação é a barra lateral) */}
-          <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-gray-200 flex overflow-x-auto gap-1 print:hidden lg:hidden">
-            {[
-              { id: 'resumo', label: 'Resumo', allowed: true },
-              { id: 'agenda', label: '📅 Agenda & Lembretes', allowed: hasPermission(userRole, 'canManageSchedule') },
-              { id: 'financeiro', label: '💳 Financeiro & Convênio', allowed: hasPermission(userRole, 'canManageFinancial') },
-              { id: 'dados', label: 'Dados Clínicos & GPCA', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
-              { id: 'linhaTempo', label: '🗓️ Linha do Tempo', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
-              { id: 'vacinas', label: 'Vacinas', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
-              { id: 'examesTabela', label: 'Exames Laboratoriais', allowed: hasPermission(userRole, 'canViewExamReports') },
-              { id: 'graficos', label: 'Gráfico GPG (MS)', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
-              { id: 'calculadora', label: 'Calculadora Gestacional', allowed: true },
-              { id: 'chatIA', label: '💬 Assistente Pré-Natal (IA)', allowed: hasPermission(userRole, 'canUseMedicalAI') },
-              { id: 'consultas', label: 'Evolução Clínica', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
-              { id: 'examesCentral', label: 'Central de Exames + IA', allowed: hasPermission(userRole, 'canViewExamReports') }
-            ]
-            .filter(t => t.allowed)
-            .map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap uppercase transition-all cursor-pointer ${
-                  activeTab === tab.id ? 'bg-[var(--brand-primary)] text-white' : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+                              {/* GATILHO DE NAVEGAÇÃO (CELULAR) — mostra a seção atual e abre a gaveta com os 5 grupos; no desktop a navegação é a barra lateral */}
+          <button
+            type="button"
+            onClick={() => setShowMobileNavDrawer(true)}
+            className="lg:hidden w-full bg-white border border-gray-200 rounded-2xl shadow-xs p-3 flex items-center justify-between gap-3 print:hidden cursor-pointer"
+          >
+            <span className="flex items-center gap-2.5 min-w-0">
+              <span className="w-[30px] h-[30px] rounded-lg bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] flex items-center justify-center shrink-0">
+                {activeNavItem ? <activeNavItem.icon className="w-4 h-4" /> : <LayoutDashboard className="w-4 h-4" />}
+              </span>
+              <span className="text-left min-w-0">
+                <span className="block text-[9px] font-bold uppercase tracking-wider text-gray-400">Você está em</span>
+                <span className="block text-[13.5px] font-bold text-gray-900 truncate">{activeNavItem?.label || 'Resumo'}</span>
+              </span>
+            </span>
+            <span className="w-[34px] h-[34px] rounded-xl bg-[var(--brand-primary)] text-white flex items-center justify-center shrink-0">
+              <Menu className="w-4 h-4" />
+            </span>
+          </button>
+
+          {/* GAVETA DE NAVEGAÇÃO (CELULAR) — os mesmos 5 grupos da barra lateral, em overlay */}
+          {showMobileNavDrawer && (
+            <div className="lg:hidden fixed inset-0 z-50 print:hidden">
+              <div
+                className="absolute inset-0 bg-black/45"
+                onClick={() => setShowMobileNavDrawer(false)}
+              />
+              <div className="absolute top-0 left-0 bottom-0 w-72 max-w-[85vw] bg-white shadow-2xl flex flex-col animate-in fade-in slide-in-from-left duration-200">
+                <div className="flex items-center justify-between p-4 pb-2.5 border-b border-gray-100 shrink-0">
+                  <span className="font-serif font-bold text-sm text-[var(--brand-primary)]">Navegação</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowMobileNavDrawer(false)}
+                    className="w-[26px] h-[26px] rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <div className="overflow-y-auto pb-3">
+                  {renderNavGroups(() => setShowMobileNavDrawer(false))}
+                </div>
+              </div>
+            </div>
+          )}
 
 
           <AdBanner
