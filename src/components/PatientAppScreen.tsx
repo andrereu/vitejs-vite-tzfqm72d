@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import {
   Upload, Plus, Printer, Syringe, Calculator, AlertCircle,
   Edit3, Bot, MapPin, CalendarPlus, Calendar, Share2, Send, Download, ShieldAlert,
-  HeartPulse, Activity, FlaskConical, User, Phone, Mail, CalendarCheck, CalendarClock
+  HeartPulse, Activity, FlaskConical, User, Phone, Mail, CalendarCheck, CalendarClock,
+  LayoutDashboard, History, CreditCard, ClipboardList, BarChart3, FolderOpen
 } from 'lucide-react';
 import type { Patient, AgendaConsulta, MarcoPersonalizado, UserRole } from '../types/prenatal';
 import type { DoctorTenant } from '../types/saas';
@@ -193,8 +194,86 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
     );
   }
 
+  const NAV_GROUPS = [
+    {
+      label: 'Visão Geral',
+      items: [
+        { id: 'resumo', label: 'Resumo', icon: LayoutDashboard, allowed: true },
+        { id: 'linhaTempo', label: 'Linha do Tempo', icon: History, allowed: hasPermission(userRole, 'canViewClinicalHistory') },
+      ]
+    },
+    {
+      label: 'Agenda & Financeiro',
+      items: [
+        { id: 'agenda', label: 'Agenda & Lembretes', icon: CalendarClock, allowed: hasPermission(userRole, 'canManageSchedule') },
+        { id: 'financeiro', label: 'Financeiro & Convênio', icon: CreditCard, allowed: hasPermission(userRole, 'canManageFinancial') },
+      ]
+    },
+    {
+      label: 'Prontuário Clínico',
+      items: [
+        { id: 'dados', label: 'Dados Clínicos & GPCA', icon: ClipboardList, allowed: hasPermission(userRole, 'canViewClinicalHistory') },
+        { id: 'consultas', label: 'Evolução Clínica', icon: Activity, allowed: hasPermission(userRole, 'canViewClinicalHistory') },
+        { id: 'vacinas', label: 'Vacinas', icon: Syringe, allowed: hasPermission(userRole, 'canViewClinicalHistory') },
+        { id: 'graficos', label: 'Gráfico GPG (MS)', icon: BarChart3, allowed: hasPermission(userRole, 'canViewClinicalHistory') },
+      ]
+    },
+    {
+      label: 'Exames',
+      items: [
+        { id: 'examesTabela', label: 'Exames Laboratoriais', icon: FlaskConical, allowed: hasPermission(userRole, 'canViewExamReports') },
+        { id: 'examesCentral', label: 'Central de Exames + IA', icon: FolderOpen, allowed: hasPermission(userRole, 'canViewExamReports') },
+      ]
+    },
+    {
+      label: 'Ferramentas',
+      items: [
+        { id: 'calculadora', label: 'Calculadora Gestacional', icon: Calculator, allowed: true },
+        { id: 'chatIA', label: 'Assistente Pré-Natal (IA)', icon: Bot, allowed: hasPermission(userRole, 'canUseMedicalAI') },
+      ]
+    },
+  ];
+
   return (
-        <div className="max-w-5xl mx-auto px-4 pt-4 space-y-6 print:p-0 print:m-0 print:max-w-none">
+        <div className="max-w-5xl lg:max-w-7xl mx-auto px-4 pt-4 space-y-6 lg:space-y-0 print:p-0 print:m-0 print:max-w-none">
+        <div className="lg:flex lg:gap-6 lg:items-start">
+
+          {/* BARRA LATERAL FIXA (DESKTOP) — mesmos grupos da navegação mobile, agrupados por área */}
+          <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 bg-white border border-gray-200 rounded-3xl shadow-sm p-3 print:hidden">
+            {NAV_GROUPS.map((group) => {
+              const visibleItems = group.items.filter((item) => item.allowed);
+              if (visibleItems.length === 0) return null;
+              return (
+                <div key={group.label}>
+                  <div className="px-3 pt-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                    {group.label}
+                  </div>
+                  {visibleItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-left transition-all cursor-pointer ${
+                          isActive
+                            ? 'bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] font-bold'
+                            : 'text-gray-600 font-semibold hover:bg-gray-100'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4 shrink-0" />
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </aside>
+
+          {/* COLUNA DE CONTEÚDO */}
+          <div className="flex-1 min-w-0 space-y-6">
+
           <div className="bg-[var(--brand-primary)] text-white p-6 rounded-3xl shadow-md flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
             <div>
               <span className="text-[10px] text-[var(--brand-on-primary-muted)] uppercase font-bold">Carteirinha Pré-Natal Digital</span>
@@ -243,8 +322,8 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
             </div>
           </div>
 
-                              {/* LISTA DE ABAS COM RESTRIÇÃO RBAC */}
-          <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-gray-200 flex overflow-x-auto gap-1 print:hidden">
+                              {/* LISTA DE ABAS COM RESTRIÇÃO RBAC (celular — no desktop a navegação é a barra lateral) */}
+          <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-gray-200 flex overflow-x-auto gap-1 print:hidden lg:hidden">
             {[
               { id: 'resumo', label: 'Resumo', allowed: true },
               { id: 'agenda', label: '📅 Agenda & Lembretes', allowed: hasPermission(userRole, 'canManageSchedule') },
@@ -1040,6 +1119,10 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
               </div>
             </div>
           )}
+
+          </div>
+
+        </div>
         </div>
   );
 };
