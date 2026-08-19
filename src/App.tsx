@@ -217,6 +217,13 @@ export default function App() {
     ? saasDoctors.find((d) => d.slug === doctorSlugFromUrl)
     : undefined;
 
+  // Médica dona do prontuário que a paciente está vendo — não é a mesma
+  // coisa que currentDoctorProfile (essa fica com o perfil da última médica
+  // logada/demo, e não é atualizada no login da paciente).
+  const patientDoctorProfile = selectedPatientDoctorId
+    ? saasDoctors.find((d) => d.id === selectedPatientDoctorId)
+    : undefined;
+
   const { patients, saveToFirestore } = usePatients({
     doctorId: currentDoctorProfile.id,
     userRole,
@@ -706,6 +713,7 @@ export default function App() {
       {currentScreen === 'patient_app' && (
         <PatientAppScreen
           currentPatient={currentPatient}
+          doctorProfile={patientDoctorProfile}
           currentGest={currentGest}
           userRole={userRole}
           activeTab={activeTab}

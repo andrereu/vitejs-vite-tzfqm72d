@@ -5,6 +5,7 @@ import type { DoctorTenant, SaasGlobalConfig } from '../types/saas';
 import { SubscriptionPaywall } from './SubscriptionPaywall';
 import { ClinicScheduleManager } from './ClinicScheduleManager';
 import { hasPermission } from '../utils/rbac';
+import { isDoctorBlocked } from '../utils/subscription';
 
 interface DoctorPanelScreenProps {
   currentDoctorProfile: DoctorTenant;
@@ -46,6 +47,21 @@ export const DoctorPanelScreen: React.FC<DoctorPanelScreenProps> = ({
     return patients.filter((p) => p.nome.toLowerCase().includes(q) || p.cpf.includes(q));
   }, [patients, searchQuery]);
 
+  // Assinatura vencida/bloqueada: trava o painel de verdade — antes disso o
+  // paywall era só um banner, e a lista de pacientes continuava acessível
+  // embaixo dele mesmo sem pagar.
+  if (isDoctorBlocked(currentDoctorProfile)) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-6">
+        <SubscriptionPaywall
+          doctor={currentDoctorProfile}
+          pixKey={globalConfig.pixKey || '020.255.429-50'}
+          onRefreshStatus={() => window.location.reload()}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
 
@@ -72,19 +88,6 @@ export const DoctorPanelScreen: React.FC<DoctorPanelScreenProps> = ({
             Garantir Assinatura Anual / Mensal
           </a>
         </div>
-      )}
-
-      {/* TRAVA / PAYWALL (CASO BLOQUEADO OU TRIAL EXPIRADO) */}
-      {(currentDoctorProfile.status === 'blocked' ||
-        currentDoctorProfile.status === 'past_due' ||
-        (currentDoctorProfile.status === 'trial' &&
-          currentDoctorProfile.trialEndsAt &&
-          new Date(currentDoctorProfile.trialEndsAt) < new Date())) && (
-        <SubscriptionPaywall
-          doctor={currentDoctorProfile}
-          pixKey={globalConfig.pixKey || '020.255.429-50'}
-          onRefreshStatus={() => window.location.reload()}
-        />
       )}
 
       {/* SELETOR DE ABAS DA CLÍNICA */}

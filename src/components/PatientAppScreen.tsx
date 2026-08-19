@@ -4,17 +4,20 @@ import {
   Edit3, Bot, MapPin, CalendarPlus, Calendar, Share2, Send
 } from 'lucide-react';
 import type { Patient, AgendaConsulta, UserRole } from '../types/prenatal';
+import type { DoctorTenant } from '../types/saas';
 import { Tooltip } from './Tooltip';
 import { AdBanner } from './AdBanner';
 import { PatientFinancialTab } from './PatientFinancialTab';
 import { PrenatalChatTab } from './PrenatalChatTab';
 import { formatDateDisplay, formatDateBR } from '../utils/formatters';
-import { generateAppointmentReminderLink, generateConsultationSummaryLink, sharePatientCard } from '../utils/whatsapp';
+import { generateAppointmentReminderLink, generateConsultationSummaryLink, sharePatientCard, cleanPhoneNumber } from '../utils/whatsapp';
 import { hasPermission } from '../utils/rbac';
+import { isDoctorBlocked } from '../utils/subscription';
 import { LISTA_EXAMES_OFICIAIS } from '../constants/examesList';
 
 interface PatientAppScreenProps {
   currentPatient: Patient;
+  doctorProfile?: DoctorTenant;
   currentGest: { weeks: number; days: number };
   userRole: UserRole | null;
   activeTab: string;
@@ -50,6 +53,7 @@ interface PatientAppScreenProps {
 // gráfico de peso, calculadora, chat de IA, evolução das consultas).
 export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
   currentPatient,
+  doctorProfile,
   currentGest,
   userRole,
   activeTab,
@@ -84,6 +88,37 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
   // equipe (agendar direto, enviar lembrete, editar registro) precisam
   // checar o papel explicitamente, não essa permissão compartilhada.
   const isStaff = userRole === 'medica' || userRole === 'secretaria';
+
+  // A assinatura da médica venceu/foi bloqueada: a paciente não tem culpa
+  // disso, mas também não pode continuar acessando o prontuário — mostra um
+  // aviso pra ela contactar a clínica em vez da carteirinha normal.
+  if (doctorProfile && isDoctorBlocked(doctorProfile)) {
+    const phone = cleanPhoneNumber(doctorProfile.telefone || '');
+    return (
+      <div className="max-w-md mx-auto px-4 pt-10 print:hidden">
+        <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm text-center space-y-4">
+          <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-7 h-7 text-amber-600" />
+          </div>
+          <h2 className="text-lg font-bold text-gray-900">Acesso temporariamente indisponível</h2>
+          <p className="text-sm text-gray-600 leading-relaxed">
+            O acesso à carteirinha digital de <strong>{doctorProfile.nome}</strong> está suspenso no momento.
+            Fale diretamente com a clínica para regularizar e voltar a acessar seus dados.
+          </p>
+          {phone && (
+            <a
+              href={`https://wa.me/${phone}?text=${encodeURIComponent('Olá! Meu acesso à carteirinha digital do MaternaIA está bloqueado, poderiam me ajudar?')}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#2E482A] text-white rounded-xl text-xs font-bold cursor-pointer"
+            >
+              Falar com a clínica no WhatsApp
+            </a>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
         <div className="max-w-5xl mx-auto px-4 pt-4 space-y-6 print:p-0 print:m-0 print:max-w-none">
