@@ -9,6 +9,7 @@ import { PendingRequests } from './agenda/PendingRequests';
 import { TodayAgenda } from './agenda/TodayAgenda';
 import { UpcomingDays } from './agenda/UpcomingDays';
 import { CalendarView, type DiaCalendario } from './agenda/CalendarView';
+import { AppointmentHistory } from './agenda/AppointmentHistory';
 
 const DIAS_SEMANA_ABREV = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -138,13 +139,29 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
     };
   });
 
-  // Filtragem da Lista — a partir daqui já sem pendências, que têm sua
-  // própria seção.
-  const filteredAppointments = agendaSemPendencias.filter((item) => {
-    const matchesDate = !selectedDateFilter || item.data === selectedDateFilter;
-    const matchesStatus = filterStatus === 'todos' || item.status === filterStatus;
-    return matchesDate && matchesStatus;
-  });
+  // AGENDA ATIVA — só confirmada/encaixe_urgente a partir daqui;
+  // realizada/cancelada saem da fila e passam a viver só no Histórico
+  // (abaixo). Com um dia selecionado (calendário ou Próximos Dias), o
+  // mecanismo de sempre continua funcionando: mostra as consultas ativas
+  // daquele dia, com as mesmas ações. Sem filtro, evita repetir o que
+  // Hoje/Próximos Dias já cobrem — mostra só pendente de registro
+  // (passado sem baixa) e futuro além dos próximos 7 dias.
+  const agendaAtiva = allAppointments.filter((a) => a.status === 'confirmada' || a.status === 'encaixe_urgente');
+  const diasProximosSet = new Set(proximosDias.map((d) => d.data));
+  const pendentesRegistro = agendaAtiva.filter((a) => a.data < hojeStr);
+  const maisConsultasFuturas = agendaAtiva.filter((a) => a.data > hojeStr && !diasProximosSet.has(a.data));
+
+  // filterStatus nunca muda (setFilterStatus não é chamado em lugar
+  // nenhum — comportamento pré-existente, não introduzido por esta
+  // etapa), então na prática este filtro é sempre 'todos'; mantido como
+  // estava pra não alterar esse ponto do arquivo.
+  const filteredAppointments = (
+    selectedDateFilter ? agendaAtiva.filter((item) => item.data === selectedDateFilter) : [...pendentesRegistro, ...maisConsultasFuturas]
+  ).filter((item) => filterStatus === 'todos' || item.status === filterStatus);
+
+  // HISTÓRICO — realizada ou cancelada, qualquer data. A ordem já vem de
+  // allAppointments (compararAgendamentos), não recalculada aqui.
+  const historico = allAppointments.filter((a) => a.status === 'realizada' || a.status === 'cancelada');
 
   return (
     <div className="space-y-6">
@@ -222,63 +239,87 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
         onIrParaHoje={() => setCurrentMonthDate(new Date())}
       />
 
-      {/* 2. FILA DE CONSULTAS DETALHADA */}
+      {/* 2. OUTRAS CONSULTAS — agenda ativa que não está adequadamente
+          coberta por Hoje/Próximos Dias: pendente de registro (passado sem
+          baixa) e futuro além dos próximos 7 dias. Selecionar um dia no
+          calendário/Próximos Dias continua filtrando pra aquele dia
+          especificamente, com as mesmas ações de sempre. */}
       <div className="bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden">
-        <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
-          <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
-            <List className="w-4 h-4 text-[var(--brand-primary)]" /> Consultas Selecionadas
-          </h3>
+        <div className="p-4 border-b bg-gray-50 flex justify-between items-center gap-3 flex-wrap">
+          <div>
+            <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
+              <List className="w-4 h-4 text-[var(--brand-primary)]" /> Outras Consultas
+            </h3>
+            {!selectedDateFilter && pendentesRegistro.length > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg mt-1">
+                {pendentesRegistro.length} pendente{pendentesRegistro.length > 1 ? 's' : ''} de registro
+              </span>
+            )}
+          </div>
           <span className="text-xs text-gray-500">{filteredAppointments.length} agendamento(s)</span>
         </div>
 
         {filteredAppointments.length === 0 ? (
           <div className="text-center py-10 text-gray-400 text-xs">
-            Nenhuma consulta encontrada para a data/filtro selecionado.
+            {selectedDateFilter
+              ? 'Nenhuma consulta encontrada para a data selecionada.'
+              : 'Nenhuma consulta pendente de registro ou fora dos próximos dias.'}
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {filteredAppointments.map((item) => (
-              <div key={item.id} className="p-4 hover:bg-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-bold text-xs bg-[var(--brand-primary)] text-white px-2.5 py-0.5 rounded-full">
-                      {formatDateBR(item.data)} às {item.horario}
-                    </span>
-                    <AppointmentStatusBadge status={item.status} contexto="equipe" />
+            {filteredAppointments.map((item) => {
+              const pendenteDeRegistro = item.data < hojeStr;
+              return (
+                <div key={item.id} className="p-4 hover:bg-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-bold text-xs bg-[var(--brand-primary)] text-white px-2.5 py-0.5 rounded-full">
+                        {formatDateBR(item.data)} às {item.horario}
+                      </span>
+                      <AppointmentStatusBadge status={item.status} contexto="equipe" />
+                      {pendenteDeRegistro && (
+                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                          Pendente de registro
+                        </span>
+                      )}
+                    </div>
+
+                    <h4 className="font-bold text-sm text-gray-900 flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-gray-400" />
+                      {item.patient.nome}
+                      <span className="text-[11px] font-normal text-gray-500">• Bebê: {item.patient.nomeBebe}</span>
+                    </h4>
+                    <p className="text-xs text-gray-600">{item.tipo}</p>
                   </div>
 
-                  <h4 className="font-bold text-sm text-gray-900 flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-gray-400" />
-                    {item.patient.nome}
-                    <span className="text-[11px] font-normal text-gray-500">• Bebê: {item.patient.nomeBebe}</span>
-                  </h4>
-                  <p className="text-xs text-gray-600">{item.tipo}</p>
+                  <div className="flex items-center gap-1.5 self-end md:self-center">
+                    {/* "Aprovar" pra solicitada saiu daqui — vive só na seção
+                        Pendências agora, sem essa linha nunca mais aparecer
+                        pra um item que já não pode ter esse status aqui. */}
+                    <button
+                      onClick={() => onOpenConfirmModal(item, item.patient)}
+                      className="px-3 py-1.5 bg-gray-100 text-gray-800 rounded-xl text-xs font-bold cursor-pointer"
+                    >
+                      Gerenciar
+                    </button>
+                    <a
+                      href={generateAppointmentReminderLink(item.patient, item)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center gap-1"
+                    >
+                      <Send className="w-3 h-3" /> Zap
+                    </a>
+                  </div>
                 </div>
-
-                <div className="flex items-center gap-1.5 self-end md:self-center">
-                  {/* "Aprovar" pra solicitada saiu daqui — vive só na seção
-                      Pendências agora, sem essa linha nunca mais aparecer
-                      pra um item que já não pode ter esse status aqui. */}
-                  <button
-                    onClick={() => onOpenConfirmModal(item, item.patient)}
-                    className="px-3 py-1.5 bg-gray-100 text-gray-800 rounded-xl text-xs font-bold cursor-pointer"
-                  >
-                    Gerenciar
-                  </button>
-                  <a
-                    href={generateAppointmentReminderLink(item.patient, item)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center gap-1"
-                  >
-                    <Send className="w-3 h-3" /> Zap
-                  </a>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
+
+      {/* 3. HISTÓRICO */}
+      <AppointmentHistory itens={historico} onGerenciar={onOpenConfirmModal} />
 
       {/* MODAL BLOQUEIO */}
       {showBlockModal && (
