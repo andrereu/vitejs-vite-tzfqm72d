@@ -16,6 +16,7 @@ import { GestationTimeline } from './GestationTimeline';
 import { criarMarcoPersonalizado } from '../utils/gestationTimeline';
 import { formatDateDisplay, formatDateBR } from '../utils/formatters';
 import { compararAgendamentos } from '../utils/agendaScheduling';
+import { AppointmentStatusBadge } from './agenda/AppointmentStatusBadge';
 import { generateAppointmentReminderLink, generateConsultationSummaryLink, sharePatientCard, cleanPhoneNumber } from '../utils/whatsapp';
 import { downloadPatientData } from '../utils/dataExport';
 import { hasPermission } from '../utils/rbac';
@@ -818,21 +819,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                             {formatDateBR(item.data)} às {item.horario}
                           </span>
 
-                          {item.status === 'solicitada' && (
-                            <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-                              ⏳ Aguardando Confirmação
-                            </span>
-                          )}
-                          {item.status === 'encaixe_urgente' && (
-                            <span className="bg-rose-100 text-rose-800 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-                              🚨 Encaixe Prioritário
-                            </span>
-                          )}
-                          {item.status === 'confirmada' && (
-                            <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-                              ✅ Confirmada
-                            </span>
-                          )}
+                          <AppointmentStatusBadge status={item.status} contexto="paciente" />
                         </div>
 
                         {isStaff && (

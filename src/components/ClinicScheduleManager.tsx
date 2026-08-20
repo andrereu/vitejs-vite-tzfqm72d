@@ -4,6 +4,7 @@ import type { Patient, AgendaConsulta, HorarioBloqueado } from '../types/prenata
 import { formatDateBR, getLocalDateString } from '../utils/formatters';
 import { generateAppointmentReminderLink } from '../utils/whatsapp';
 import { compararAgendamentos, consultasEmConflitoComBloqueio } from '../utils/agendaScheduling';
+import { AppointmentStatusBadge } from './agenda/AppointmentStatusBadge';
 
 interface ClinicScheduleManagerProps {
   patients: Patient[];
@@ -262,21 +263,7 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
                     <span className="font-bold text-xs bg-[var(--brand-primary)] text-white px-2.5 py-0.5 rounded-full">
                       {formatDateBR(item.data)} às {item.horario}
                     </span>
-                    {item.status === 'solicitada' && (
-                      <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                        ⏳ Solicitação Pendente
-                      </span>
-                    )}
-                    {item.status === 'encaixe_urgente' && (
-                      <span className="bg-rose-100 text-rose-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                        🚨 Encaixe Urgente
-                      </span>
-                    )}
-                    {item.status === 'confirmada' && (
-                      <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                        ✅ Confirmada
-                      </span>
-                    )}
+                    <AppointmentStatusBadge status={item.status} contexto="equipe" />
                   </div>
 
                   <h4 className="font-bold text-sm text-gray-900 flex items-center gap-1.5">
