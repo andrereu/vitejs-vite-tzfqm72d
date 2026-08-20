@@ -7,6 +7,9 @@ import { compararAgendamentos, consultasEmConflitoComBloqueio } from '../utils/a
 import { AppointmentStatusBadge } from './agenda/AppointmentStatusBadge';
 import { PendingRequests } from './agenda/PendingRequests';
 import { TodayAgenda } from './agenda/TodayAgenda';
+import { UpcomingDays } from './agenda/UpcomingDays';
+
+const DIAS_SEMANA_ABREV = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 interface ClinicScheduleManagerProps {
   patients: Patient[];
@@ -74,6 +77,27 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
   const hojeUrgentes = consultasHoje.filter((a) => a.status === 'encaixe_urgente');
   const hojeResto = consultasHoje.filter((a) => a.status !== 'encaixe_urgente');
   const hojeOrdenado = [...hojeUrgentes, ...hojeResto];
+
+  // "Próximos Dias": 7 dias a partir de amanhã (nunca hoje), calculados com
+  // setDate/getLocalDateString — mesmo padrão já usado pra "amanhã" em
+  // DoctorRemindersTab.tsx (não tocado aqui), sem toISOString e sem outra
+  // função de data. Só confirmada/encaixe_urgente contam pra cada dia —
+  // solicitada, cancelada e realizada nunca entram nessa contagem.
+  const proximosDias = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i + 1);
+    const dataStr = getLocalDateString(d);
+    const consultasDoDia = agendaSemPendencias.filter(
+      (a) => a.data === dataStr && (a.status === 'confirmada' || a.status === 'encaixe_urgente')
+    );
+    return {
+      data: dataStr,
+      label: i === 0 ? 'Amanhã' : `${DIAS_SEMANA_ABREV[d.getDay()]} ${d.getDate()}`,
+      totalConsultas: consultasDoDia.length,
+      temUrgencia: consultasDoDia.some((a) => a.status === 'encaixe_urgente'),
+      temBloqueio: blockedSlots.some((b) => b.data === dataStr)
+    };
+  });
 
   // Lógica do Calendário Mensal
   const year = currentMonthDate.getFullYear();
@@ -189,7 +213,7 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
 
           {/* Grade dos Dias */}
           <div className="grid grid-cols-7 gap-1 text-center">
-            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((d) => (
+            {DIAS_SEMANA_ABREV.map((d) => (
               <div key={d} className="text-[11px] font-bold text-gray-400 uppercase py-1">
                 {d}
               </div>
@@ -269,6 +293,12 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
       />
 
       <TodayAgenda data={hojeStr} consultas={hojeOrdenado} onGerenciar={onOpenConfirmModal} />
+
+      <UpcomingDays
+        dias={proximosDias}
+        diaSelecionado={selectedDateFilter}
+        onSelecionarDia={(data) => setSelectedDateFilter((atual) => (atual === data ? '' : data))}
+      />
 
       {/* 2. FILA DE CONSULTAS DETALHADA */}
       <div className="bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden">
