@@ -15,6 +15,15 @@ import { selecionarConsultasParaLembrete, marcarLembreteComoEnviado } from '../u
 
 const DIAS_SEMANA_ABREV = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
+// Vínculo clínico real (D1-C): só conta como "tem evolução registrada" se
+// existir uma ConsultaEvolucao cujo agendaConsultaId aponta exatamente pra
+// essa AgendaConsulta — nunca por coincidência de data (pode haver várias
+// consultas no mesmo dia). Evoluções antigas sem agendaConsultaId (fluxo
+// legado, D1-A) nunca contam como vínculo de nenhuma AgendaConsulta.
+function possuiEvolucaoVinculada(agendaConsultaId: string, patient: Patient): boolean {
+  return (patient.consultasEvolucao || []).some((c) => c.agendaConsultaId === agendaConsultaId);
+}
+
 interface ClinicScheduleManagerProps {
   patients: Patient[];
   onOpenConfirmModal: (app: AgendaConsulta, pat: Patient) => void;
@@ -154,7 +163,11 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
   // (passado sem baixa) e futuro além dos próximos 7 dias.
   const agendaAtiva = allAppointments.filter((a) => a.status === 'confirmada' || a.status === 'encaixe_urgente');
   const diasProximosSet = new Set(proximosDias.map((d) => d.data));
-  const pendentesRegistro = agendaAtiva.filter((a) => a.data < hojeStr);
+  // "Pendente de registro" (D1-C): já passou E ainda não tem uma
+  // ConsultaEvolucao vinculada (agendaConsultaId) — deixou de ser só "data <
+  // hoje" (inferência temporal da C7) pra virar um fato verificável no
+  // prontuário da própria paciente já carregado em memória (item.patient).
+  const pendentesRegistro = agendaAtiva.filter((a) => a.data < hojeStr && !possuiEvolucaoVinculada(a.id, a.patient));
   const maisConsultasFuturas = agendaAtiva.filter((a) => a.data > hojeStr && !diasProximosSet.has(a.data));
 
   // filterStatus nunca muda (setFilterStatus não é chamado em lugar
@@ -305,7 +318,7 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
         ) : (
           <div className="divide-y divide-gray-100">
             {filteredAppointments.map((item) => {
-              const pendenteDeRegistro = item.data < hojeStr;
+              const pendenteDeRegistro = item.data < hojeStr && !possuiEvolucaoVinculada(item.id, item.patient);
               return (
                 <div key={item.id} className="p-4 hover:bg-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
                   <div className="space-y-1">
