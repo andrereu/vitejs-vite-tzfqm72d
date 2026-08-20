@@ -14,6 +14,7 @@ import { PrenatalChatTab } from './PrenatalChatTab';
 import { PatientAuditLog } from './PatientAuditLog';
 import { GestationTimeline } from './GestationTimeline';
 import { criarMarcoPersonalizado } from '../utils/gestationTimeline';
+import { agruparExamesTabelaPorData } from '../utils/examesOrganizacao';
 import { formatDateDisplay, formatDateBR } from '../utils/formatters';
 import { compararAgendamentos } from '../utils/agendaScheduling';
 import { AppointmentStatusBadge } from './agenda/AppointmentStatusBadge';
@@ -109,6 +110,13 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
   // mesma convenção já usada em gestationTimeline.ts pra "primeira consulta"
   // = primeira posição).
   const ultimaConsulta = currentPatient.consultasEvolucao?.[currentPatient.consultasEvolucao.length - 1];
+
+  // D2.3: Central de Exames organizada — mesmos dados de sempre
+  // (examesTabela/examesEnviados), só reagrupados por data/tipo pra exibição.
+  const gruposExamesLaboratoriais = agruparExamesTabelaPorData(currentPatient.examesTabela, LISTA_EXAMES_OFICIAIS);
+  const examesEnviadosOrdenados = [...(currentPatient.examesEnviados || [])].sort((a: any, b: any) => (a.dataUpload < b.dataUpload ? 1 : a.dataUpload > b.dataUpload ? -1 : 0));
+  const ecografiasEnviadas = examesEnviadosOrdenados.filter((ex: any) => ex.tipo === 'Ecografia');
+  const outrosDocumentosAnexados = examesEnviadosOrdenados.filter((ex: any) => ex.tipo !== 'Ecografia');
 
   const [showMoreSheet, setShowMoreSheet] = useState(false);
 
@@ -291,6 +299,51 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
         );
       })}
     </>
+  );
+
+  // D2.3: card de um exame anexado (laudo/imagem + leitura Gemini) — mesma
+  // renderização que já existia na Central de Exames antes desta fase,
+  // só extraída pra função porque agora é usada tanto na seção "Ecografias"
+  // quanto em "Outros Documentos Anexados".
+  const renderCardExameAnexado = (ex: any) => (
+    <div key={ex.id} className="p-5 bg-gray-50 rounded-2xl border space-y-3">
+      <div className="flex justify-between items-start">
+        <div>
+          <strong className="text-sm font-bold text-gray-900 block">{ex.nome}</strong>
+          <span className="text-[10px] text-gray-500 uppercase font-bold">{ex.tipo} • {ex.dataUpload}</span>
+        </div>
+      </div>
+      {/* PREVIEW: IMAGEM OU PDF */}
+      {ex.fileData && (
+        ex.fileData.startsWith('data:application/pdf') ? (
+          <div className="flex items-center justify-between p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">📄</span>
+              <div>
+                <strong className="text-rose-900 block font-bold">Documento Laudo em PDF</strong>
+                <span className="text-[10px] text-rose-700">Arquivo processado pelo Gemini IA</span>
+              </div>
+            </div>
+            <a
+              href={ex.fileData}
+              download={`${ex.nome || 'laudo'}.pdf`}
+              className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold text-[10px] transition-all cursor-pointer"
+            >
+              Baixar PDF
+            </a>
+          </div>
+        ) : (
+          <img
+            src={ex.fileData}
+            alt={ex.nome}
+            className="max-h-68 rounded-xl object-contain border bg-black/5 p-1"
+          />
+        )
+      )}
+
+      <div className="bg-pink-50/80 p-3.5 rounded-xl text-xs text-gray-800 whitespace-pre-line border border-pink-200">{ex.resumoIA}</div>
+      <div className="bg-emerald-50/80 p-3.5 rounded-xl text-xs text-gray-900 whitespace-pre-line border border-emerald-200">{ex.notaDra}</div>
+    </div>
   );
 
   return (
@@ -1075,11 +1128,12 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                 </div>
               </div>
 
-              {/* D2.2: prescrições e solicitações de exames — separado dos laudos
-                  anexados acima (que são resultado, não pedido). */}
+              {/* D2.2/D2.3: prescrições e solicitações — são PEDIDOS, não
+                  resultado. Ficam separadas das seções de exame realizado
+                  abaixo, pra nunca dar a entender que foram feitos. */}
               {(currentPatient.solicitacoes || []).length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-[11px] font-bold text-gray-400 uppercase">Prescrições e Solicitações</h4>
+                  <h4 className="text-[11px] font-bold text-gray-400 uppercase">Solicitações (ainda não é resultado)</h4>
                   {[...(currentPatient.solicitacoes || [])].reverse().map((s) => (
                     <div key={s.id} className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs space-y-1">
                       <div className="flex justify-between items-center gap-2">
@@ -1097,48 +1151,52 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                 </div>
               )}
 
-              <div className="space-y-4">
-                {currentPatient.examesEnviados?.map((ex: any) => (
-                  <div key={ex.id} className="p-5 bg-gray-50 rounded-2xl border space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <strong className="text-sm font-bold text-gray-900 block">{ex.nome}</strong>
-                        <span className="text-[10px] text-gray-500 uppercase font-bold">{ex.tipo} • {ex.dataUpload}</span>
+              {/* D2.3: laboratórios organizados por data, a partir da MESMA
+                  Tabela de Exames da aba "Exames Laboratoriais" (nenhum dado
+                  novo, só reorganizado por data em vez de por exame). */}
+              {gruposExamesLaboratoriais.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-[11px] font-bold text-gray-400 uppercase">Exames Laboratoriais</h4>
+                  {gruposExamesLaboratoriais.map((grupo) => (
+                    <div key={grupo.data} className="border border-gray-100 rounded-xl overflow-hidden">
+                      <div className="bg-gray-50 px-3 py-1.5 text-[11px] font-bold text-gray-600 border-b border-gray-100">{formatDateBR(grupo.data)}</div>
+                      <div className="divide-y divide-gray-100">
+                        {grupo.itens.map((item) => (
+                          <div key={item.exameId} className="flex justify-between items-center gap-2 px-3 py-2 text-xs">
+                            <span className="text-gray-500">{item.label}</span>
+                            <span className="font-bold text-gray-800 text-right">{item.resultado || '—'}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                                        {/* PREVIEW: IMAGEM OU PDF */}
-                    {ex.fileData && (
-                      ex.fileData.startsWith('data:application/pdf') ? (
-                        <div className="flex items-center justify-between p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl">📄</span>
-                            <div>
-                              <strong className="text-rose-900 block font-bold">Documento Laudo em PDF</strong>
-                              <span className="text-[10px] text-rose-700">Arquivo processado pelo Gemini IA</span>
-                            </div>
-                          </div>
-                          <a
-                            href={ex.fileData}
-                            download={`${ex.nome || 'laudo'}.pdf`}
-                            className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold text-[10px] transition-all cursor-pointer"
-                          >
-                            Baixar PDF
-                          </a>
-                        </div>
-                      ) : (
-                        <img
-                          src={ex.fileData}
-                          alt={ex.nome}
-                          className="max-h-68 rounded-xl object-contain border bg-black/5 p-1"
-                        />
-                      )
-                    )}
+                  ))}
+                </div>
+              )}
 
-                    <div className="bg-pink-50/80 p-3.5 rounded-xl text-xs text-gray-800 whitespace-pre-line border border-pink-200">{ex.resumoIA}</div>
-                    <div className="bg-emerald-50/80 p-3.5 rounded-xl text-xs text-gray-900 whitespace-pre-line border border-emerald-200">{ex.notaDra}</div>
-                  </div>
-                ))}
-              </div>
+              {/* D2.3: ecografias/imagem organizadas por data — mesmo dado de
+                  sempre (examesEnviados), só filtrado por tipo e com uma
+                  data de cabeçalho quando muda de dia. Laudo e análise
+                  Gemini continuam exatamente como já funcionavam. */}
+              {ecografiasEnviadas.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-[11px] font-bold text-gray-400 uppercase">Ecografias</h4>
+                  {ecografiasEnviadas.map((ex, i) => (
+                    <React.Fragment key={ex.id}>
+                      {(i === 0 || ex.dataUpload !== ecografiasEnviadas[i - 1].dataUpload) && (
+                        <div className="text-[11px] font-bold text-gray-600 pt-1">{ex.dataUpload}</div>
+                      )}
+                      {renderCardExameAnexado(ex)}
+                    </React.Fragment>
+                  ))}
+                </div>
+              )}
+
+              {outrosDocumentosAnexados.length > 0 && (
+                <div className="space-y-4">
+                  <h4 className="text-[11px] font-bold text-gray-400 uppercase">Outros Documentos Anexados</h4>
+                  {outrosDocumentosAnexados.map((ex) => renderCardExameAnexado(ex))}
+                </div>
+              )}
             </div>
           )}
 
