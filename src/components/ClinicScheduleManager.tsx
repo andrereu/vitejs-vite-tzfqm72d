@@ -193,6 +193,13 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
   const consultasParaLembreteAmanha = selecionarConsultasParaLembrete(patients, amanha);
   const estadoLembretes = selectedDateFilter === amanha;
 
+  // "Outras Consultas" não deve duplicar o que a seção Hoje já mostra em
+  // detalhe (mesmo princípio já aplicado ao estado de lembretes acima, pra
+  // amanhã): se o dia selecionado é hoje, Hoje já é a representação
+  // completa desse dia — nenhum motivo pra "Outras Consultas" repetir a
+  // mesma consulta com um segundo conjunto de ações logo abaixo.
+  const hojeSelecionado = selectedDateFilter === hojeStr;
+
   const handleEnviarLembrete = (patientId: string, agendaId: string) => {
     saveToFirestore(marcarLembreteComoEnviado(patients, patientId, agendaId));
   };
@@ -292,8 +299,9 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
           especificamente, com as mesmas ações de sempre. Some quando o dia
           selecionado é "amanhã" — nesse caso o estado de lembretes acima já
           mostra essas mesmas consultas, com ações mais específicas
-          (enviar/reenviar lembrete), sem precisar repetir a lista aqui. */}
-      {!estadoLembretes && (
+          (enviar/reenviar lembrete) — ou "hoje", já totalmente coberto pela
+          seção Hoje logo acima — sem precisar repetir a lista aqui. */}
+      {!estadoLembretes && !hojeSelecionado && (
       <div className="bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden">
         <div className="p-4 border-b bg-gray-50 flex justify-between items-center gap-3 flex-wrap">
           <div>
