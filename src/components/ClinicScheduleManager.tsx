@@ -239,7 +239,12 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
         onRevisar={onOpenConfirmModal}
       />
 
-      <TodayAgenda data={hojeStr} consultas={hojeOrdenado} onGerenciar={onOpenConfirmModal} />
+      <TodayAgenda
+        data={hojeStr}
+        consultas={hojeOrdenado}
+        onGerenciar={onOpenConfirmModal}
+        onRegistrarAtendimento={onRegistrarAtendimento}
+      />
 
       <UpcomingDays
         dias={proximosDias}

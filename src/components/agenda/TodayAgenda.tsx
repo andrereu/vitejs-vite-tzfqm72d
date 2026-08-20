@@ -15,13 +15,15 @@ interface TodayAgendaProps {
    */
   consultas: (AgendaConsulta & { patient: Patient })[];
   onGerenciar: (app: AgendaConsulta, patient: Patient) => void;
+  /** Mesmo callback da D1-A (abre o modal existente de registro clínico já vinculado à AgendaConsulta) — nenhuma lógica nova aqui. */
+  onRegistrarAtendimento: (app: AgendaConsulta, patient: Patient) => void;
 }
 
 // Só apresentação — recebe a lista já pronta (filtrada e ordenada) e
 // dispara onGerenciar, que o ClinicScheduleManager já conecta ao mesmo
 // AppointmentConfirmModal de sempre. Nenhuma leitura de Firestore, nenhuma
 // regra de bloqueio, nenhum cálculo de data aqui.
-export const TodayAgenda: React.FC<TodayAgendaProps> = ({ data, consultas, onGerenciar }) => {
+export const TodayAgenda: React.FC<TodayAgendaProps> = ({ data, consultas, onGerenciar, onRegistrarAtendimento }) => {
   // "19 de agosto" a partir de YYYY-MM-DD sem cair no problema de fuso do
   // toISOString/new Date direto — mesmo truque (meio-dia local) já usado em
   // DoctorRemindersTab.tsx pra formatar "amanhã" por extenso.
@@ -76,6 +78,17 @@ export const TodayAgenda: React.FC<TodayAgendaProps> = ({ data, consultas, onGer
                 >
                   Gerenciar
                 </button>
+                {/* Só pra quem ainda pode ser atendida hoje — realizada já é
+                    um atendimento encerrado, não mostra a ação de novo. */}
+                {(item.status === 'confirmada' || item.status === 'encaixe_urgente') && (
+                  <button
+                    type="button"
+                    onClick={() => onRegistrarAtendimento(item, item.patient)}
+                    className="px-2.5 py-1 bg-white border border-[var(--brand-primary)] text-[var(--brand-primary)] rounded-lg text-[11px] font-bold cursor-pointer"
+                  >
+                    🩺 Registrar atendimento
+                  </button>
+                )}
                 <a
                   href={generateAppointmentReminderLink(item.patient, item)}
                   target="_blank"
