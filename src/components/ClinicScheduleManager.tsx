@@ -6,6 +6,7 @@ import { generateAppointmentReminderLink } from '../utils/whatsapp';
 import { compararAgendamentos, consultasEmConflitoComBloqueio } from '../utils/agendaScheduling';
 import { AppointmentStatusBadge } from './agenda/AppointmentStatusBadge';
 import { PendingRequests } from './agenda/PendingRequests';
+import { TodayAgenda } from './agenda/TodayAgenda';
 
 interface ClinicScheduleManagerProps {
   patients: Patient[];
@@ -57,12 +58,22 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
   const emergencyCount = allAppointments.filter((a) => a.status === 'encaixe_urgente').length;
 
   // Pendências ganham seção própria (abaixo) e saem da fila geral — sem
-  // duplicar a mesma solicitação nos dois lugares. encaixe_urgente
-  // continua na fila normal por enquanto; o destaque de urgência é da
-  // futura etapa "Hoje", não desta. A ordem já vem de allAppointments
-  // (compararAgendamentos), então não precisa ordenar de novo aqui.
+  // duplicar a mesma solicitação nos dois lugares. A ordem já vem de
+  // allAppointments (compararAgendamentos), então não precisa ordenar de
+  // novo aqui.
   const pendencias = allAppointments.filter((a) => a.status === 'solicitada');
   const agendaSemPendencias = allAppointments.filter((a) => a.status !== 'solicitada');
+
+  // "Hoje": data local (não toISOString — mesmo utilitário já usado em todo
+  // o resto da agenda) e sem cancelada/solicitada (solicitada já vive em
+  // Pendências). Urgente primeiro, resto cronológico — como
+  // agendaSemPendencias já está ordenado por compararAgendamentos, filtrar
+  // preserva essa ordem em cada grupo; não precisa ordenar de novo.
+  const hojeStr = getLocalDateString();
+  const consultasHoje = agendaSemPendencias.filter((a) => a.data === hojeStr && a.status !== 'cancelada');
+  const hojeUrgentes = consultasHoje.filter((a) => a.status === 'encaixe_urgente');
+  const hojeResto = consultasHoje.filter((a) => a.status !== 'encaixe_urgente');
+  const hojeOrdenado = [...hojeUrgentes, ...hojeResto];
 
   // Lógica do Calendário Mensal
   const year = currentMonthDate.getFullYear();
@@ -256,6 +267,8 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
         onAprovar={(patientId, appointmentId) => onQuickStatusChange(patientId, appointmentId, 'confirmada')}
         onRevisar={onOpenConfirmModal}
       />
+
+      <TodayAgenda data={hojeStr} consultas={hojeOrdenado} onGerenciar={onOpenConfirmModal} />
 
       {/* 2. FILA DE CONSULTAS DETALHADA */}
       <div className="bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden">
