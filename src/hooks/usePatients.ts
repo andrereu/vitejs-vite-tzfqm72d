@@ -59,7 +59,7 @@ const CAMPOS_LABEL: Record<string, string> = {
   g: 'Histórico obstétrico (GPCA)', p: 'Histórico obstétrico (GPCA)', c: 'Histórico obstétrico (GPCA)', a: 'Histórico obstétrico (GPCA)',
   pesoInicial: 'Peso inicial', altura: 'Altura', tipoSanguineo: 'Tipo sanguíneo', doencasPrevias: 'Doenças prévias',
   vacinas: 'Vacinas', examesTabela: 'Exames laboratoriais', consultasEvolucao: 'Evolução clínica',
-  agendaConsultas: 'Agenda', examesEnviados: 'Central de exames',
+  agendaConsultas: 'Agenda', examesEnviados: 'Central de exames', solicitacoes: 'Prescrições e solicitações de exames',
   tipoAtendimentoPadrao: 'Financeiro', convenioNome: 'Financeiro', numeroCarteirinhaConvenio: 'Financeiro',
   historicoFinanceiro: 'Financeiro'
 };

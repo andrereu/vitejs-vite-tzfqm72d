@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { LogOut, Smartphone, WifiOff } from 'lucide-react';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
-import type { Patient, AgendaConsulta, ResultadoExame } from './types/prenatal';
+import type { Patient, AgendaConsulta, ResultadoExame, ItemPrescricao, ItemExameSolicitado, SolicitacaoClinica } from './types/prenatal';
 import type { DoctorTenant, SaasGlobalConfig } from './types/saas';
 
 import { db } from './firebase';
@@ -115,6 +115,19 @@ export default function App() {
   // atualizadas a partir de `patients`, evitando salvar em cima de uma cópia
   // desatualizada do registro.
   const [editingConsultaId, setEditingConsultaId] = useState<string | null>(null);
+  // D2.2: id que a ConsultaEvolucao vai ter quando o atendimento em edição
+  // for salvo — gerado ao ABRIR o modal (não no salvamento), pra uma
+  // prescrição/exame adicionado durante o preenchimento já poder guardar o
+  // vínculo (consultaEvolucaoId) antes de a evolução em si existir de fato.
+  // Em edição, é sempre igual a editingConsultaId.
+  const [idAtendimentoRascunho, setIdAtendimentoRascunho] = useState('');
+  // Rascunho de prescrição/exames — compartilhado pelos dois pontos de
+  // entrada da D2.2 (dentro do "Registrar Atendimento" e no modal avulso
+  // "Nova Solicitação"), já que só um dos dois fica aberto por vez. Nada é
+  // gravado no Firestore até o formulário que os contém ser salvo.
+  const [prescricoesRascunho, setPrescricoesRascunho] = useState<ItemPrescricao[]>([]);
+  const [examesRascunho, setExamesRascunho] = useState<ItemExameSolicitado[]>([]);
+  const [showSolicitacaoModal, setShowSolicitacaoModal] = useState(false);
   const [showUploadExamModal, setShowUploadExamModal] = useState(false);
   const [showNewPatientModal, setShowNewPatientModal] = useState(false);
   const [showEditExamesModal, setShowEditExamesModal] = useState(false);
@@ -286,7 +299,7 @@ export default function App() {
     id: '', doctorId: '', cpf: '', nome: '', idade: '', pai: '', nomeBebe: '',
     dum: '', dpp: '', g: '0', p: '0', c: '0', a: '0',
     pesoInicial: '60', altura: '1.65', tipoSanguineo: '', doencasPrevias: '',
-    vacinas: {}, examesTabela: {}, consultasEvolucao: [], agendaConsultas: [], examesEnviados: []
+    vacinas: {}, examesTabela: {}, consultasEvolucao: [], agendaConsultas: [], examesEnviados: [], solicitacoes: []
   };
 
   const currentPatient = useMemo(() => {
@@ -521,7 +534,8 @@ export default function App() {
       consultasEvolucao: [
         { id: `c-init`, data: newPatient.dum, igSem: 0, peso: parseFloat(newPatient.pesoInicial || '60'), pa: "120/80", au: "NP", bcfMf: "Aguardando", edema: "Ausente", conduta: "Consulta Inicial de Pré-Natal." }
       ],
-      examesEnviados: []
+      examesEnviados: [],
+      solicitacoes: []
     };
 
     saveToFirestore([...patients, novoObjetoPaciente]);
@@ -538,6 +552,15 @@ export default function App() {
     window.alert(`Novo PIN gerado: ${novoPin}\n\nClique em "Salvar Perfil" para confirmar a troca.`);
   };
 
+  // D2.2: solicitação (prescrição/exames) já vinculada ao atendimento em
+  // edição, se existir — calculado uma vez aqui pra ser reaproveitado tanto
+  // no JSX (mostrar como somente-leitura) quanto dentro de handleAddConsulta
+  // (decidir se cria uma solicitação nova ou não mexe em nada).
+  const pacienteParaConsulta = consultaAgendaVinculada?.pat ?? currentPatient;
+  const solicitacaoExistenteDoAtendimento = editingConsultaId
+    ? (pacienteParaConsulta.solicitacoes || []).find((s) => s.consultaEvolucaoId === editingConsultaId) ?? null
+    : null;
+
   const handleAddConsulta = (e: React.FormEvent) => {
     e.preventDefault();
     // Aberto pela Agenda → grava no prontuário da paciente daquela consulta
@@ -551,6 +574,10 @@ export default function App() {
     // "congelada" com um valor manual antigo.
     const sem = calculateWeeksAndDays(pacienteAlvo.dum, newConsulta.data).weeks;
     const pesoVal = parseFloat(newConsulta.peso) || parseFloat(pacienteAlvo.pesoInicial);
+    // D2.2: id definitivo do atendimento — gerado ao abrir o modal (não
+    // aqui), pra qualquer prescrição/exame adicionado durante o
+    // preenchimento já poder referenciar o id certo.
+    const idAtendimento = editingConsultaId || idAtendimentoRascunho;
 
     const dadosClinicos = {
       data: newConsulta.data,
@@ -572,7 +599,7 @@ export default function App() {
       : [
           ...pacienteAlvo.consultasEvolucao,
           {
-            id: `c-${Date.now()}`,
+            id: idAtendimento,
             ...dadosClinicos,
             // Só existe quando o modal foi aberto a partir da Agenda — o
             // fluxo do prontuário nunca seta consultaAgendaVinculada, então
@@ -583,11 +610,32 @@ export default function App() {
         ]
     ).sort((a, b) => a.igSem - b.igSem);
 
-    const updated: Patient = { ...pacienteAlvo, consultasEvolucao: updatedConsultas };
+    // D2.2: só cria uma solicitação nova se a médica de fato adicionou algo
+    // E o atendimento ainda não tinha uma vinculada — editar um atendimento
+    // que já tem solicitação nunca mexe nela por aqui (a seção fica
+    // somente-leitura nesse caso, então prescricoesRascunho/examesRascunho
+    // já chegam vazios; a checagem abaixo é só uma segunda trava).
+    const criaSolicitacaoNova = !solicitacaoExistenteDoAtendimento && (prescricoesRascunho.length > 0 || examesRascunho.length > 0);
+    const solicitacoesAtualizadas = criaSolicitacaoNova
+      ? [
+          ...(pacienteAlvo.solicitacoes || []),
+          {
+            id: `sol-${Date.now()}`,
+            data: newConsulta.data,
+            prescricoes: prescricoesRascunho,
+            exames: examesRascunho,
+            consultaEvolucaoId: idAtendimento
+          }
+        ]
+      : pacienteAlvo.solicitacoes;
+
+    const updated: Patient = { ...pacienteAlvo, consultasEvolucao: updatedConsultas, solicitacoes: solicitacoesAtualizadas };
     saveToFirestore(patients.map(p => p.id === updated.id ? updated : p));
     setShowAddConsultaModal(false);
     setConsultaAgendaVinculada(null);
     setEditingConsultaId(null);
+    setPrescricoesRascunho([]);
+    setExamesRascunho([]);
   };
 
   // Ponto de entrada "🩺 Registrar atendimento" na Agenda — abre o MESMO
@@ -604,6 +652,9 @@ export default function App() {
     });
     setConsultaAgendaVinculada({ app, pat });
     setEditingConsultaId(null);
+    setIdAtendimentoRascunho(`c-${Date.now()}`);
+    setPrescricoesRascunho([]);
+    setExamesRascunho([]);
     setShowAddConsultaModal(true);
   };
 
@@ -619,6 +670,9 @@ export default function App() {
     });
     setConsultaAgendaVinculada(null);
     setEditingConsultaId(null);
+    setIdAtendimentoRascunho(`c-${Date.now()}`);
+    setPrescricoesRascunho([]);
+    setExamesRascunho([]);
     setShowAddConsultaModal(true);
   };
 
@@ -639,7 +693,57 @@ export default function App() {
     });
     setConsultaAgendaVinculada(null);
     setEditingConsultaId(consulta.id);
+    setIdAtendimentoRascunho(consulta.id);
+    // Seção de prescrição/exames abre vazia mesmo em edição — se o
+    // atendimento já tiver uma solicitação vinculada, ela é mostrada
+    // separadamente como somente-leitura (ver solicitacaoExistenteDoAtendimento).
+    setPrescricoesRascunho([]);
+    setExamesRascunho([]);
     setShowAddConsultaModal(true);
+  };
+
+  // D2.2 — helpers de prescrição/exames, compartilhados pelas duas entradas
+  // (dentro do atendimento e no modal avulso "Nova Solicitação").
+  const handleAdicionarPrescricao = (item: Omit<ItemPrescricao, 'id'>) => {
+    setPrescricoesRascunho((prev) => [...prev, { id: `presc-${Date.now()}`, ...item }]);
+  };
+  const handleRemoverPrescricao = (id: string) => {
+    setPrescricoesRascunho((prev) => prev.filter((p) => p.id !== id));
+  };
+  const handleAdicionarExameSolicitado = (item: Omit<ItemExameSolicitado, 'id'>) => {
+    setExamesRascunho((prev) => [...prev, { id: `exsol-${Date.now()}`, ...item }]);
+  };
+  const handleRemoverExameSolicitado = (id: string) => {
+    setExamesRascunho((prev) => prev.filter((ex) => ex.id !== id));
+  };
+
+  // Ponto de entrada "+ Nova Solicitação" na Central de Exames — MESMO
+  // mecanismo do atendimento (mesmos handlers, mesmo componente de UI), só
+  // que sem nenhum vínculo de atendimento: consultaEvolucaoId nunca é
+  // setado por este caminho.
+  const handleAbrirNovaSolicitacao = () => {
+    setPrescricoesRascunho([]);
+    setExamesRascunho([]);
+    setShowSolicitacaoModal(true);
+  };
+
+  const handleCancelarSolicitacao = () => {
+    setShowSolicitacaoModal(false);
+    setPrescricoesRascunho([]);
+    setExamesRascunho([]);
+  };
+
+  const handleSalvarSolicitacao = () => {
+    if (prescricoesRascunho.length === 0 && examesRascunho.length === 0) return;
+    const nova: SolicitacaoClinica = {
+      id: `sol-${Date.now()}`,
+      data: getLocalDateString(),
+      prescricoes: prescricoesRascunho,
+      exames: examesRascunho
+    };
+    const updated: Patient = { ...currentPatient, solicitacoes: [...(currentPatient.solicitacoes || []), nova] };
+    saveToFirestore(patients.map((p) => (p.id === updated.id ? updated : p)));
+    handleCancelarSolicitacao();
   };
 
   return (
@@ -883,6 +987,7 @@ export default function App() {
             setSelectedAppointmentForConfirm={setSelectedAppointmentForConfirm}
             onAbrirNovaEvolucao={handleAbrirNovaEvolucao}
             onEditarEvolucao={handleEditarEvolucao}
+            onAbrirNovaSolicitacao={handleAbrirNovaSolicitacao}
             handleCalculateUsg={handleCalculateUsg}
             calcUsgData={calcUsgData}
             setCalcUsgData={setCalcUsgData}
@@ -928,6 +1033,7 @@ export default function App() {
             setSelectedAppointmentForConfirm={setSelectedAppointmentForConfirm}
             onAbrirNovaEvolucao={handleAbrirNovaEvolucao}
             onEditarEvolucao={handleEditarEvolucao}
+            onAbrirNovaSolicitacao={handleAbrirNovaSolicitacao}
             handleCalculateUsg={handleCalculateUsg}
             calcUsgData={calcUsgData}
             setCalcUsgData={setCalcUsgData}
@@ -1075,8 +1181,24 @@ export default function App() {
           horario: consultaAgendaVinculada.app.horario
         } : null}
         isEditingConsulta={!!editingConsultaId}
-        igAutomatica={calculateWeeksAndDays((consultaAgendaVinculada?.pat ?? currentPatient).dum, newConsulta.data)}
-        onCancelarConsulta={() => { setShowAddConsultaModal(false); setConsultaAgendaVinculada(null); setEditingConsultaId(null); }}
+        igAutomatica={calculateWeeksAndDays(pacienteParaConsulta.dum, newConsulta.data)}
+        onCancelarConsulta={() => {
+          setShowAddConsultaModal(false);
+          setConsultaAgendaVinculada(null);
+          setEditingConsultaId(null);
+          setPrescricoesRascunho([]);
+          setExamesRascunho([]);
+        }}
+        prescricoesRascunho={prescricoesRascunho}
+        examesRascunho={examesRascunho}
+        onAdicionarPrescricao={handleAdicionarPrescricao}
+        onRemoverPrescricao={handleRemoverPrescricao}
+        onAdicionarExameSolicitado={handleAdicionarExameSolicitado}
+        onRemoverExameSolicitado={handleRemoverExameSolicitado}
+        solicitacaoExistenteDoAtendimento={solicitacaoExistenteDoAtendimento}
+        showSolicitacaoModal={showSolicitacaoModal}
+        onCancelarSolicitacao={handleCancelarSolicitacao}
+        onSalvarSolicitacao={handleSalvarSolicitacao}
         showNewPatientModal={showNewPatientModal}
         setShowNewPatientModal={setShowNewPatientModal}
         newPatient={newPatient}

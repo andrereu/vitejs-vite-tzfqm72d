@@ -1,9 +1,11 @@
 import React from 'react';
-import { 
-  X, User, Syringe, CalendarPlus, Bot, Loader2, Smartphone, Share 
+import {
+  X, User, Syringe, CalendarPlus, Bot, Loader2, Smartphone, Share
 } from 'lucide-react';
 import { auth, googleProvider, signInWithPopup } from '../firebase';
 import { formatDateBR } from '../utils/formatters';
+import { PrescricaoExamesEditor } from './PrescricaoExamesEditor';
+import type { ItemPrescricao, ItemExameSolicitado, SolicitacaoClinica } from '../types/prenatal';
 
 
 interface AppModalsProps {
@@ -71,7 +73,22 @@ interface AppModalsProps {
   // formulário) — recalculada a cada mudança de data, só pra exibição.
   igAutomatica: { weeks: number; days: number };
   onCancelarConsulta: () => void;
-  
+
+  // D2.2 — Prescrição e Solicitação de Exames (dentro do atendimento e no
+  // modal avulso "Nova Solicitação" — mesmo mecanismo pros dois).
+  prescricoesRascunho: ItemPrescricao[];
+  examesRascunho: ItemExameSolicitado[];
+  onAdicionarPrescricao: (item: Omit<ItemPrescricao, 'id'>) => void;
+  onRemoverPrescricao: (id: string) => void;
+  onAdicionarExameSolicitado: (item: Omit<ItemExameSolicitado, 'id'>) => void;
+  onRemoverExameSolicitado: (id: string) => void;
+  // Preenchido quando o atendimento em edição já tem uma solicitação
+  // vinculada — nesse caso a seção fica somente-leitura (ver seção I da D2.2).
+  solicitacaoExistenteDoAtendimento: SolicitacaoClinica | null;
+  showSolicitacaoModal: boolean;
+  onCancelarSolicitacao: () => void;
+  onSalvarSolicitacao: () => void;
+
   // New Patient Modal
   showNewPatientModal: boolean;
   setShowNewPatientModal: (v: boolean) => void;
@@ -764,10 +781,68 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
               <textarea placeholder="Conduta / Recomendações" value={props.newConsulta.conduta} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, conduta: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl h-20" />
             </div>
 
+            {/* D2.2 — abaixo da Conduta, como a Dra. pediu. Se o atendimento em
+                edição já tem uma solicitação vinculada, mostra só um resumo
+                (somente-leitura) em vez de reabrir a edição por aqui — evita
+                duplicar ou sobrescrever uma solicitação já salva. */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-gray-400 block uppercase">Prescrição e Solicitação de Exames</label>
+              {props.solicitacaoExistenteDoAtendimento ? (
+                <div className="text-xs bg-gray-50 border rounded-xl p-3 text-gray-600">
+                  Este atendimento já tem {props.solicitacaoExistenteDoAtendimento.prescricoes.length} prescrição(ões) e{' '}
+                  {props.solicitacaoExistenteDoAtendimento.exames.length} exame(s) solicitado(s). Consulte em "Exames".
+                </div>
+              ) : (
+                <PrescricaoExamesEditor
+                  prescricoes={props.prescricoesRascunho}
+                  exames={props.examesRascunho}
+                  onAdicionarPrescricao={props.onAdicionarPrescricao}
+                  onRemoverPrescricao={props.onRemoverPrescricao}
+                  onAdicionarExame={props.onAdicionarExameSolicitado}
+                  onRemoverExame={props.onRemoverExameSolicitado}
+                />
+              )}
+            </div>
+
             <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
               <button onClick={props.onCancelarConsulta} className="px-3 py-1.5 text-xs text-gray-500 cursor-pointer">Cancelar</button>
               <button onClick={props.handleAddConsulta} className="px-4 py-1.5 bg-[var(--brand-primary)] text-white font-bold text-xs rounded-xl cursor-pointer">
                 {props.isEditingConsulta ? 'Salvar Alterações' : 'Salvar Registro'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL NOVA SOLICITAÇÃO — mesmo mecanismo do bloco acima (mesmo
+          componente PrescricaoExamesEditor, mesmos handlers), só que sem
+          nenhum vínculo de atendimento: aberto pelo botão "Nova Solicitação"
+          na Central de Exames. */}
+      {props.showSolicitacaoModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
+          <div className="bg-white p-6 rounded-3xl max-w-md w-full max-h-[85vh] overflow-y-auto space-y-4">
+            <div className="border-b border-gray-100 pb-3">
+              <h3 className="font-bold text-gray-900 text-base">Nova Solicitação</h3>
+              <p className="text-[11px] text-gray-500">Prescrição e/ou solicitação de exames, sem precisar registrar um atendimento.</p>
+            </div>
+
+            <PrescricaoExamesEditor
+              prescricoes={props.prescricoesRascunho}
+              exames={props.examesRascunho}
+              onAdicionarPrescricao={props.onAdicionarPrescricao}
+              onRemoverPrescricao={props.onRemoverPrescricao}
+              onAdicionarExame={props.onAdicionarExameSolicitado}
+              onRemoverExame={props.onRemoverExameSolicitado}
+            />
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+              <button onClick={props.onCancelarSolicitacao} className="px-3 py-1.5 text-xs text-gray-500 cursor-pointer">Cancelar</button>
+              <button
+                onClick={props.onSalvarSolicitacao}
+                disabled={props.prescricoesRascunho.length === 0 && props.examesRascunho.length === 0}
+                className="px-4 py-1.5 bg-[var(--brand-primary)] text-white font-bold text-xs rounded-xl cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Salvar Solicitação
               </button>
             </div>
           </div>

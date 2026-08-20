@@ -48,6 +48,9 @@ interface PatientAppScreenProps {
   // (sem vínculo de Agenda) ou editando um registro já existente.
   onAbrirNovaEvolucao: () => void;
   onEditarEvolucao: (consulta: ConsultaEvolucao) => void;
+  // D2.2: abre o modal avulso "Nova Solicitação" (prescrição/exames sem
+  // vínculo de atendimento) — mesmo mecanismo usado dentro do atendimento.
+  onAbrirNovaSolicitacao: () => void;
   handleCalculateUsg: (e: React.FormEvent) => void;
   calcUsgData: string;
   setCalcUsgData: (v: string) => void;
@@ -85,6 +88,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
   setSelectedAppointmentForConfirm,
   onAbrirNovaEvolucao,
   onEditarEvolucao,
+  onAbrirNovaSolicitacao,
   handleCalculateUsg,
   calcUsgData,
   setCalcUsgData,
@@ -1059,10 +1063,40 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                   </h3>
                   <p className="text-xs text-gray-500">Envie laudos: o Gemini extrai os dados e resume tudo para a mãe</p>
                 </div>
-                <button onClick={() => setShowUploadExamModal(true)} className="bg-[var(--brand-primary)] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer">
-                  <Upload className="w-4 h-4" /> + Anexar Exame
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  {userRole === 'medica' && (
+                    <button onClick={onAbrirNovaSolicitacao} className="bg-white border border-[var(--brand-primary)] text-[var(--brand-primary)] px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+                      <ClipboardList className="w-4 h-4" /> Nova Solicitação
+                    </button>
+                  )}
+                  <button onClick={() => setShowUploadExamModal(true)} className="bg-[var(--brand-primary)] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+                    <Upload className="w-4 h-4" /> + Anexar Exame
+                  </button>
+                </div>
               </div>
+
+              {/* D2.2: prescrições e solicitações de exames — separado dos laudos
+                  anexados acima (que são resultado, não pedido). */}
+              {(currentPatient.solicitacoes || []).length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-[11px] font-bold text-gray-400 uppercase">Prescrições e Solicitações</h4>
+                  {[...(currentPatient.solicitacoes || [])].reverse().map((s) => (
+                    <div key={s.id} className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs space-y-1">
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="font-bold text-gray-800">{formatDateBR(s.data)}</span>
+                        {s.consultaEvolucaoId && <span className="text-[10px] text-gray-400 shrink-0">Vinculada a um atendimento</span>}
+                      </div>
+                      {s.prescricoes.length > 0 && (
+                        <p className="text-gray-600"><span className="font-bold">Medicamentos:</span> {s.prescricoes.map((p) => p.medicamento).join(', ')}</p>
+                      )}
+                      {s.exames.length > 0 && (
+                        <p className="text-gray-600"><span className="font-bold">Exames:</span> {s.exames.map((ex) => ex.nome).join(', ')}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="space-y-4">
                 {currentPatient.examesEnviados?.map((ex: any) => (
                   <div key={ex.id} className="p-5 bg-gray-50 rounded-2xl border space-y-3">

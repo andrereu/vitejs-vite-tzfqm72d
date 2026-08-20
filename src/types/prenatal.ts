@@ -117,6 +117,39 @@ export interface MarcoPersonalizado {
   concluidoEm?: string;
 }
 
+// D2.2 — Prescrição e Solicitação de Exames. Um item por linha adicionada
+// no formulário (médica pode adicionar/remover livremente antes de salvar).
+export interface ItemPrescricao {
+  id: string;
+  medicamento: string;
+  posologia: string;
+}
+
+// Mesma distinção laboratorial/imagem já usada na Central de Exames
+// (examCategory do upload de laudos) — reaproveitada aqui, não inventada.
+export type TipoExameSolicitado = 'Laboratorial' | 'Ecografia';
+
+export interface ItemExameSolicitado {
+  id: string;
+  nome: string; // texto livre; sugestões vêm de LISTA_EXAMES_OFICIAIS via <datalist>
+  tipo: TipoExameSolicitado;
+}
+
+// "Solicitação" é uma ação clínica própria, separada da evolução da
+// consulta — pode nascer de dentro de um atendimento (Registrar Atendimento)
+// ou existir sozinha (Central de Exames → Nova Solicitação). Nunca é criada
+// vazia (sem nenhuma prescrição nem exame).
+export interface SolicitacaoClinica {
+  id: string;
+  data: string; // YYYY-MM-DD
+  prescricoes: ItemPrescricao[];
+  exames: ItemExameSolicitado[];
+  // Vínculo opcional com a ConsultaEvolucao que originou esta solicitação —
+  // mesmo padrão do agendaConsultaId (D1-A): só existe quando criada de
+  // dentro de um atendimento. Nunca inferido por data/coincidência.
+  consultaEvolucaoId?: string;
+}
+
 export interface Patient {
   id: string;
   doctorId: string;
@@ -143,6 +176,10 @@ export interface Patient {
   consultasEvolucao: ConsultaEvolucao[];
   agendaConsultas: AgendaConsulta[];
   examesEnviados?: any[];
+  // D2.2 — Prescrições e solicitações de exames, com ou sem vínculo a um
+  // atendimento (ver SolicitacaoClinica). Opcional pra não exigir migração
+  // de pacientes já cadastradas antes desta fase.
+  solicitacoes?: SolicitacaoClinica[];
    // Novos campos financeiros da paciente
   tipoAtendimentoPadrao?: 'particular' | 'convenio';
   convenioNome?: string;
