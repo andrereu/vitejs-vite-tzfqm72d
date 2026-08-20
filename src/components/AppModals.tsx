@@ -730,17 +730,19 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-gray-400 block uppercase">Identificação do Atendimento</label>
               <input type="date" value={props.newConsulta.data} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, data: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-              <div className="grid grid-cols-2 gap-2">
-                <input type="number" placeholder="IG (semanas)" value={props.newConsulta.igSem} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, igSem: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-                <div className="flex items-center px-2.5 bg-gray-50 border rounded-xl text-[11px] text-gray-500">
-                  Calculada: {props.igAutomatica.weeks}sem + {props.igAutomatica.days}d
-                </div>
+              <div className="px-3 py-2 bg-gray-50 border rounded-xl text-xs text-gray-700">
+                IG: <strong className="text-[var(--brand-primary)]">{props.igAutomatica.weeks}sem + {props.igAutomatica.days}d</strong>
               </div>
-              <p className="text-[10px] text-gray-400">IG calculada automaticamente pela DUM na data acima — ajuste o campo se precisar de outra referência (ex: data de USG).</p>
+              <p className="text-[10px] text-gray-400">Calculada automaticamente pela DUM cadastrada da paciente. Pra corrigir a IG (por DUM ou USG), ajuste em "Editar Dados" no perfil dela — não é editável aqui.</p>
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-gray-400 block uppercase">Avaliação Clínica</label>
+              <label className="text-[10px] font-bold text-gray-400 block uppercase">Queixa</label>
+              <textarea placeholder="Queixas" value={props.newConsulta.queixas} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, queixas: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl h-14" />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-gray-400 block uppercase">Avaliação / Exame Físico</label>
               <div className="grid grid-cols-2 gap-2">
                 <input type="text" placeholder="Peso (kg)" value={props.newConsulta.peso} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, peso: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
                 <input type="text" placeholder="P.A." value={props.newConsulta.pa} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, pa: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
@@ -750,7 +752,6 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
                 <input type="text" placeholder="Edema MMII" value={props.newConsulta.edema} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, edema: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
               </div>
               <input type="text" placeholder="BCF / Mov. Fetal" value={props.newConsulta.bcfMf} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, bcfMf: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-              <textarea placeholder="Queixas" value={props.newConsulta.queixas} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, queixas: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl h-14" />
             </div>
 
             <div className="space-y-2">

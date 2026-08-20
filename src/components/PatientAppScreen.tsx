@@ -994,8 +994,10 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                       <th className="p-2.5">IG</th>
                       <th className="p-2.5">Peso</th>
                       <th className="p-2.5">PA</th>
-                      <th className="p-2.5">AU</th>
-                      <th className="p-2.5">BCF/MF</th>
+                      {/* AU, BCF/MF e Edema cabem numa coluna só, empilhados — em vez
+                          de 3 colunas largas, que já sofriam com scroll horizontal
+                          no celular (feedback direto da Dra. Priscila). */}
+                      <th className="p-2.5">Exame Físico</th>
                       <th className="p-2.5">Conduta</th>
                       {userRole === 'medica' && <th className="p-2.5 text-center">Ações</th>}
                     </tr>
@@ -1007,8 +1009,11 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                         <td className="p-2.5">{c.igSem} Sem</td>
                         <td className="p-2.5">{c.peso}kg</td>
                         <td className="p-2.5">{c.pa}</td>
-                        <td className="p-2.5">{c.au}</td>
-                        <td className="p-2.5">{c.bcfMf}</td>
+                        <td className="p-2.5 text-[11px] leading-relaxed whitespace-nowrap">
+                          <div>AU: {c.au || '—'}</div>
+                          <div>BCF/MF: {c.bcfMf || '—'}</div>
+                          <div className="text-gray-500">Edema: {c.edema || '—'}</div>
+                        </td>
                         <td className="p-2.5 text-gray-600">{c.conduta}</td>
                         {userRole === 'medica' && (
                           <td className="p-2.5 text-center">

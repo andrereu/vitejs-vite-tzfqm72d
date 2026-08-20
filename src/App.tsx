@@ -156,7 +156,7 @@ export default function App() {
 
   const [newConsulta, setNewConsulta] = useState({
     data: new Date().toISOString().split('T')[0],
-    igSem: '', peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente',
+    peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente',
     queixas: '', diagnostico: '', conduta: ''
   });
 
@@ -545,7 +545,11 @@ export default function App() {
     // pelo fluxo do prontuário (novo ou edição) → sempre currentPatient,
     // como sempre foi.
     const pacienteAlvo = consultaAgendaVinculada?.pat ?? currentPatient;
-    const sem = parseInt(newConsulta.igSem) || calculateWeeksAndDays(pacienteAlvo.dum, newConsulta.data).weeks;
+    // D2.1: IG deixou de ser digitável no atendimento — é sempre derivada da
+    // DUM da paciente (única referência obstétrica persistida, corrigida uma
+    // vez em "Editar Dados") na data deste atendimento. Nunca fica
+    // "congelada" com um valor manual antigo.
+    const sem = calculateWeeksAndDays(pacienteAlvo.dum, newConsulta.data).weeks;
     const pesoVal = parseFloat(newConsulta.peso) || parseFloat(pacienteAlvo.pesoInicial);
 
     const dadosClinicos = {
@@ -593,10 +597,9 @@ export default function App() {
   // muda status da AgendaConsulta, não muda selectedPatientId, não navega de
   // tela.
   const handleAbrirRegistroAtendimento = (app: AgendaConsulta, pat: Patient) => {
-    const igNaData = calculateWeeksAndDays(pat.dum, app.data).weeks;
     setNewConsulta({
       data: app.data,
-      igSem: igNaData ? String(igNaData) : '', peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente',
+      peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente',
       queixas: '', diagnostico: '', conduta: ''
     });
     setConsultaAgendaVinculada({ app, pat });
@@ -609,11 +612,9 @@ export default function App() {
   // nenhuma AgendaConsulta. IG pré-calculada a partir da DUM de
   // currentPatient pra hoje.
   const handleAbrirNovaEvolucao = () => {
-    const hoje = getLocalDateString();
-    const igHoje = calculateWeeksAndDays(currentPatient.dum, hoje).weeks;
     setNewConsulta({
-      data: hoje,
-      igSem: igHoje ? String(igHoje) : '', peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente',
+      data: getLocalDateString(),
+      peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente',
       queixas: '', diagnostico: '', conduta: ''
     });
     setConsultaAgendaVinculada(null);
@@ -627,7 +628,6 @@ export default function App() {
   const handleEditarEvolucao = (consulta: Patient['consultasEvolucao'][number]) => {
     setNewConsulta({
       data: consulta.data,
-      igSem: String(consulta.igSem),
       peso: String(consulta.peso),
       pa: consulta.pa,
       au: consulta.au,
