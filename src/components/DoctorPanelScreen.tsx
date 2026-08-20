@@ -95,11 +95,15 @@ export const DoctorPanelScreen: React.FC<DoctorPanelScreenProps> = ({
         </div>
       )}
 
-      {/* SELETOR DE ABAS DA CLÍNICA */}
-      <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
+      {/* SELETOR DE ABAS DA CLÍNICA — rolagem horizontal contida na própria
+          barra em telas estreitas (shrink-0 evita os rótulos quebrarem em
+          várias linhas ao espremer; overflow-x-auto faz a barra rolar em vez
+          de estourar a largura da página). Em telas onde os 4 botões já
+          cabem, isso não tem nenhum efeito visual — sem scroll, sem mudança. */}
+      <div className="flex items-center gap-2 border-b border-gray-200 pb-2 overflow-x-auto flex-nowrap">
         <button
           onClick={() => setDoctorPanelTab('metricas')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             doctorPanelTab === 'metricas' ? 'bg-[var(--brand-primary)] text-white shadow-xs' : 'bg-white text-gray-600 hover:bg-gray-100'
           }`}
         >
@@ -107,7 +111,7 @@ export const DoctorPanelScreen: React.FC<DoctorPanelScreenProps> = ({
         </button>
         <button
           onClick={() => setDoctorPanelTab('pacientes')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             doctorPanelTab === 'pacientes' ? 'bg-[var(--brand-primary)] text-white shadow-xs' : 'bg-white text-gray-600 hover:bg-gray-100'
           }`}
         >
@@ -115,7 +119,7 @@ export const DoctorPanelScreen: React.FC<DoctorPanelScreenProps> = ({
         </button>
         <button
           onClick={() => setDoctorPanelTab('agenda_geral')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             doctorPanelTab === 'agenda_geral' ? 'bg-[var(--brand-primary)] text-white shadow-xs' : 'bg-white text-gray-600 hover:bg-gray-100'
           }`}
         >
@@ -123,7 +127,7 @@ export const DoctorPanelScreen: React.FC<DoctorPanelScreenProps> = ({
         </button>
         <button
           onClick={() => setDoctorPanelTab('lembretes')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             doctorPanelTab === 'lembretes' ? 'bg-[var(--brand-primary)] text-white shadow-xs' : 'bg-white text-gray-600 hover:bg-gray-100'
           }`}
         >
