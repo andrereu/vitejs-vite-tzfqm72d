@@ -5,6 +5,7 @@ import { formatDateBR, getLocalDateString } from '../utils/formatters';
 import { generateAppointmentReminderLink } from '../utils/whatsapp';
 import { compararAgendamentos, consultasEmConflitoComBloqueio } from '../utils/agendaScheduling';
 import { AppointmentStatusBadge } from './agenda/AppointmentStatusBadge';
+import { PendingRequests } from './agenda/PendingRequests';
 
 interface ClinicScheduleManagerProps {
   patients: Patient[];
@@ -55,6 +56,14 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
   const pendingCount = allAppointments.filter((a) => a.status === 'solicitada').length;
   const emergencyCount = allAppointments.filter((a) => a.status === 'encaixe_urgente').length;
 
+  // Pendências ganham seção própria (abaixo) e saem da fila geral — sem
+  // duplicar a mesma solicitação nos dois lugares. encaixe_urgente
+  // continua na fila normal por enquanto; o destaque de urgência é da
+  // futura etapa "Hoje", não desta. A ordem já vem de allAppointments
+  // (compararAgendamentos), então não precisa ordenar de novo aqui.
+  const pendencias = allAppointments.filter((a) => a.status === 'solicitada');
+  const agendaSemPendencias = allAppointments.filter((a) => a.status !== 'solicitada');
+
   // Lógica do Calendário Mensal
   const year = currentMonthDate.getFullYear();
   const month = currentMonthDate.getMonth();
@@ -69,8 +78,9 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
   const handlePrevMonth = () => setCurrentMonthDate(new Date(year, month - 1, 1));
   const handleNextMonth = () => setCurrentMonthDate(new Date(year, month + 1, 1));
 
-  // Filtragem da Lista
-  const filteredAppointments = allAppointments.filter((item) => {
+  // Filtragem da Lista — a partir daqui já sem pendências, que têm sua
+  // própria seção.
+  const filteredAppointments = agendaSemPendencias.filter((item) => {
     const matchesDate = !selectedDateFilter || item.data === selectedDateFilter;
     const matchesStatus = filterStatus === 'todos' || item.status === filterStatus;
     return matchesDate && matchesStatus;
@@ -241,6 +251,12 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
         </div>
       )}
 
+      <PendingRequests
+        pendencias={pendencias}
+        onAprovar={(patientId, appointmentId) => onQuickStatusChange(patientId, appointmentId, 'confirmada')}
+        onRevisar={onOpenConfirmModal}
+      />
+
       {/* 2. FILA DE CONSULTAS DETALHADA */}
       <div className="bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden">
         <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
@@ -275,14 +291,9 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
                 </div>
 
                 <div className="flex items-center gap-1.5 self-end md:self-center">
-                  {item.status === 'solicitada' && (
-                    <button
-                      onClick={() => onQuickStatusChange(item.patient.id, item.id, 'confirmada')}
-                      className="px-3 py-1.5 bg-emerald-700 text-white rounded-xl text-xs font-bold cursor-pointer"
-                    >
-                      Aprovar
-                    </button>
-                  )}
+                  {/* "Aprovar" pra solicitada saiu daqui — vive só na seção
+                      Pendências agora, sem essa linha nunca mais aparecer
+                      pra um item que já não pode ter esse status aqui. */}
                   <button
                     onClick={() => onOpenConfirmModal(item, item.patient)}
                     className="px-3 py-1.5 bg-gray-100 text-gray-800 rounded-xl text-xs font-bold cursor-pointer"
