@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar as CalendarIcon, Clock, AlertTriangle, CheckCircle, List, ChevronLeft, ChevronRight, User, Send, Ban } from 'lucide-react';
+import { Clock, AlertTriangle, CheckCircle, List, User, Send, Ban } from 'lucide-react';
 import type { Patient, AgendaConsulta, HorarioBloqueado } from '../types/prenatal';
 import { formatDateBR, getLocalDateString } from '../utils/formatters';
 import { generateAppointmentReminderLink } from '../utils/whatsapp';
@@ -8,6 +8,7 @@ import { AppointmentStatusBadge } from './agenda/AppointmentStatusBadge';
 import { PendingRequests } from './agenda/PendingRequests';
 import { TodayAgenda } from './agenda/TodayAgenda';
 import { UpcomingDays } from './agenda/UpcomingDays';
+import { CalendarView, type DiaCalendario } from './agenda/CalendarView';
 
 const DIAS_SEMANA_ABREV = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -28,7 +29,6 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
   onAddBlockedSlot,
   onRemoveBlockedSlot,
 }) => {
-  const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
   const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
   const [selectedDateFilter, setSelectedDateFilter] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('todos');
@@ -113,6 +113,31 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
   const handlePrevMonth = () => setCurrentMonthDate(new Date(year, month - 1, 1));
   const handleNextMonth = () => setCurrentMonthDate(new Date(year, month + 1, 1));
 
+  // Resumo por dia do mês exibido — mesma allowlist de status já usada em
+  // "Hoje"/"Próximos Dias" pra contagem (confirmada/encaixe_urgente), mais
+  // pendência (solicitada) e tipo de bloqueio (dia inteiro vs. parcial),
+  // pra CalendarView representar cada situação sem repetir cálculo próprio.
+  const diasDoMes: DiaCalendario[] = Array.from({ length: totalDaysInMonth }, (_, i) => {
+    const dayNum = i + 1;
+    const dataStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+    const consultasDoDia = allAppointments.filter((a) => a.data === dataStr);
+    const bloqueiosDoDia = blockedSlots.filter((b) => b.data === dataStr);
+    const bloqueio: DiaCalendario['bloqueio'] = bloqueiosDoDia.some((b) => b.diaInteiro)
+      ? 'dia_inteiro'
+      : bloqueiosDoDia.length > 0
+        ? 'parcial'
+        : 'nenhum';
+
+    return {
+      dia: dayNum,
+      data: dataStr,
+      totalConsultas: consultasDoDia.filter((a) => a.status === 'confirmada' || a.status === 'encaixe_urgente').length,
+      temUrgencia: consultasDoDia.some((a) => a.status === 'encaixe_urgente'),
+      temPendencia: consultasDoDia.some((a) => a.status === 'solicitada'),
+      bloqueio
+    };
+  });
+
   // Filtragem da Lista — a partir daqui já sem pendências, que têm sua
   // própria seção.
   const filteredAppointments = agendaSemPendencias.filter((item) => {
@@ -151,28 +176,9 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
         </div>
       </div>
 
-      {/* SELETOR DE MODO DE VISUALIZAÇÃO */}
+      {/* FILTRO ATIVO + BLOQUEIO */}
       <div className="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs flex flex-wrap justify-between items-center gap-3">
         <div className="flex items-center gap-2">
-          <div className="flex p-1 bg-gray-100 rounded-2xl">
-            <button
-              onClick={() => setViewMode('calendar')}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
-                viewMode === 'calendar' ? 'bg-[var(--brand-primary)] text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <CalendarIcon className="w-3.5 h-3.5" /> Visão Calendário
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
-                viewMode === 'list' ? 'bg-[var(--brand-primary)] text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <List className="w-3.5 h-3.5" /> Fila / Lista
-            </button>
-          </div>
-
           {selectedDateFilter && (
             <span className="text-xs bg-emerald-50 text-[var(--brand-primary)] font-bold px-3 py-1.5 rounded-xl border border-emerald-200 flex items-center gap-2">
               📅 Filtrado: {formatDateBR(selectedDateFilter)}
@@ -189,103 +195,6 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
         </button>
       </div>
 
-      {/* 1. VISUALIZAÇÃO EM CALENDÁRIO */}
-      {viewMode === 'calendar' && (
-        <div className="bg-white rounded-3xl border border-gray-200 p-6 shadow-xs space-y-4">
-          
-          {/* Navegação do Mês */}
-          <div className="flex justify-between items-center border-b pb-3">
-            <h3 className="font-bold text-gray-900 text-base">
-              {monthNames[month]} de {year}
-            </h3>
-            <div className="flex items-center gap-1">
-              <button onClick={handlePrevMonth} className="p-1.5 hover:bg-gray-100 rounded-xl border">
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button onClick={() => setCurrentMonthDate(new Date())} className="px-3 py-1 text-xs font-bold hover:bg-gray-100 rounded-xl border">
-                Hoje
-              </button>
-              <button onClick={handleNextMonth} className="p-1.5 hover:bg-gray-100 rounded-xl border">
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Grade dos Dias */}
-          <div className="grid grid-cols-7 gap-1 text-center">
-            {DIAS_SEMANA_ABREV.map((d) => (
-              <div key={d} className="text-[11px] font-bold text-gray-400 uppercase py-1">
-                {d}
-              </div>
-            ))}
-
-            {/* Dias vazios antes do 1º dia */}
-            {Array.from({ length: firstDayIndex }).map((_, i) => (
-              <div key={`empty-${i}`} className="min-h-[85px] bg-gray-50/50 rounded-xl border border-transparent" />
-            ))}
-
-            {/* Dias do mês */}
-            {Array.from({ length: totalDaysInMonth }).map((_, i) => {
-              const dayNum = i + 1;
-              const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
-              
-              const dayAppointments = allAppointments.filter((a) => a.data === dateStr);
-              const isBlocked = blockedSlots.some((b) => b.data === dateStr);
-              const isSelected = selectedDateFilter === dateStr;
-
-              return (
-                <div
-                  key={dayNum}
-                  onClick={() => setSelectedDateFilter(isSelected ? '' : dateStr)}
-                  className={`min-h-[85px] p-1.5 rounded-2xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
-                    isSelected ? 'ring-2 ring-[var(--brand-primary)] bg-emerald-50/40' : 'bg-white hover:bg-gray-50'
-                  } ${isBlocked ? 'bg-rose-50/60 border-rose-200' : 'border-gray-200'}`}
-                >
-                  <div className="flex justify-between items-center">
-                    <span className={`text-xs font-bold ${isBlocked ? 'text-rose-700' : 'text-gray-800'}`}>
-                      {dayNum}
-                    </span>
-                    {dayAppointments.length > 0 && (
-                      <span className="text-[9px] bg-gray-100 text-gray-700 px-1.5 py-0.2 rounded-full font-bold">
-                        {dayAppointments.length}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Tags das Consultas no Dia */}
-                  <div className="space-y-1 mt-1 overflow-hidden">
-                    {isBlocked && (
-                      <div className="text-[9px] font-bold text-rose-700 bg-rose-100/80 px-1 py-0.5 rounded truncate">
-                        ⛔ Bloqueado
-                      </div>
-                    )}
-                    {dayAppointments.slice(0, 2).map((app) => (
-                      <div
-                        key={app.id}
-                        className={`text-[9px] px-1 py-0.5 rounded font-medium truncate ${
-                          app.status === 'solicitada'
-                            ? 'bg-amber-100 text-amber-900 font-bold'
-                            : app.status === 'encaixe_urgente'
-                            ? 'bg-rose-100 text-rose-900 font-bold'
-                            : 'bg-emerald-100 text-emerald-900'
-                        }`}
-                      >
-                        {app.horario} • {app.patient.nome.split(' ')[0]}
-                      </div>
-                    ))}
-                    {dayAppointments.length > 2 && (
-                      <div className="text-[8px] text-gray-400 font-bold text-center">
-                        +{dayAppointments.length - 2} mais
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       <PendingRequests
         pendencias={pendencias}
         onAprovar={(patientId, appointmentId) => onQuickStatusChange(patientId, appointmentId, 'confirmada')}
@@ -298,6 +207,19 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
         dias={proximosDias}
         diaSelecionado={selectedDateFilter}
         onSelecionarDia={(data) => setSelectedDateFilter((atual) => (atual === data ? '' : data))}
+      />
+
+      {/* 1. CALENDÁRIO MENSAL */}
+      <CalendarView
+        mesLabel={`${monthNames[month]} de ${year}`}
+        diasVaziosAntes={firstDayIndex}
+        dias={diasDoMes}
+        hoje={hojeStr}
+        diaSelecionado={selectedDateFilter}
+        onSelecionarDia={(data) => setSelectedDateFilter((atual) => (atual === data ? '' : data))}
+        onMesAnterior={handlePrevMonth}
+        onMesSeguinte={handleNextMonth}
+        onIrParaHoje={() => setCurrentMonthDate(new Date())}
       />
 
       {/* 2. FILA DE CONSULTAS DETALHADA */}
