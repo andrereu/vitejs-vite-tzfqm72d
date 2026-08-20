@@ -3,6 +3,7 @@ import {
   X, User, Syringe, CalendarPlus, Bot, Loader2, Smartphone, Share 
 } from 'lucide-react';
 import { auth, googleProvider, signInWithPopup } from '../firebase';
+import { formatDateBR } from '../utils/formatters';
 
 
 interface AppModalsProps {
@@ -58,6 +59,11 @@ interface AppModalsProps {
   newConsulta: any;
   setNewConsulta: (v: any) => void;
   handleAddConsulta: (e: React.FormEvent) => void;
+  // Preenchido só quando o modal é aberto a partir da Agenda ("Registrar
+  // atendimento") — identifica de qual paciente/consulta se trata, sem
+  // mudar o formulário em si.
+  consultaAgendaContexto: { pacienteNome: string; data: string; horario?: string } | null;
+  onCancelarConsulta: () => void;
   
   // New Patient Modal
   showNewPatientModal: boolean;
@@ -694,7 +700,15 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
       {props.showAddConsultaModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
           <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-3">
-            <h3 className="font-bold text-gray-900 text-base">Registrar Nova Consulta</h3>
+            <div>
+              <h3 className="font-bold text-gray-900 text-base">Registrar Nova Consulta</h3>
+              {props.consultaAgendaContexto && (
+                <p className="text-[11px] text-gray-500">
+                  {props.consultaAgendaContexto.pacienteNome} · {formatDateBR(props.consultaAgendaContexto.data)}
+                  {props.consultaAgendaContexto.horario ? ` · ${props.consultaAgendaContexto.horario}` : ''}
+                </p>
+              )}
+            </div>
             <input type="date" value={props.newConsulta.data} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, data: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
             <div className="grid grid-cols-2 gap-2">
               <input type="number" placeholder="Semanas (IG)" value={props.newConsulta.igSem} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, igSem: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
@@ -707,7 +721,7 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
             <input type="text" placeholder="BCF / Mov. Fetal" value={props.newConsulta.bcfMf} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, bcfMf: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
             <textarea placeholder="Conduta / Recomendações" value={props.newConsulta.conduta} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, conduta: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl h-20" />
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => props.setShowAddConsultaModal(false)} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
+              <button onClick={props.onCancelarConsulta} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
               <button onClick={props.handleAddConsulta} className="px-4 py-1.5 bg-[var(--brand-primary)] text-white font-bold text-xs rounded-xl">Salvar Registro</button>
             </div>
           </div>

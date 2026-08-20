@@ -101,6 +101,14 @@ export default function App() {
   const [showDoctorSettingsModal, setShowDoctorSettingsModal] = useState(false);
 
   const [showAddConsultaModal, setShowAddConsultaModal] = useState(false);
+  // Contexto de quando "Registrar atendimento" é aberto a partir da Agenda —
+  // guarda a AgendaConsulta e a paciente dela, pra handleAddConsulta gravar
+  // o vínculo (agendaConsultaId) e escrever no prontuário certo mesmo sem
+  // depender de qual paciente está "selecionada" globalmente
+  // (selectedPatientId). Fica null quando o modal é aberto pelo fluxo antigo
+  // (Gráfico GPG → "Registrar Nova Consulta"), garantindo que registros
+  // desse caminho continuam saindo sem agendaConsultaId, como antes.
+  const [consultaAgendaVinculada, setConsultaAgendaVinculada] = useState<{ app: AgendaConsulta; pat: Patient } | null>(null);
   const [showUploadExamModal, setShowUploadExamModal] = useState(false);
   const [showNewPatientModal, setShowNewPatientModal] = useState(false);
   const [showEditExamesModal, setShowEditExamesModal] = useState(false);
@@ -525,11 +533,16 @@ export default function App() {
 
   const handleAddConsulta = (e: React.FormEvent) => {
     e.preventDefault();
-    const sem = parseInt(newConsulta.igSem) || currentGest.weeks;
-    const pesoVal = parseFloat(newConsulta.peso) || parseFloat(currentPatient.pesoInicial);
+    // Aberto pela Agenda → grava no prontuário da paciente daquela consulta
+    // específica (não necessariamente a "selecionada" globalmente). Aberto
+    // pelo fluxo antigo (Gráfico GPG) → continua usando currentPatient, como
+    // sempre foi.
+    const pacienteAlvo = consultaAgendaVinculada?.pat ?? currentPatient;
+    const sem = parseInt(newConsulta.igSem) || calculateWeeksAndDays(pacienteAlvo.dum).weeks;
+    const pesoVal = parseFloat(newConsulta.peso) || parseFloat(pacienteAlvo.pesoInicial);
 
     const updatedConsultas = [
-      ...currentPatient.consultasEvolucao,
+      ...pacienteAlvo.consultasEvolucao,
       {
         id: `c-${Date.now()}`,
         data: newConsulta.data,
@@ -539,13 +552,32 @@ export default function App() {
         au: newConsulta.au,
         bcfMf: newConsulta.bcfMf,
         edema: newConsulta.edema,
-        conduta: newConsulta.conduta
+        conduta: newConsulta.conduta,
+        // Só existe quando o modal foi aberto a partir da Agenda — o fluxo
+        // antigo nunca seta consultaAgendaVinculada, então nunca inclui essa
+        // chave (sem alterar o formato de registros já existentes).
+        ...(consultaAgendaVinculada ? { agendaConsultaId: consultaAgendaVinculada.app.id } : {})
       }
     ].sort((a, b) => a.igSem - b.igSem);
 
-    const updated: Patient = { ...currentPatient, consultasEvolucao: updatedConsultas };
+    const updated: Patient = { ...pacienteAlvo, consultasEvolucao: updatedConsultas };
     saveToFirestore(patients.map(p => p.id === updated.id ? updated : p));
     setShowAddConsultaModal(false);
+    setConsultaAgendaVinculada(null);
+  };
+
+  // Ponto de entrada "🩺 Registrar atendimento" na Agenda — abre o MESMO
+  // modal de sempre ("Registrar Nova Consulta"), só pré-preenchendo a data
+  // da AgendaConsulta selecionada e guardando o vínculo pra
+  // handleAddConsulta gravar o agendaConsultaId. Não muda status da
+  // AgendaConsulta, não muda selectedPatientId, não navega de tela.
+  const handleAbrirRegistroAtendimento = (app: AgendaConsulta, pat: Patient) => {
+    setNewConsulta({
+      data: app.data,
+      igSem: '', peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente', conduta: ''
+    });
+    setConsultaAgendaVinculada({ app, pat });
+    setShowAddConsultaModal(true);
   };
 
   return (
@@ -749,6 +781,7 @@ export default function App() {
             onAddBlockedSlot={addBlockedSlot}
             onRemoveBlockedSlot={removeBlockedSlot}
             onOpenConfirmModal={(app, pat) => setSelectedAppointmentForConfirm({ app, pat })}
+            onRegistrarAtendimento={handleAbrirRegistroAtendimento}
             saveToFirestore={saveToFirestore}
           />
         </DoctorShell>
@@ -972,6 +1005,12 @@ export default function App() {
         newConsulta={newConsulta}
         setNewConsulta={setNewConsulta}
         handleAddConsulta={handleAddConsulta}
+        consultaAgendaContexto={consultaAgendaVinculada ? {
+          pacienteNome: consultaAgendaVinculada.pat.nome,
+          data: consultaAgendaVinculada.app.data,
+          horario: consultaAgendaVinculada.app.horario
+        } : null}
+        onCancelarConsulta={() => { setShowAddConsultaModal(false); setConsultaAgendaVinculada(null); }}
         showNewPatientModal={showNewPatientModal}
         setShowNewPatientModal={setShowNewPatientModal}
         newPatient={newPatient}

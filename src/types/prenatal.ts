@@ -27,6 +27,11 @@ export interface ConsultaEvolucao {
   bcfMf: string;
   edema: string;
   conduta: string;
+  // Vínculo opcional com a AgendaConsulta que originou este registro —
+  // só existe quando o formulário foi aberto a partir da Agenda ("Registrar
+  // atendimento"). Registros do fluxo antigo ("Registrar Nova Consulta" no
+  // Gráfico GPG) continuam sem esse campo, sem quebra de compatibilidade.
+  agendaConsultaId?: string;
 }
 
 export type UserRole = 'paciente' | 'medica' | 'secretaria' | 'master_admin';

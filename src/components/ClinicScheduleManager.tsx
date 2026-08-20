@@ -23,6 +23,7 @@ interface ClinicScheduleManagerProps {
   onAddBlockedSlot: (slot: HorarioBloqueado) => Promise<void>;
   onRemoveBlockedSlot: (id: string) => Promise<void>;
   saveToFirestore: (updatedList: Patient[]) => Promise<void>;
+  onRegistrarAtendimento: (app: AgendaConsulta, pat: Patient) => void;
 }
 
 export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
@@ -33,6 +34,7 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
   onAddBlockedSlot,
   onRemoveBlockedSlot,
   saveToFirestore,
+  onRegistrarAtendimento,
 }) => {
   const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
   const [selectedDateFilter, setSelectedDateFilter] = useState<string>('');
@@ -331,6 +333,16 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
                       className="px-3 py-1.5 bg-gray-100 text-gray-800 rounded-xl text-xs font-bold cursor-pointer"
                     >
                       Gerenciar
+                    </button>
+                    {/* Abre o mesmo modal "Registrar Nova Consulta" que já
+                        existe no cartão da paciente — só chega com o
+                        contexto desta AgendaConsulta já preenchido. Não
+                        muda o status da consulta. */}
+                    <button
+                      onClick={() => onRegistrarAtendimento(item, item.patient)}
+                      className="px-3 py-1.5 bg-white border border-[var(--brand-primary)] text-[var(--brand-primary)] rounded-xl text-xs font-bold cursor-pointer"
+                    >
+                      🩺 Registrar atendimento
                     </button>
                     <a
                       href={generateAppointmentReminderLink(item.patient, item)}
