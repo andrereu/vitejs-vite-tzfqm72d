@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { formatDateDisplay, formatDateBR, calculateWeeksAndDays } from './formatters';
+import { formatDateDisplay, formatDateBR, calculateWeeksAndDays, formatarHorarioResumo } from './formatters';
 
 describe('formatDateDisplay', () => {
   it('retorna vazio quando não há data', () => {
@@ -57,5 +57,26 @@ describe('calculateWeeksAndDays', () => {
 
   it('nunca retorna semanas negativas quando a DUM está no futuro', () => {
     expect(calculateWeeksAndDays('2026-12-25')).toEqual({ weeks: 0, days: 0 });
+  });
+});
+
+describe('formatarHorarioResumo', () => {
+  it('usa o horário quando ele já está definido', () => {
+    expect(formatarHorarioResumo('09:30')).toBe(' às 09:30');
+  });
+
+  it('usa o horário mesmo quando periodoPreferido também existe (horário real tem prioridade)', () => {
+    expect(formatarHorarioResumo('09:30', 'tarde')).toBe(' às 09:30');
+  });
+
+  it('sem horário, mas com periodoPreferido, mostra o período (não quebra)', () => {
+    expect(formatarHorarioResumo('', 'manha')).toBe(' · Manhã');
+    expect(formatarHorarioResumo('', 'tarde')).toBe(' · Tarde');
+    expect(formatarHorarioResumo('', 'final_do_dia')).toBe(' · Final do dia');
+  });
+
+  it('sem horário e sem periodoPreferido, não mostra "às" vazio', () => {
+    expect(formatarHorarioResumo('')).toBe('');
+    expect(formatarHorarioResumo('', undefined)).toBe('');
   });
 });

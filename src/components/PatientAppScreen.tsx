@@ -15,6 +15,7 @@ import { PatientAuditLog } from './PatientAuditLog';
 import { GestationTimeline } from './GestationTimeline';
 import { criarMarcoPersonalizado } from '../utils/gestationTimeline';
 import { formatDateDisplay, formatDateBR } from '../utils/formatters';
+import { compararAgendamentos } from '../utils/agendaScheduling';
 import { generateAppointmentReminderLink, generateConsultationSummaryLink, sharePatientCard, cleanPhoneNumber } from '../utils/whatsapp';
 import { downloadPatientData } from '../utils/dataExport';
 import { hasPermission } from '../utils/rbac';
@@ -809,7 +810,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {currentPatient.agendaConsultas.map((item) => (
+                  {[...currentPatient.agendaConsultas].sort(compararAgendamentos).map((item) => (
                     <div key={item.id} className="p-5 bg-gray-50 rounded-2xl border border-gray-200 space-y-2 relative">
                       <div className="flex justify-between items-start">
                         <div className="flex flex-wrap items-center gap-1.5">

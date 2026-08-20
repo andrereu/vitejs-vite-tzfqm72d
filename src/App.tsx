@@ -31,6 +31,7 @@ import { usePatients } from './hooks/usePatients';
 import { useSecretaries } from './hooks/useSecretaries';
 import { useBlockedSlots } from './hooks/useBlockedSlots';
 import { encontrarBloqueioConflitante, mensagemBloqueioAgenda } from './utils/agendaScheduling';
+import { selecionarProximaConsulta } from './utils/nextAppointment';
 import { useAuthSession } from './hooks/useAuthSession';
 import { useBrandTheme } from './hooks/useBrandTheme';
 import { LISTA_EXAMES_OFICIAIS } from './constants/examesList';
@@ -279,13 +280,15 @@ export default function App() {
 
   const currentGest = calculateWeeksAndDays(currentPatient.dum);
 
-  const nextAppointment = useMemo(() => {
-    if (!currentPatient.agendaConsultas || currentPatient.agendaConsultas.length === 0) return null;
-    const sorted = [...currentPatient.agendaConsultas]
-      .filter((a) => a.status !== 'cancelada')
-      .sort((a, b) => new Date(`${a.data}T${a.horario}`).getTime() - new Date(`${b.data}T${b.horario}`).getTime());
-    return sorted[0] || null;
-  }, [currentPatient.agendaConsultas]);
+  // Só confirmada/encaixe_urgente contam como "próxima consulta" — mesma
+  // regra já usada pra checar conflito de agenda (Fase 2D-D1) e a mesma
+  // ordenação central da Agenda (compararAgendamentos), em vez do sort
+  // próprio que existia aqui antes (que quebrava com horario vazio numa
+  // solicitação ainda não confirmada).
+  const nextAppointment = useMemo(
+    () => selecionarProximaConsulta(currentPatient.agendaConsultas),
+    [currentPatient.agendaConsultas]
+  );
 
   const bmiInfo = useMemo(() => {
     const p0 = parseFloat(currentPatient.pesoInicial) || 60;

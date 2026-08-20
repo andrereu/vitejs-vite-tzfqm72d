@@ -29,6 +29,26 @@ export const getLocalDateString = (date: Date = new Date()): string => {
   return `${ano}-${mes}-${dia}`;
 };
 
+// Rótulo curto de período preferido — só pra listas compactas de agenda
+// (ex: painel "Solicitações Pendentes"), não o texto completo usado no
+// formulário de solicitação (RequestAppointmentModal).
+const LABEL_PERIODO_CURTO: Record<'manha' | 'tarde' | 'final_do_dia', string> = {
+  manha: 'Manhã',
+  tarde: 'Tarde',
+  final_do_dia: 'Final do dia'
+};
+
+// Resumo de "quando" uma consulta/solicitação é, pra listas compactas: HH:mm
+// já confirmado, se existir; senão o período que a paciente preferiu, se ela
+// indicou um; senão nada — nunca um "às" pendurado no vazio. Devolve já com
+// o separador (" às HH:mm" / " · Manhã"), pronto pra concatenar depois da
+// data formatada.
+export const formatarHorarioResumo = (horario: string, periodoPreferido?: 'manha' | 'tarde' | 'final_do_dia'): string => {
+  if (horario) return ` às ${horario}`;
+  if (periodoPreferido) return ` · ${LABEL_PERIODO_CURTO[periodoPreferido]}`;
+  return '';
+};
+
 export const calculateWeeksAndDays = (dumStr: string) => {
   if (!dumStr) return { weeks: 0, days: 0 };
   const dum = new Date(dumStr);

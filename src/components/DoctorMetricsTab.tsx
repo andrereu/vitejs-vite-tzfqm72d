@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Users, Clock, CalendarCheck, Wallet, ShieldAlert } from 'lucide-react';
 import type { Patient } from '../types/prenatal';
-import { calculateWeeksAndDays, formatDateBR } from '../utils/formatters';
+import { calculateWeeksAndDays, formatDateBR, formatarHorarioResumo } from '../utils/formatters';
 
 interface DoctorMetricsTabProps {
   patients: Patient[];
@@ -26,7 +26,7 @@ export const DoctorMetricsTab: React.FC<DoctorMetricsTabProps> = ({ patients, on
     const mesAtual = now.getMonth();
     const anoAtual = now.getFullYear();
 
-    let aguardandoConfirmacao: { patientId: string; nome: string; data: string; horario: string }[] = [];
+    let aguardandoConfirmacao: { patientId: string; nome: string; data: string; horario: string; periodoPreferido?: 'manha' | 'tarde' | 'final_do_dia' }[] = [];
     let solicitacoesExclusao: { patientId: string; nome: string; em: string }[] = [];
     let proximos7Dias = 0;
     let receitaMes = 0;
@@ -45,7 +45,7 @@ export const DoctorMetricsTab: React.FC<DoctorMetricsTabProps> = ({ patients, on
       for (const ag of p.agendaConsultas || []) {
         const dataAg = new Date(ag.data);
         if (ag.status === 'solicitada') {
-          aguardandoConfirmacao.push({ patientId: p.id, nome: p.nome, data: ag.data, horario: ag.horario });
+          aguardandoConfirmacao.push({ patientId: p.id, nome: p.nome, data: ag.data, horario: ag.horario, periodoPreferido: ag.periodoPreferido });
         }
         if ((ag.status === 'confirmada' || ag.status === 'encaixe_urgente') && dataAg >= now && dataAg <= in7Days) {
           proximos7Dias++;
@@ -167,7 +167,7 @@ export const DoctorMetricsTab: React.FC<DoctorMetricsTabProps> = ({ patients, on
                 >
                   <span className="text-xs font-bold text-gray-800">{item.nome}</span>
                   <span className="text-[11px] text-amber-800 font-bold tabular-nums">
-                    {formatDateBR(item.data)} às {item.horario}
+                    {formatDateBR(item.data)}{formatarHorarioResumo(item.horario, item.periodoPreferido)}
                   </span>
                 </button>
               ))}
