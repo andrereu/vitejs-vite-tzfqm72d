@@ -27,6 +27,11 @@ export interface ConsultaEvolucao {
   bcfMf: string;
   edema: string;
   conduta: string;
+  // Campos da D2 (Registro de Atendimento Clínico) — opcionais pra não exigir
+  // migração de registros antigos, que continuam sendo exibidos normalmente
+  // sem esses dados.
+  queixas?: string;
+  diagnostico?: string; // CID / Diagnóstico
   // Vínculo opcional com a AgendaConsulta que originou este registro —
   // só existe quando o formulário foi aberto a partir da Agenda ("Registrar
   // atendimento"). Registros do fluxo antigo ("Registrar Nova Consulta" no

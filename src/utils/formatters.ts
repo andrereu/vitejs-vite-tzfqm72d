@@ -49,11 +49,17 @@ export const formatarHorarioResumo = (horario: string, periodoPreferido?: 'manha
   return '';
 };
 
-export const calculateWeeksAndDays = (dumStr: string) => {
+// Segundo parâmetro opcional (YYYY-MM-DD) — IG numa data específica em vez de
+// "hoje" (ex: a data de um atendimento passado/futuro). Parseado do mesmo
+// jeito que a DUM (new Date de uma string "YYYY-MM-DD", sem hora), então a
+// subtração entre as duas datas nunca sofre o problema de fuso que
+// toISOString() causaria. Omitido, o comportamento é idêntico ao de sempre
+// (IG de hoje).
+export const calculateWeeksAndDays = (dumStr: string, referenceDateStr?: string) => {
   if (!dumStr) return { weeks: 0, days: 0 };
   const dum = new Date(dumStr);
-  const today = new Date();
-  const diffDays = Math.floor(Math.max(0, today.getTime() - dum.getTime()) / (1000 * 60 * 60 * 24));
+  const referencia = referenceDateStr ? new Date(referenceDateStr) : new Date();
+  const diffDays = Math.floor(Math.max(0, referencia.getTime() - dum.getTime()) / (1000 * 60 * 60 * 24));
   return { weeks: Math.floor(diffDays / 7), days: diffDays % 7 };
 };
 

@@ -63,6 +63,13 @@ interface AppModalsProps {
   // atendimento") — identifica de qual paciente/consulta se trata, sem
   // mudar o formulário em si.
   consultaAgendaContexto: { pacienteNome: string; data: string; horario?: string } | null;
+  // true quando o modal está corrigindo uma evolução já existente (mesmo
+  // id) em vez de registrar uma nova — só muda textos (título, botão), o
+  // formulário é o mesmo.
+  isEditingConsulta: boolean;
+  // IG calculada automaticamente (DUM da paciente × campo "Data" do
+  // formulário) — recalculada a cada mudança de data, só pra exibição.
+  igAutomatica: { weeks: number; days: number };
   onCancelarConsulta: () => void;
   
   // New Patient Modal
@@ -696,33 +703,71 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
       )}
 
 
-      {/* MODAL ADICIONAR CONSULTA */}
+      {/* MODAL REGISTRAR ATENDIMENTO — mesmo formulário serve pra registrar
+          um atendimento novo e pra editar um já existente (props.isEditingConsulta
+          só muda os textos), e serve tanto o fluxo do prontuário (Evolução /
+          Atendimento, Gráfico GPG) quanto o atalho "🩺 Registrar atendimento"
+          da Agenda (props.consultaAgendaContexto). */}
       {props.showAddConsultaModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 print:hidden">
-          <div className="bg-white p-6 rounded-3xl max-w-sm w-full space-y-3">
-            <div>
-              <h3 className="font-bold text-gray-900 text-base">Registrar Nova Consulta</h3>
-              {props.consultaAgendaContexto && (
+          <div className="bg-white p-6 rounded-3xl max-w-md w-full max-h-[85vh] overflow-y-auto space-y-4">
+            <div className="border-b border-gray-100 pb-3">
+              <h3 className="font-bold text-gray-900 text-base">
+                {props.isEditingConsulta ? 'Editar Atendimento' : 'Registrar Atendimento'}
+              </h3>
+              {props.consultaAgendaContexto ? (
                 <p className="text-[11px] text-gray-500">
                   {props.consultaAgendaContexto.pacienteNome} · {formatDateBR(props.consultaAgendaContexto.data)}
                   {props.consultaAgendaContexto.horario ? ` · ${props.consultaAgendaContexto.horario}` : ''}
                 </p>
+              ) : (
+                <p className="text-[11px] text-gray-500">
+                  {props.isEditingConsulta ? 'Corrigindo um registro já salvo.' : 'Registro clínico completo da consulta.'}
+                </p>
               )}
             </div>
-            <input type="date" value={props.newConsulta.data} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, data: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-            <div className="grid grid-cols-2 gap-2">
-              <input type="number" placeholder="Semanas (IG)" value={props.newConsulta.igSem} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, igSem: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-              <input type="text" placeholder="Peso (kg)" value={props.newConsulta.peso} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, peso: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-gray-400 block uppercase">Identificação do Atendimento</label>
+              <input type="date" value={props.newConsulta.data} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, data: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+              <div className="grid grid-cols-2 gap-2">
+                <input type="number" placeholder="IG (semanas)" value={props.newConsulta.igSem} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, igSem: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+                <div className="flex items-center px-2.5 bg-gray-50 border rounded-xl text-[11px] text-gray-500">
+                  Calculada: {props.igAutomatica.weeks}sem + {props.igAutomatica.days}d
+                </div>
+              </div>
+              <p className="text-[10px] text-gray-400">IG calculada automaticamente pela DUM na data acima — ajuste o campo se precisar de outra referência (ex: data de USG).</p>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <input type="text" placeholder="P.A." value={props.newConsulta.pa} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, pa: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-              <input type="text" placeholder="A.U." value={props.newConsulta.au} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, au: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-gray-400 block uppercase">Avaliação Clínica</label>
+              <div className="grid grid-cols-2 gap-2">
+                <input type="text" placeholder="Peso (kg)" value={props.newConsulta.peso} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, peso: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+                <input type="text" placeholder="P.A." value={props.newConsulta.pa} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, pa: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <input type="text" placeholder="A.U." value={props.newConsulta.au} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, au: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+                <input type="text" placeholder="Edema MMII" value={props.newConsulta.edema} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, edema: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+              </div>
+              <input type="text" placeholder="BCF / Mov. Fetal" value={props.newConsulta.bcfMf} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, bcfMf: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+              <textarea placeholder="Queixas" value={props.newConsulta.queixas} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, queixas: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl h-14" />
             </div>
-            <input type="text" placeholder="BCF / Mov. Fetal" value={props.newConsulta.bcfMf} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, bcfMf: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
-            <textarea placeholder="Conduta / Recomendações" value={props.newConsulta.conduta} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, conduta: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl h-20" />
-            <div className="flex justify-end gap-2 pt-2">
-              <button onClick={props.onCancelarConsulta} className="px-3 py-1.5 text-xs text-gray-500">Cancelar</button>
-              <button onClick={props.handleAddConsulta} className="px-4 py-1.5 bg-[var(--brand-primary)] text-white font-bold text-xs rounded-xl">Salvar Registro</button>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-gray-400 block uppercase">Diagnóstico</label>
+              <input type="text" placeholder="CID / Diagnóstico" value={props.newConsulta.diagnostico} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, diagnostico: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-gray-400 block uppercase">Conduta</label>
+              <textarea placeholder="Conduta / Recomendações" value={props.newConsulta.conduta} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, conduta: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl h-20" />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+              <button onClick={props.onCancelarConsulta} className="px-3 py-1.5 text-xs text-gray-500 cursor-pointer">Cancelar</button>
+              <button onClick={props.handleAddConsulta} className="px-4 py-1.5 bg-[var(--brand-primary)] text-white font-bold text-xs rounded-xl cursor-pointer">
+                {props.isEditingConsulta ? 'Salvar Alterações' : 'Salvar Registro'}
+              </button>
             </div>
           </div>
         </div>

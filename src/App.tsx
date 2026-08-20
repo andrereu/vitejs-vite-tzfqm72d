@@ -109,6 +109,12 @@ export default function App() {
   // (Gráfico GPG → "Registrar Nova Consulta"), garantindo que registros
   // desse caminho continuam saindo sem agendaConsultaId, como antes.
   const [consultaAgendaVinculada, setConsultaAgendaVinculada] = useState<{ app: AgendaConsulta; pat: Patient } | null>(null);
+  // D2: id da ConsultaEvolucao em edição — null enquanto o modal está
+  // registrando um atendimento novo. Guardar só o id (não o registro
+  // inteiro) porque handleAddConsulta já resolve pacienteAlvo/consultas
+  // atualizadas a partir de `patients`, evitando salvar em cima de uma cópia
+  // desatualizada do registro.
+  const [editingConsultaId, setEditingConsultaId] = useState<string | null>(null);
   const [showUploadExamModal, setShowUploadExamModal] = useState(false);
   const [showNewPatientModal, setShowNewPatientModal] = useState(false);
   const [showEditExamesModal, setShowEditExamesModal] = useState(false);
@@ -150,7 +156,8 @@ export default function App() {
 
   const [newConsulta, setNewConsulta] = useState({
     data: new Date().toISOString().split('T')[0],
-    igSem: '', peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente', conduta: ''
+    igSem: '', peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente',
+    queixas: '', diagnostico: '', conduta: ''
   });
 
   useEffect(() => {
@@ -535,48 +542,103 @@ export default function App() {
     e.preventDefault();
     // Aberto pela Agenda → grava no prontuário da paciente daquela consulta
     // específica (não necessariamente a "selecionada" globalmente). Aberto
-    // pelo fluxo antigo (Gráfico GPG) → continua usando currentPatient, como
-    // sempre foi.
+    // pelo fluxo do prontuário (novo ou edição) → sempre currentPatient,
+    // como sempre foi.
     const pacienteAlvo = consultaAgendaVinculada?.pat ?? currentPatient;
-    const sem = parseInt(newConsulta.igSem) || calculateWeeksAndDays(pacienteAlvo.dum).weeks;
+    const sem = parseInt(newConsulta.igSem) || calculateWeeksAndDays(pacienteAlvo.dum, newConsulta.data).weeks;
     const pesoVal = parseFloat(newConsulta.peso) || parseFloat(pacienteAlvo.pesoInicial);
 
-    const updatedConsultas = [
-      ...pacienteAlvo.consultasEvolucao,
-      {
-        id: `c-${Date.now()}`,
-        data: newConsulta.data,
-        igSem: sem,
-        peso: pesoVal,
-        pa: newConsulta.pa,
-        au: newConsulta.au,
-        bcfMf: newConsulta.bcfMf,
-        edema: newConsulta.edema,
-        conduta: newConsulta.conduta,
-        // Só existe quando o modal foi aberto a partir da Agenda — o fluxo
-        // antigo nunca seta consultaAgendaVinculada, então nunca inclui essa
-        // chave (sem alterar o formato de registros já existentes).
-        ...(consultaAgendaVinculada ? { agendaConsultaId: consultaAgendaVinculada.app.id } : {})
-      }
-    ].sort((a, b) => a.igSem - b.igSem);
+    const dadosClinicos = {
+      data: newConsulta.data,
+      igSem: sem,
+      peso: pesoVal,
+      pa: newConsulta.pa,
+      au: newConsulta.au,
+      bcfMf: newConsulta.bcfMf,
+      edema: newConsulta.edema,
+      queixas: newConsulta.queixas,
+      diagnostico: newConsulta.diagnostico,
+      conduta: newConsulta.conduta
+    };
+
+    // Edição: mesmo id, mesmo agendaConsultaId original (se existir) — só os
+    // campos clínicos são substituídos. Nunca cria um registro novo aqui.
+    const updatedConsultas = (editingConsultaId
+      ? pacienteAlvo.consultasEvolucao.map((c) => (c.id === editingConsultaId ? { ...c, ...dadosClinicos } : c))
+      : [
+          ...pacienteAlvo.consultasEvolucao,
+          {
+            id: `c-${Date.now()}`,
+            ...dadosClinicos,
+            // Só existe quando o modal foi aberto a partir da Agenda — o
+            // fluxo do prontuário nunca seta consultaAgendaVinculada, então
+            // nunca inclui essa chave (sem alterar o formato de registros já
+            // existentes).
+            ...(consultaAgendaVinculada ? { agendaConsultaId: consultaAgendaVinculada.app.id } : {})
+          }
+        ]
+    ).sort((a, b) => a.igSem - b.igSem);
 
     const updated: Patient = { ...pacienteAlvo, consultasEvolucao: updatedConsultas };
     saveToFirestore(patients.map(p => p.id === updated.id ? updated : p));
     setShowAddConsultaModal(false);
     setConsultaAgendaVinculada(null);
+    setEditingConsultaId(null);
   };
 
   // Ponto de entrada "🩺 Registrar atendimento" na Agenda — abre o MESMO
-  // modal de sempre ("Registrar Nova Consulta"), só pré-preenchendo a data
-  // da AgendaConsulta selecionada e guardando o vínculo pra
-  // handleAddConsulta gravar o agendaConsultaId. Não muda status da
-  // AgendaConsulta, não muda selectedPatientId, não navega de tela.
+  // modal de sempre ("Registrar Atendimento"), só pré-preenchendo a data da
+  // AgendaConsulta selecionada (e a IG já calculada pra essa data) e
+  // guardando o vínculo pra handleAddConsulta gravar o agendaConsultaId. Não
+  // muda status da AgendaConsulta, não muda selectedPatientId, não navega de
+  // tela.
   const handleAbrirRegistroAtendimento = (app: AgendaConsulta, pat: Patient) => {
+    const igNaData = calculateWeeksAndDays(pat.dum, app.data).weeks;
     setNewConsulta({
       data: app.data,
-      igSem: '', peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente', conduta: ''
+      igSem: igNaData ? String(igNaData) : '', peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente',
+      queixas: '', diagnostico: '', conduta: ''
     });
     setConsultaAgendaVinculada({ app, pat });
+    setEditingConsultaId(null);
+    setShowAddConsultaModal(true);
+  };
+
+  // Ponto de entrada "+ Registrar Atendimento" dentro do prontuário (aba
+  // Evolução / Atendimento e Gráfico GPG) — mesmo modal, sem vínculo com
+  // nenhuma AgendaConsulta. IG pré-calculada a partir da DUM de
+  // currentPatient pra hoje.
+  const handleAbrirNovaEvolucao = () => {
+    const hoje = getLocalDateString();
+    const igHoje = calculateWeeksAndDays(currentPatient.dum, hoje).weeks;
+    setNewConsulta({
+      data: hoje,
+      igSem: igHoje ? String(igHoje) : '', peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente',
+      queixas: '', diagnostico: '', conduta: ''
+    });
+    setConsultaAgendaVinculada(null);
+    setEditingConsultaId(null);
+    setShowAddConsultaModal(true);
+  };
+
+  // "Editar" numa evolução já registrada — mesmo modal, carregado com os
+  // dados existentes. agendaConsultaId do registro original é preservado
+  // automaticamente (handleAddConsulta só sobrescreve os campos clínicos).
+  const handleEditarEvolucao = (consulta: Patient['consultasEvolucao'][number]) => {
+    setNewConsulta({
+      data: consulta.data,
+      igSem: String(consulta.igSem),
+      peso: String(consulta.peso),
+      pa: consulta.pa,
+      au: consulta.au,
+      bcfMf: consulta.bcfMf,
+      edema: consulta.edema,
+      queixas: consulta.queixas || '',
+      diagnostico: consulta.diagnostico || '',
+      conduta: consulta.conduta
+    });
+    setConsultaAgendaVinculada(null);
+    setEditingConsultaId(consulta.id);
     setShowAddConsultaModal(true);
   };
 
@@ -819,7 +881,8 @@ export default function App() {
             setEditExamesData={setEditExamesData}
             setShowEditExamesModal={setShowEditExamesModal}
             setSelectedAppointmentForConfirm={setSelectedAppointmentForConfirm}
-            setShowAddConsultaModal={setShowAddConsultaModal}
+            onAbrirNovaEvolucao={handleAbrirNovaEvolucao}
+            onEditarEvolucao={handleEditarEvolucao}
             handleCalculateUsg={handleCalculateUsg}
             calcUsgData={calcUsgData}
             setCalcUsgData={setCalcUsgData}
@@ -863,7 +926,8 @@ export default function App() {
             setEditExamesData={setEditExamesData}
             setShowEditExamesModal={setShowEditExamesModal}
             setSelectedAppointmentForConfirm={setSelectedAppointmentForConfirm}
-            setShowAddConsultaModal={setShowAddConsultaModal}
+            onAbrirNovaEvolucao={handleAbrirNovaEvolucao}
+            onEditarEvolucao={handleEditarEvolucao}
             handleCalculateUsg={handleCalculateUsg}
             calcUsgData={calcUsgData}
             setCalcUsgData={setCalcUsgData}
@@ -1010,7 +1074,9 @@ export default function App() {
           data: consultaAgendaVinculada.app.data,
           horario: consultaAgendaVinculada.app.horario
         } : null}
-        onCancelarConsulta={() => { setShowAddConsultaModal(false); setConsultaAgendaVinculada(null); }}
+        isEditingConsulta={!!editingConsultaId}
+        igAutomatica={calculateWeeksAndDays((consultaAgendaVinculada?.pat ?? currentPatient).dum, newConsulta.data)}
+        onCancelarConsulta={() => { setShowAddConsultaModal(false); setConsultaAgendaVinculada(null); setEditingConsultaId(null); }}
         showNewPatientModal={showNewPatientModal}
         setShowNewPatientModal={setShowNewPatientModal}
         newPatient={newPatient}

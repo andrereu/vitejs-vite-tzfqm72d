@@ -6,7 +6,7 @@ import {
   LayoutDashboard, History, CreditCard, ClipboardList, BarChart3, FolderOpen, LayoutGrid, X,
   ChevronRight
 } from 'lucide-react';
-import type { Patient, AgendaConsulta, MarcoPersonalizado, UserRole } from '../types/prenatal';
+import type { Patient, AgendaConsulta, ConsultaEvolucao, MarcoPersonalizado, UserRole } from '../types/prenatal';
 import type { DoctorTenant } from '../types/saas';
 import { PatientHome } from './PatientHome';
 import { PatientFinancialTab } from './PatientFinancialTab';
@@ -44,7 +44,10 @@ interface PatientAppScreenProps {
   setEditExamesData: (data: any) => void;
   setShowEditExamesModal: (v: boolean) => void;
   setSelectedAppointmentForConfirm: (v: { app: AgendaConsulta; pat: Patient } | null) => void;
-  setShowAddConsultaModal: (v: boolean) => void;
+  // D2: abre o modal de Registrar Atendimento pelo prontuário — novo
+  // (sem vínculo de Agenda) ou editando um registro já existente.
+  onAbrirNovaEvolucao: () => void;
+  onEditarEvolucao: (consulta: ConsultaEvolucao) => void;
   handleCalculateUsg: (e: React.FormEvent) => void;
   calcUsgData: string;
   setCalcUsgData: (v: string) => void;
@@ -80,7 +83,8 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
   setEditExamesData,
   setShowEditExamesModal,
   setSelectedAppointmentForConfirm,
-  setShowAddConsultaModal,
+  onAbrirNovaEvolucao,
+  onEditarEvolucao,
   handleCalculateUsg,
   calcUsgData,
   setCalcUsgData,
@@ -213,7 +217,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
       label: 'Prontuário Clínico',
       items: [
         { id: 'dados', label: 'Dados Clínicos & GPCA', desc: 'Anamnese e histórico obstétrico', icon: ClipboardList, tint: 'bg-indigo-50 text-indigo-600', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
-        { id: 'consultas', label: 'Evolução Clínica', desc: 'Registro das consultas realizadas', icon: Activity, tint: 'bg-teal-50 text-teal-600', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
+        { id: 'consultas', label: 'Evolução / Atendimento', desc: 'Registrar e consultar os atendimentos realizados', icon: Activity, tint: 'bg-teal-50 text-teal-600', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
         { id: 'vacinas', label: 'Vacinas', desc: 'Carteira de vacinação e pendências', icon: Syringe, tint: 'bg-rose-50 text-rose-600', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
         { id: 'graficos', label: 'Gráfico GPG (MS)', desc: 'Curva de ganho de peso gestacional', icon: BarChart3, tint: 'bg-amber-50 text-amber-600', allowed: hasPermission(userRole, 'canViewClinicalHistory') },
       ]
@@ -869,8 +873,8 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                   <p className="text-xs text-gray-500">Padrão da Caderneta de Saúde da Gestante (MS / Atalah)</p>
                 </div>
                 {userRole === 'medica' && (
-                  <button onClick={() => setShowAddConsultaModal(true)} className="bg-[var(--brand-primary)] text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs cursor-pointer">
-                    + Registrar Peso na Consulta
+                  <button onClick={onAbrirNovaEvolucao} className="bg-[var(--brand-primary)] text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs cursor-pointer">
+                    + Registrar Atendimento
                   </button>
                 )}
               </div>
@@ -974,7 +978,14 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
           {/* TAB CONSULTAS */}
           {activeTab === 'consultas' && hasPermission(userRole, 'canViewClinicalHistory') && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4 print:hidden">
-              <h3 className="font-bold text-gray-900 text-base border-b pb-3">Evolução das Consultas</h3>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-3 gap-3">
+                <h3 className="font-bold text-gray-900 text-base">Evolução / Atendimento</h3>
+                {userRole === 'medica' && (
+                  <button onClick={onAbrirNovaEvolucao} className="bg-[var(--brand-primary)] text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1">
+                    <Plus className="w-3.5 h-3.5" /> Registrar Atendimento
+                  </button>
+                )}
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-gray-50 border-b">
@@ -1001,15 +1012,25 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                         <td className="p-2.5 text-gray-600">{c.conduta}</td>
                         {userRole === 'medica' && (
                           <td className="p-2.5 text-center">
-                            <a
-                              href={generateConsultationSummaryLink(currentPatient, c)}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-bold"
-                              title="Enviar resumo desta consulta para o WhatsApp da gestante"
-                            >
-                              <Send className="w-3 h-3" /> Zap
-                            </a>
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => onEditarEvolucao(c)}
+                                className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-[10px] font-bold cursor-pointer"
+                                title="Editar este registro"
+                              >
+                                <Edit3 className="w-3 h-3" /> Editar
+                              </button>
+                              <a
+                                href={generateConsultationSummaryLink(currentPatient, c)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-bold"
+                                title="Enviar resumo desta consulta para o WhatsApp da gestante"
+                              >
+                                <Send className="w-3 h-3" /> Zap
+                              </a>
+                            </div>
                           </td>
                         )}
                       </tr>
