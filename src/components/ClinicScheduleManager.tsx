@@ -10,6 +10,8 @@ import { TodayAgenda } from './agenda/TodayAgenda';
 import { UpcomingDays } from './agenda/UpcomingDays';
 import { CalendarView, type DiaCalendario } from './agenda/CalendarView';
 import { AppointmentHistory } from './agenda/AppointmentHistory';
+import { AppointmentReminders } from './agenda/AppointmentReminders';
+import { selecionarConsultasParaLembrete, marcarLembreteComoEnviado } from '../utils/agendaReminders';
 
 const DIAS_SEMANA_ABREV = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -20,6 +22,7 @@ interface ClinicScheduleManagerProps {
   blockedSlots: HorarioBloqueado[];
   onAddBlockedSlot: (slot: HorarioBloqueado) => Promise<void>;
   onRemoveBlockedSlot: (id: string) => Promise<void>;
+  saveToFirestore: (updatedList: Patient[]) => Promise<void>;
 }
 
 export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
@@ -29,6 +32,7 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
   blockedSlots,
   onAddBlockedSlot,
   onRemoveBlockedSlot,
+  saveToFirestore,
 }) => {
   const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
   const [selectedDateFilter, setSelectedDateFilter] = useState<string>('');
@@ -163,6 +167,21 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
   // allAppointments (compararAgendamentos), não recalculada aqui.
   const historico = allAppointments.filter((a) => a.status === 'realizada' || a.status === 'cancelada');
 
+  // ESTADO DE LEMBRETES — "Amanhã" já é proximosDias[0].data (nenhum
+  // cálculo de data novo). selecionarConsultasParaLembrete é a mesma
+  // função usada pela aba 🔔 Lembretes do Dia (DoctorRemindersTab): uma
+  // única fonte/regra, dois caminhos de entrada (clicar em "Amanhã" aqui
+  // ou abrir a aba). Selecionar esse dia entra no estado de lembretes em
+  // vez de cair em "Outras Consultas", pra não mostrar a mesma consulta
+  // duas vezes na tela.
+  const amanha = proximosDias[0].data;
+  const consultasParaLembreteAmanha = selecionarConsultasParaLembrete(patients, amanha);
+  const estadoLembretes = selectedDateFilter === amanha;
+
+  const handleEnviarLembrete = (patientId: string, agendaId: string) => {
+    saveToFirestore(marcarLembreteComoEnviado(patients, patientId, agendaId));
+  };
+
   return (
     <div className="space-y-6">
       
@@ -226,6 +245,13 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
         onSelecionarDia={(data) => setSelectedDateFilter((atual) => (atual === data ? '' : data))}
       />
 
+      {/* ESTADO DE LEMBRETES — só aparece quando "Amanhã" está selecionado
+          em Próximos Dias (ou vindo da aba 🔔 Lembretes do Dia); mesma
+          lista/regra da aba, não uma segunda implementação. */}
+      {estadoLembretes && (
+        <AppointmentReminders data={amanha} itens={consultasParaLembreteAmanha} onEnviar={handleEnviarLembrete} />
+      )}
+
       {/* 1. CALENDÁRIO MENSAL */}
       <CalendarView
         mesLabel={`${monthNames[month]} de ${year}`}
@@ -243,7 +269,11 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
           coberta por Hoje/Próximos Dias: pendente de registro (passado sem
           baixa) e futuro além dos próximos 7 dias. Selecionar um dia no
           calendário/Próximos Dias continua filtrando pra aquele dia
-          especificamente, com as mesmas ações de sempre. */}
+          especificamente, com as mesmas ações de sempre. Some quando o dia
+          selecionado é "amanhã" — nesse caso o estado de lembretes acima já
+          mostra essas mesmas consultas, com ações mais específicas
+          (enviar/reenviar lembrete), sem precisar repetir a lista aqui. */}
+      {!estadoLembretes && (
       <div className="bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden">
         <div className="p-4 border-b bg-gray-50 flex justify-between items-center gap-3 flex-wrap">
           <div>
@@ -317,6 +347,7 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
           </div>
         )}
       </div>
+      )}
 
       {/* 3. HISTÓRICO */}
       <AppointmentHistory itens={historico} onGerenciar={onOpenConfirmModal} />

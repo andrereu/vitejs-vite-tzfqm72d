@@ -229,6 +229,7 @@ export const DoctorPanelScreen: React.FC<DoctorPanelScreenProps> = ({
           onAddBlockedSlot={onAddBlockedSlot}
           onRemoveBlockedSlot={onRemoveBlockedSlot}
           onOpenConfirmModal={onOpenConfirmModal}
+          saveToFirestore={saveToFirestore}
           onQuickStatusChange={async (patientId, appointmentId, newStatus) => {
             const targetPat = patients.find((p) => p.id === patientId);
             if (!targetPat) return;
