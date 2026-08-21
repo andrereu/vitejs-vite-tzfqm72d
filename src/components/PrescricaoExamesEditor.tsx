@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import type { ItemPrescricao, ItemExameSolicitado, TipoExameSolicitado } from '../types/prenatal';
 import { LISTA_EXAMES_OFICIAIS } from '../constants/examesList';
+import { ExamAutocomplete } from './ExamAutocomplete';
 
 interface PrescricaoExamesEditorProps {
   prescricoes: ItemPrescricao[];
@@ -103,18 +104,13 @@ export const PrescricaoExamesEditor: React.FC<PrescricaoExamesEditorProps> = ({
 
         {mostrarNovoExame ? (
           <div className="bg-white border rounded-xl p-2.5 space-y-1.5">
-            <input
-              type="text"
-              list="lista-exames-oficiais-solicitacao"
-              placeholder="Nome do exame (ex: Hemograma, Ecografia Obstétrica)"
+            <ExamAutocomplete
               value={nomeExame}
-              onChange={(e) => setNomeExame(e.target.value)}
-              className="w-full text-xs p-2 border rounded-lg"
+              onChange={setNomeExame}
+              lista={LISTA_EXAMES_OFICIAIS}
+              placeholder="Nome do exame (ex: Hemograma, Ecografia Obstétrica)"
               autoFocus
             />
-            <datalist id="lista-exames-oficiais-solicitacao">
-              {LISTA_EXAMES_OFICIAIS.map((ex) => <option key={ex.id} value={ex.label} />)}
-            </datalist>
             <select value={tipoExame} onChange={(e) => setTipoExame(e.target.value as TipoExameSolicitado)} className="w-full text-xs p-2 border rounded-lg bg-white">
               <option value="Laboratorial">Laboratorial</option>
               <option value="Ecografia">Ecografia / Imagem</option>

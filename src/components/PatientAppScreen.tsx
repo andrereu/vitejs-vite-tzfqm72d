@@ -12,6 +12,7 @@ import { PatientHome } from './PatientHome';
 import { PatientContextBar } from './PatientContextBar';
 import { ConsultaEvolucaoCard } from './ConsultaEvolucaoCard';
 import { DocumentoExameCard } from './DocumentoExameCard';
+import { GrupoExameLaboratorialCard } from './GrupoExameLaboratorialCard';
 import { PatientFinancialTab } from './PatientFinancialTab';
 import { PrenatalChatTab } from './PrenatalChatTab';
 import { PatientAuditLog } from './PatientAuditLog';
@@ -1277,15 +1278,12 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4 print:hidden">
               <div className="flex justify-between items-center border-b pb-3">
                 <div>
-                  <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
-                    Central de Laudos e Ecografias
-                    {/* UX-05: badge da IA discreto — a função principal é o exame,
-                        não o Gemini (seção 6 da fase). */}
-                    <span className="text-[10px] text-pink-500 font-medium flex items-center gap-1">
-                      ✨ IA Gemini
-                    </span>
-                  </h3>
-                  <p className="text-xs text-gray-500">Envie laudos: o Gemini extrai os dados e resume tudo para a mãe</p>
+                  <h3 className="font-bold text-gray-900 text-base">Central de Laudos e Ecografias</h3>
+                  {/* UX-05.1: a menção ao Gemini saiu daqui — a paciente não vê
+                      mais a análise de IA (seção 6 da fase), então prometer
+                      isso no subtítulo ficaria contraditório com o que a tela
+                      realmente mostra agora. */}
+                  <p className="text-xs text-gray-500">Envie laudos e ecografias para o prontuário</p>
                 </div>
                 {/* Ação principal ("+ Anexar Exame", preenchida) vs. secundária
                     ("Nova Solicitação", contorno) — já era essa a distinção, só
@@ -1309,7 +1307,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                   pedido", não "isto é resultado" (seção 3 da UX-05). */}
               {(currentPatient.solicitacoes || []).length > 0 ? (
                 <div className="space-y-2">
-                  <h4 className="text-[11px] font-bold text-gray-400 uppercase">Solicitações (ainda não é resultado)</h4>
+                  <h4 className="text-sm font-bold text-gray-800">Solicitações <span className="text-xs font-medium text-gray-400">(ainda não é resultado)</span></h4>
                   {[...(currentPatient.solicitacoes || [])].reverse().map((s) => (
                     <div key={s.id} className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs space-y-1">
                       <div className="flex justify-between items-center gap-2">
@@ -1331,25 +1329,19 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                 <p className="text-xs text-gray-400">Nenhuma solicitação realizada.</p>
               )}
 
-              {/* D2.3: laboratórios organizados por data, a partir da MESMA
-                  Tabela de Exames da aba "Exames Laboratoriais" (nenhum dado
-                  novo, só reorganizado por data em vez de por exame). */}
+              {/* UX-05.1: cada grupo de data virou um card expansível (fechado
+                  = data + contagem + resumo dos nomes; aberto = cada
+                  resultado em lista vertical) — a tabela sempre-expandida da
+                  UX-05 virava planilha no mobile com muitos exames. Mesmos
+                  dados de sempre (examesTabela), só reapresentados. */}
               {gruposExamesLaboratoriais.length > 0 ? (
                 <div className="space-y-2">
-                  <h4 className="text-[11px] font-bold text-gray-400 uppercase">Exames Laboratoriais</h4>
-                  {gruposExamesLaboratoriais.map((grupo) => (
-                    <div key={grupo.data} className="border border-gray-100 rounded-xl overflow-hidden">
-                      <div className="bg-gray-50 px-3 py-1.5 text-[11px] font-bold text-gray-600 border-b border-gray-100">{formatarDataAgrupador(grupo.data)}</div>
-                      <div className="divide-y divide-gray-100">
-                        {grupo.itens.map((item) => (
-                          <div key={item.exameId} className="flex justify-between items-center gap-2 px-3 py-2 text-xs">
-                            <span className="text-gray-500">{item.label}</span>
-                            <span className="font-bold text-gray-800 text-right">{item.resultado || '—'}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                  <h4 className="text-sm font-bold text-gray-800">Exames laboratoriais</h4>
+                  <div className="space-y-2">
+                    {gruposExamesLaboratoriais.map((grupo) => (
+                      <GrupoExameLaboratorialCard key={grupo.data} grupo={grupo} />
+                    ))}
+                  </div>
                 </div>
               ) : (
                 <p className="text-xs text-gray-400">Nenhum laboratório encontrado.</p>
@@ -1357,12 +1349,12 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
 
               {/* D2.3: ecografias/imagem organizadas por data — mesmo dado de
                   sempre (examesEnviados), só filtrado por tipo e com uma
-                  data de cabeçalho quando muda de dia. Laudo e análise
-                  Gemini continuam exatamente como já funcionavam, agora no
-                  card expansível DocumentoExameCard (UX-05). */}
+                  data de cabeçalho quando muda de dia. Card expansível
+                  DocumentoExameCard (UX-05) — a análise do Gemini não é mais
+                  exibida aqui (UX-05.1, seção 6). */}
               {ecografiasEnviadas.length > 0 ? (
                 <div className="space-y-2">
-                  <h4 className="text-[11px] font-bold text-gray-400 uppercase">Ecografias</h4>
+                  <h4 className="text-sm font-bold text-gray-800">Ecografias</h4>
                   {ecografiasEnviadas.map((ex, i) => (
                     <React.Fragment key={ex.id}>
                       {(i === 0 || ex.dataUpload !== ecografiasEnviadas[i - 1].dataUpload) && (
@@ -1378,7 +1370,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
 
               {outrosDocumentosAnexados.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-[11px] font-bold text-gray-400 uppercase">Outros Documentos Anexados</h4>
+                  <h4 className="text-sm font-bold text-gray-800">Outros documentos</h4>
                   {outrosDocumentosAnexados.map((ex) => <DocumentoExameCard key={ex.id} exame={ex} />)}
                 </div>
               )}

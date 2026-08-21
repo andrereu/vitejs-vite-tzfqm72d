@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { ChevronDown, Download, Sparkles } from 'lucide-react';
+import { ChevronDown, Download } from 'lucide-react';
+import { pareceNomeDeArquivo } from '../utils/examesOrganizacao';
+import { formatDateBR } from '../utils/formatters';
 
 interface DocumentoExameCardProps {
   exame: {
@@ -13,22 +15,30 @@ interface DocumentoExameCardProps {
   };
 }
 
-// Card expansível de um documento anexado (ecografia ou outro laudo) — UX-05.
-// Mesmo padrão de interação já estabelecido em ConsultaEvolucaoCard (UX-03):
-// fechado mostra só o essencial pra escanear (data + nome), expandido revela
-// o resto. Aqui a ordem de dentro segue a hierarquia pedida pela fase —
-// Documento (preview) → Análise da IA → Observação da médica — pra nunca
-// confundir o que o Gemini escreveu com o que a médica escreveu.
+// Card expansível de um documento anexado (ecografia ou outro laudo) — UX-05,
+// refinado na UX-05.1. Mesmo padrão de interação já estabelecido em
+// ConsultaEvolucaoCard (UX-03): fechado mostra só o essencial pra escanear
+// (data + nome), expandido revela o resto. Ordem de dentro: Documento
+// (preview) → Observação da Dra. — a análise do Gemini (resumoIA) não é mais
+// renderizada aqui (decisão de produto da UX-05.1: a paciente não deve ver
+// interpretação de IA, só o que a médica escreveu). O dado continua existindo
+// no objeto — só a apresentação deixou de mostrá-lo; nada foi apagado do
+// Firestore nem desligado no Gemini.
 //
 // Só apresentação: recebe o exame já pronto, não acessa Firestore, não
-// conhece upload/OCR/Gemini — resumoIA/notaDra são só texto que já veio
-// preenchido (ou não) no objeto.
+// conhece upload/OCR/Gemini — notaDra é só texto que já veio preenchido (ou
+// não) no objeto.
 export const DocumentoExameCard: React.FC<DocumentoExameCardProps> = ({ exame }) => {
   const [aberto, setAberto] = useState(false);
   const detalhesId = `documento-${exame.id}-detalhes`;
   const temPreview = Boolean(exame.fileData);
-  const temResumoIA = Boolean(exame.resumoIA?.trim());
   const temNotaDra = Boolean(exame.notaDra?.trim());
+  // UX-05.1 — `nome` às vezes é o título clínico digitado no upload, às
+  // vezes (quando ficou em branco) é o nome bruto do arquivo do celular —
+  // ver pareceNomeDeArquivo() pra não exibir esse segundo caso como se fosse
+  // o nome do exame.
+  const nomeEhArquivo = pareceNomeDeArquivo(exame.nome);
+  const tituloExibido = nomeEhArquivo ? (exame.tipo === 'Ecografia' ? 'Ecografia' : 'Documento') : exame.nome;
 
   return (
     <div className="border border-gray-200 rounded-2xl bg-white overflow-hidden">
@@ -40,8 +50,8 @@ export const DocumentoExameCard: React.FC<DocumentoExameCardProps> = ({ exame })
         className="w-full flex items-center justify-between gap-3 p-3.5 text-left cursor-pointer hover:bg-gray-50"
       >
         <div className="min-w-0">
-          <strong className="text-sm font-bold text-gray-900 block truncate">{exame.nome}</strong>
-          <span className="text-[10px] text-gray-500 uppercase font-bold">{exame.tipo} • {exame.dataUpload}</span>
+          <strong className="text-sm font-bold text-gray-900 block truncate">{tituloExibido}</strong>
+          <span className="text-[10px] text-gray-500 uppercase font-bold">{exame.tipo} • {formatDateBR(exame.dataUpload)}</span>
         </div>
         <ChevronDown
           className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${aberto ? 'rotate-180' : ''}`}
@@ -59,7 +69,6 @@ export const DocumentoExameCard: React.FC<DocumentoExameCardProps> = ({ exame })
                   <span className="text-xl">📄</span>
                   <div>
                     <strong className="text-gray-800 block font-bold">Documento em PDF</strong>
-                    <span className="text-[10px] text-gray-500">Arquivo processado pelo Gemini IA</span>
                   </div>
                 </div>
                 <a
@@ -78,17 +87,10 @@ export const DocumentoExameCard: React.FC<DocumentoExameCardProps> = ({ exame })
               />
             )
           )}
-
-          {/* ANÁLISE DA IA — secundária ao documento, nunca a primeira coisa que se lê */}
-          {temResumoIA && (
-            <div>
-              <span className="text-[10px] font-bold text-pink-500 uppercase flex items-center gap-1 mb-1">
-                <Sparkles className="w-3 h-3" /> Análise da IA
-              </span>
-              <div className="bg-pink-50/60 p-3 rounded-xl text-xs text-gray-700 whitespace-pre-line border border-pink-100">
-                {exame.resumoIA}
-              </div>
-            </div>
+          {/* Nome de arquivo original, área secundária — só quando o título
+              exibido acima já não é o próprio nome (seção 4 da UX-05.1) */}
+          {temPreview && nomeEhArquivo && (
+            <span className="text-[10px] text-gray-400 block -mt-1.5">Documento original: {exame.nome}</span>
           )}
 
           {/* OBSERVAÇÃO DA DRA. — identidade visual própria, sem ler como alerta */}

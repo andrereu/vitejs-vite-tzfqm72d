@@ -42,3 +42,20 @@ export function agruparExamesTabelaPorData(
     .map(([data, itens]) => ({ data, itens }))
     .sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : 0));
 }
+
+const EXTENSAO_ARQUIVO = /\.(pdf|jpe?g|png|webp|heic|dcm)$/i;
+
+// UX-05.1 — o campo `nome` de um documento enviado (examesEnviados) vem do
+// título que quem fez o upload digitou, OU (quando ela deixa em branco) cai
+// direto pro nome do arquivo do sistema operacional (App.tsx: `examName ||
+// selectedFile.name`) — por isso o mesmo campo às vezes é um nome clínico
+//("Ecografia Morfológica") e às vezes é algo como "162524_20260711_19
+// (2).pdf". Como não existe um campo separado pra distinguir os dois casos,
+// a heurística é: tem extensão de arquivo conhecida, OU não tem nenhuma
+// letra (timestamp/id de câmera puro) → parece nome de arquivo, não nome
+// clínico. Não tenta adivinhar qual exame é a partir do nome do arquivo.
+export function pareceNomeDeArquivo(nome: string): boolean {
+  if (EXTENSAO_ARQUIVO.test(nome)) return true;
+  const semExtensao = nome.replace(EXTENSAO_ARQUIVO, '').trim();
+  return !/[a-zà-ÿ]/i.test(semExtensao);
+}
