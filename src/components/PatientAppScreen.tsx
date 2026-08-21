@@ -990,13 +990,11 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                   <span className="text-xs font-bold text-slate-700 tracking-wide uppercase">
                     Ganho recomendado: {referenciaGPG.faixa.ganhoTotal.min}–{referenciaGPG.faixa.ganhoTotal.max} kg até 40 semanas
                   </span>
-                  {/* NOTA PROVISÓRIA (UX-04 / UX-04.1) — some da UI de produção
-                      depois da validação final da Dra. sobre as curvas
-                      digitalizadas (seção 13 da UX-04.1); não é conteúdo
-                      clínico permanente. */}
-                  <span className="text-[10px] text-gray-400 text-center max-w-md">
-                    Curvas de percentil ({referenciaGPG.faixa.percentis.join(', ')}) digitalizadas a partir do gráfico oficial da clínica — vale conferir os pontos-chave antes de considerar definitivo.
-                  </span>
+                  {/* UX-04.2: a nota "curvas digitalizadas... vale conferir" (provisória
+                      desde a UX-04.1) saiu da interface depois da validação final das
+                      4 curvas contra as imagens — a ressalva de que é uma digitalização
+                      manual, não os dados originais em número, continua documentada em
+                      src/data/gpgCurvas.ts. */}
                 </div>
               ) : (
                 <div className="flex items-center justify-center py-2">

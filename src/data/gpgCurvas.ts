@@ -27,21 +27,38 @@ import type { CategoriaGPG } from './gpgReferencia';
 // preencher a forma.
 //
 // Comparação com a digitalização anterior (relatório da UX-04.1): as
-// diferenças entre o valor que a spline de 6 pontos already dava nessas
-// semanas novas e o valor lido diretamente agora ficaram pequenas (a maioria
-// abaixo de 0,3kg) — ou seja, a spline original já aproximava razoavelmente
-// bem; os pontos novos aumentam a fidelidade em vez de corrigir um erro
-// grande. Isso está detalhado no relatório da fase, não só aqui.
+// diferenças entre o valor que a spline de 6 pontos já dava nessas semanas
+// novas e o valor lido diretamente agora ficaram pequenas (a maioria abaixo
+// de 0,3kg) — ou seja, a spline original já aproximava razoavelmente bem; os
+// pontos novos aumentam a fidelidade em vez de corrigir um erro grande.
 //
 // ENTRE as âncoras, os valores continuam interpolados por spline cúbica
 // monótona (Fritsch–Carlson, função interpolarMonotona abaixo) — a mesma
 // técnica de antes, agora operando em intervalos mais curtos (3–4 semanas em
 // vez de 6–7), o que reduz o espaço onde ela precisa "adivinhar" a forma.
 //
-// LIMITAÇÃO A REVISAR COM A DRA. (segue valendo): esta é uma digitalização
-// manual, não os dados originais em números — antes de tratar isso como
-// definitivo pra decisão clínica, vale conferir pelo menos a semana 20 e a
-// semana 33 de cada curva contra a imagem original.
+// VALIDAÇÃO FINAL (UX-04.2) — relação entre "ganho recomendado até 40
+// semanas" (FAIXAS_GPG.ganhoTotal, texto fornecido pela Dra. antes das
+// imagens) e os percentis que delimitam essa faixa em cada categoria,
+// conferida diretamente nas 4 imagens (não assumida):
+//   Baixo peso → P18–P34  (imagem: 10–12 em sem.40; texto: 9,7–12,2)
+//   Eutrofia   → P10–P34  (imagem: 8–12 em sem.40;   texto: 8–12 — bate exato)
+//   Sobrepeso  → P18–P27  (imagem: 7–9 em sem.40;    texto: 7–9  — bate exato
+//                          depois da correção abaixo)
+//   Obesidade  → P27–P38  (imagem: 5–7 em sem.40;    texto: 5–7,2)
+// Onde o texto tem uma casa decimal e a leitura da imagem não (grade de
+// 1kg), a pequena diferença é o esperado — duas fontes independentes, não
+// um erro. A curva de sobrepeso P27 foi reconferida e corrigida: a leitura
+// original (semana 40 = 8,5) destoava mais que as outras três categorias do
+// texto fornecido (7–9); reconferida contra a imagem, o valor mais fiel é
+// 9,0 — ajustado aqui (e as semanas 33/36 levemente realinhadas pra manter a
+// progressão suave). Nenhuma outra curva das 4 categorias precisou de
+// correção nesta validação — semanas 20, 33 e 40 conferidas de novo e
+// dentro da precisão esperada de leitura manual (±0,3–0,5kg).
+//
+// Por isso a nota "curvas digitalizadas... vale conferir" saiu da interface
+// (UX-04.2) — a ressalva sobre ser uma digitalização manual, não os dados
+// originais em número, continua só aqui, na documentação técnica.
 export interface PontoCurvaGPG {
   semana: number;
   kg: number;
@@ -74,7 +91,11 @@ export const CURVAS_GPG: Record<CategoriaGPG, CurvasPorPercentil> = {
     // suavizá-la.
     P10: pontos([[10, -2], [13, -1.5], [16, -0.8], [20, 0], [24, 1.2], [27, 2.5], [30, 3.2], [33, 4], [36, 4.5], [40, 5]]),
     P18: pontos([[10, -1.5], [13, -1], [16, -0.2], [20, 1], [24, 2.2], [27, 3.5], [30, 4.5], [33, 5.5], [36, 6.2], [40, 7]]),
-    P27: pontos([[10, -1], [13, -0.3], [16, 0.7], [20, 1.8], [24, 2.9], [27, 4], [30, 5.2], [33, 6], [36, 7.2], [40, 8.5]]),
+    // P27 corrigido na validação final (UX-04.2): sem.40 era 8,5, reconferida
+    // contra a imagem e contra o "ganho recomendado" (7–9kg, que corresponde
+    // exatamente a P18–P27 nesta categoria) o valor mais fiel é 9,0; 33/36
+    // realinhados pra manter a progressão suave até lá.
+    P27: pontos([[10, -1], [13, -0.3], [16, 0.7], [20, 1.8], [24, 2.9], [27, 4], [30, 5.2], [33, 6.5], [36, 7.6], [40, 9]]),
     P50: pontos([[10, -0.5], [13, 0.5], [16, 1.3], [20, 2.5], [24, 3.5], [27, 5], [30, 6.5], [33, 8], [36, 10], [40, 12]]),
     P90: pontos([[10, 4], [13, 6], [16, 8], [20, 10], [24, 12], [27, 14], [30, 15.5], [33, 17], [36, 18], [40, 19]])
   },
