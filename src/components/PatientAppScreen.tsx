@@ -9,6 +9,7 @@ import {
 import type { Patient, AgendaConsulta, ConsultaEvolucao, MarcoPersonalizado, UserRole } from '../types/prenatal';
 import type { DoctorTenant } from '../types/saas';
 import { PatientHome } from './PatientHome';
+import { PatientContextBar } from './PatientContextBar';
 import { PatientFinancialTab } from './PatientFinancialTab';
 import { PrenatalChatTab } from './PrenatalChatTab';
 import { PatientAuditLog } from './PatientAuditLog';
@@ -376,14 +377,19 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
 
           {/* Tira de identificação — só pra equipe (médica/secretária navegando entre pacientes);
               a própria gestante já sabe de quem é o prontuário que está vendo, não precisa repetir.
-              Sem fundo colorido nem botões: as ações (Compartilhar/Imprimir/Meus Dados) moraram pro "Mais". */}
+              Sem fundo colorido nem botões: as ações (Compartilhar/Imprimir/Meus Dados) moraram pro "Mais".
+              UX-02: virou o componente PatientContextBar — mesma condição isStaff de sempre, só a
+              apresentação interna mudou (hierarquia nome > IG > DPP > bebê/tipo sanguíneo). */}
           {isStaff && (
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500 px-1 print:hidden">
-              <span className="font-bold text-gray-800">{currentPatient.nome}</span>
-              <span className="text-gray-300">•</span>
-              <span>Bebê: {currentPatient.nomeBebe}</span>
-              <span className="text-gray-300">•</span>
-              <span>{currentGest.weeks} semanas • DPP {new Date(currentPatient.dpp).toLocaleDateString('pt-BR')}</span>
+            <div className="print:hidden">
+              <PatientContextBar
+                patientName={currentPatient.nome}
+                weeks={currentGest.weeks}
+                days={currentGest.days}
+                dueDate={currentPatient.dpp}
+                babyName={currentPatient.nomeBebe}
+                bloodType={currentPatient.tipoSanguineo}
+              />
             </div>
           )}
 
