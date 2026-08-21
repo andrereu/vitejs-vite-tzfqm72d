@@ -1016,46 +1016,28 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                           'Z'
                         ].join(' ');
 
-                        // UX-04.1 seção 6: os rótulos de percentil (P10, P18...) partem
-                        // da posição real da curva em semana 40, mas quando duas curvas
-                        // terminam perto uma da outra os rótulos se sobrepunham (achado
-                        // real nos prints). Declutter simples: ordena por y e garante uma
-                        // distância mínima entre rótulos vizinhos, empurrando pra baixo
-                        // quando precisa — nunca muda os dados, só onde o texto aparece.
-                        const ESPACAMENTO_MINIMO_LABEL = 9;
-                        const labelsOrdenados = faixa.percentis
-                          .map((p, idx) => ({ texto: p, x: curvasPontos[idx][curvasPontos[idx].length - 1].x, y: curvasPontos[idx][curvasPontos[idx].length - 1].y }))
-                          .sort((a, b) => a.y - b.y);
-                        for (let i = 1; i < labelsOrdenados.length; i++) {
-                          const minY = labelsOrdenados[i - 1].y + ESPACAMENTO_MINIMO_LABEL;
-                          if (labelsOrdenados[i].y < minY) labelsOrdenados[i].y = minY;
-                        }
-                        const labelPorTexto = Object.fromEntries(labelsOrdenados.map((l) => [l.texto, l]));
-
+                        // UX-04.3: o declutter da UX-04.1 empurrava os rótulos verticalmente,
+                        // mas eles continuavam colados na borda direita, exatamente onde fica
+                        // a escala do eixo Y (x=678) — colidindo com os números da escala em
+                        // vez de com outros rótulos entre si (achado real no teste visual).
+                        // Removido: nenhum texto de percentil dentro do SVG. A identificação de
+                        // cada curva agora é só a legenda fora do gráfico, logo abaixo.
                         return (
                           <g>
                             <path d={areaPath} fill={faixa.corHex} fillOpacity="0.08" stroke="none" />
                             {faixa.percentis.map((p, idx) => {
                               const pontos = curvasPontos[idx];
-                              const pontoReal = pontos[pontos.length - 1];
-                              const label = labelPorTexto[p];
                               const éExtremo = idx === 0 || idx === faixa.percentis.length - 1;
                               return (
-                                <g key={p}>
-                                  <polyline
-                                    fill="none"
-                                    stroke={faixa.corHex}
-                                    strokeOpacity="0.55"
-                                    strokeWidth={p === 'P50' ? '1.75' : '1.1'}
-                                    strokeDasharray={éExtremo ? '4 3' : undefined}
-                                    points={pontos.map((pt) => `${pt.x},${pt.y}`).join(' ')}
-                                  />
-                                  {/* linha-guia curta só quando o rótulo foi deslocado pelo declutter */}
-                                  {Math.abs(label.y - pontoReal.y) > 1 && (
-                                    <line x1={pontoReal.x + 1} y1={pontoReal.y} x2={label.x + 2} y2={label.y} stroke={faixa.corHex} strokeOpacity="0.4" strokeWidth="0.75" />
-                                  )}
-                                  <text x={label.x + 4} y={label.y + 3} fontSize="8" fontWeight="bold" fill={faixa.corHex}>{p}</text>
-                                </g>
+                                <polyline
+                                  key={p}
+                                  fill="none"
+                                  stroke={faixa.corHex}
+                                  strokeOpacity="0.55"
+                                  strokeWidth={p === 'P50' ? '1.75' : '1.1'}
+                                  strokeDasharray={éExtremo ? '4 3' : undefined}
+                                  points={pontos.map((pt) => `${pt.x},${pt.y}`).join(' ')}
+                                />
                               );
                             })}
                           </g>
@@ -1098,6 +1080,32 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                       Eixo horizontal: semanas gestacionais · Eixo vertical: ganho de peso (kg) em relação ao peso pré-gestacional
                     </p>
                     </div>
+                    {/* UX-04.3: legenda própria dos percentis, FORA do container que
+                        rola — assim nunca some durante o scroll horizontal no mobile,
+                        e no desktop fica encostada no gráfico sem disputar espaço com
+                        a escala do eixo Y. Cor/traço de cada item espelham exatamente
+                        o que a curva usa no SVG (P50 mais grosso e sólido, extremos
+                        tracejados), sem tocar em nenhum valor clínico. */}
+                    {referenciaGPG.faixa && (
+                      <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-2 py-1.5 bg-slate-50 rounded-xl border border-slate-100">
+                        {referenciaGPG.faixa.percentis.map((p, idx, arr) => {
+                          const éExtremo = idx === 0 || idx === arr.length - 1;
+                          return (
+                            <span key={p} className="inline-flex items-center gap-1 text-[10px] font-bold" style={{ color: referenciaGPG.faixa!.corHex }}>
+                              <svg width="14" height="8" viewBox="0 0 14 8" aria-hidden="true">
+                                <line
+                                  x1="0" y1="4" x2="14" y2="4"
+                                  stroke={referenciaGPG.faixa!.corHex}
+                                  strokeWidth={p === 'P50' ? 2 : 1.5}
+                                  strokeDasharray={éExtremo ? '3 2' : undefined}
+                                />
+                              </svg>
+                              {p}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="bg-gray-50 border border-dashed border-gray-300 rounded-2xl p-6 text-center text-xs text-gray-500">
