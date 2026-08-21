@@ -72,6 +72,30 @@ export interface PaymentRecord {
   mpPaymentId?: string; // ID do pagamento no Mercado Pago, quando aplicável
 }
 
+// UX-05.2 — preferências de leitura da IA e exames adicionais, um documento
+// próprio (doctors/{doctorId}/config/exames), SEPARADO de DoctorTenant de
+// propósito: doctors/{doctorId} é público (allow read: if true, usado pela
+// landing pessoal e pelo login com Google) — uma instrução clínica da médica
+// nunca pode morar nesse documento. Ver firestore.rules para a regra
+// restrita própria deste caminho.
+export type ModalidadeExame = 'ecografia' | 'laboratorial' | 'outros';
+
+export interface ExameAdicional {
+  id: string;
+  nome: string;
+  categoria: 'Ecografia' | 'Laboratorial' | 'Outro';
+  sinonimos: string[];
+}
+
+export interface ExameAIConfig {
+  // Um texto por modalidade — nunca misturado com sinônimos de examesAdicionais
+  // (reconhecimento de nome é uma responsabilidade; instrução de leitura da
+  // IA é outra, mesmo quando os dois campos moram no mesmo documento).
+  instrucoesPorModalidade?: Partial<Record<ModalidadeExame, string>>;
+  examesAdicionais?: ExameAdicional[];
+  atualizadoEm?: string; // ISO
+}
+
 export interface SaaSMetrics {
   mrr: number;
   totalMedicos: number;

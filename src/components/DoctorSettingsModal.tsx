@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Settings, Building, Upload, Save, X, Plus, Users, 
-  ShieldCheck, Image as ImageIcon, CreditCard, Copy, Check, 
-  MessageSquare, Clock, CheckCircle2, AlertTriangle, ArrowUpRight
+import {
+  Settings, Building, Upload, Save, X, Plus, Users,
+  ShieldCheck, Image as ImageIcon, CreditCard, Copy, Check,
+  MessageSquare, Clock, CheckCircle2, AlertTriangle, ArrowUpRight,
+  FlaskConical, Loader2
 } from 'lucide-react';
-import type { DoctorTenant, ClinicSecretary, TwoFactorConfig, SaasGlobalConfig } from '../types/saas';
+import type { DoctorTenant, ClinicSecretary, TwoFactorConfig, SaasGlobalConfig, ExameAIConfig, ExameAdicional, ModalidadeExame } from '../types/saas';
+import type { ExamAIConfigStatus } from '../hooks/useExamAIConfig';
 import { getSecretaryLimit } from '../utils/subscription';
 import { buildBrandTheme } from '../utils/theme';
 import { ColorWheelPicker } from './ColorWheelPicker';
@@ -30,7 +32,21 @@ interface DoctorSettingsModalProps {
   secretaries?: ClinicSecretary[];
   onSaveSecretaries?: (secretaries: ClinicSecretary[]) => Promise<void> | void;
   onSave: (updated: DoctorTenant) => Promise<void> | void;
+  // UX-05.2 — vive num documento próprio (doctors/{doctorId}/config/exames),
+  // não em DoctorTenant, então tem seu próprio status de carregamento e seu
+  // próprio salvamento, independente do formulário de Dados & Logo.
+  examAIConfig?: ExameAIConfig | null;
+  examAIConfigStatus?: ExamAIConfigStatus;
+  onSaveExamAIConfig?: (updated: ExameAIConfig) => Promise<void> | void;
 }
+
+const LIMITE_CARACTERES_INSTRUCAO_IA = 6000;
+
+const LABEL_MODALIDADE: Record<ModalidadeExame, { titulo: string; pergunta: string }> = {
+  ecografia: { titulo: 'Ultrassonografia', pergunta: 'Como a IA deve analisar seus exames de ultrassom?' },
+  laboratorial: { titulo: 'Exames laboratoriais', pergunta: 'Como a IA deve analisar seus exames laboratoriais?' },
+  outros: { titulo: 'Outros exames de imagem', pergunta: 'Como a IA deve analisar outros exames de imagem?' }
+};
 
 export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
   isOpen,
@@ -39,9 +55,12 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
   globalConfig,
   secretaries = [],
   onSaveSecretaries,
-  onSave
+  onSave,
+  examAIConfig,
+  examAIConfigStatus = 'sem-configuracao',
+  onSaveExamAIConfig
 }) => {
-  const [activeTab, setActiveTab] = useState<'perfil' | 'secretarias' | 'seguranca' | 'assinatura'>('perfil');
+  const [activeTab, setActiveTab] = useState<'perfil' | 'secretarias' | 'seguranca' | 'assinatura' | 'examesIA'>('perfil');
   const [formData, setFormData] = useState<DoctorTenant>(currentDoctor);
   const [secList, setSecList] = useState<ClinicSecretary[]>(secretaries);
   const [newSec, setNewSec] = useState({ nome: '', email: '', telefone: '' });
@@ -49,6 +68,20 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
   const [isResizing, setIsResizing] = useState(false);
   const [copiedPix, setCopiedPix] = useState(false);
   const [showCustomColorPanel, setShowCustomColorPanel] = useState(false);
+
+  // UX-05.2 — estado próprio da aba "Exames & IA": documento separado de
+  // DoctorTenant, carregado assincronamente pelo hook useExamAIConfig lá em
+  // App.tsx. novoExameAdicional/sinonimosTexto são só o miniformulário de
+  // cadastro; a lista em si já fica editável inline (nome/categoria/
+  // sinônimos de cada item já cadastrado).
+  const [examesAdicionaisList, setExamesAdicionaisList] = useState<ExameAdicional[]>(examAIConfig?.examesAdicionais || []);
+  const [instrucoes, setInstrucoes] = useState<Partial<Record<ModalidadeExame, string>>>(examAIConfig?.instrucoesPorModalidade || {});
+  const [novoExameAdicional, setNovoExameAdicional] = useState<{ nome: string; categoria: ExameAdicional['categoria']; sinonimosTexto: string }>({
+    nome: '',
+    categoria: 'Ecografia',
+    sinonimosTexto: ''
+  });
+  const [isSavingExamAI, setIsSavingExamAI] = useState(false);
 
   const [twoFactorConfig, setTwoFactorConfig] = useState<TwoFactorConfig>({
     enabled: currentDoctor?.twoFactor?.enabled || false,
@@ -69,6 +102,17 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
       });
     }
   }, [isOpen, currentDoctor, secretaries]);
+
+  // Sincroniza separadamente do efeito acima: examAIConfig chega de um
+  // onSnapshot próprio (useExamAIConfig em App.tsx) que pode resolver depois
+  // do modal já estar aberto — sem isso, abrir a aba antes do Firestore
+  // responder travaria o formulário nos valores iniciais (vazios).
+  useEffect(() => {
+    if (isOpen) {
+      setExamesAdicionaisList(examAIConfig?.examesAdicionais || []);
+      setInstrucoes(examAIConfig?.instrucoesPorModalidade || {});
+    }
+  }, [isOpen, examAIConfig]);
 
   if (!isOpen) return null;
 
@@ -174,6 +218,52 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
     setSecList(secList.filter(s => s.id !== id));
   };
 
+  // UX-05.2 — exames adicionais servem só pra reconhecimento (autocomplete),
+  // nunca entram no prompt de resumo do Gemini (isso é responsabilidade das
+  // instruções por modalidade, abaixo). Editar é direto na lista (sem modo
+  // de edição separado) — os mesmos campos do cadastro, já preenchidos.
+  const handleAddExameAdicional = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!novoExameAdicional.nome.trim()) return;
+
+    const exame: ExameAdicional = {
+      id: `exame-add-${Date.now()}`,
+      nome: novoExameAdicional.nome.trim(),
+      categoria: novoExameAdicional.categoria,
+      sinonimos: novoExameAdicional.sinonimosTexto
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    };
+
+    setExamesAdicionaisList([...examesAdicionaisList, exame]);
+    setNovoExameAdicional({ nome: '', categoria: 'Ecografia', sinonimosTexto: '' });
+  };
+
+  const handleRemoveExameAdicional = (id: string) => {
+    setExamesAdicionaisList(examesAdicionaisList.filter((ex) => ex.id !== id));
+  };
+
+  const handleEditarExameAdicional = (id: string, patch: Partial<ExameAdicional>) => {
+    setExamesAdicionaisList(examesAdicionaisList.map((ex) => (ex.id === id ? { ...ex, ...patch } : ex)));
+  };
+
+  const handleSaveExamAIConfig = async () => {
+    if (!onSaveExamAIConfig) return;
+    setIsSavingExamAI(true);
+    try {
+      await onSaveExamAIConfig({
+        instrucoesPorModalidade: instrucoes,
+        examesAdicionais: examesAdicionaisList
+      });
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao salvar preferências de exames e IA.');
+    } finally {
+      setIsSavingExamAI(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in zoom-in duration-200">
       <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-5 text-gray-800 max-h-[90vh] overflow-y-auto">
@@ -238,6 +328,16 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
             }`}
           >
             <ShieldCheck className="w-4 h-4" /> Segurança (A2F)
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('examesIA')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'examesIA' ? 'bg-[var(--brand-primary)] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <FlaskConical className="w-4 h-4" /> Exames & IA
           </button>
         </div>
 
@@ -807,6 +907,157 @@ export const DoctorSettingsModal: React.FC<DoctorSettingsModalProps> = ({
                 Salvar Configurações de Segurança
               </button>
             </div>
+          </div>
+        )}
+
+        {/* ABA 5: EXAMES & IA (UX-05.2) */}
+        {activeTab === 'examesIA' && (
+          <div className="space-y-5 text-xs">
+            {examAIConfigStatus === 'carregando' ? (
+              <div className="p-8 flex items-center justify-center gap-2 text-gray-400">
+                <Loader2 className="w-4 h-4 animate-spin" /> Carregando preferências...
+              </div>
+            ) : (
+              <>
+                {examAIConfigStatus === 'sem-configuracao' && examesAdicionaisList.length === 0 && (
+                  <div className="p-3 bg-gray-50 border border-dashed border-gray-200 rounded-2xl text-gray-400">
+                    Nenhuma preferência configurada ainda — a IA usa as regras padrão do MaternaIA até você definir as suas.
+                  </div>
+                )}
+
+                {/* EXAMES ADICIONAIS */}
+                <div className="space-y-2">
+                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">Exames adicionais</span>
+                  <p className="text-gray-500">Exames fora da lista oficial e nomes alternativos (sinônimos) para o reconhecimento automático — não influenciam o resumo da IA.</p>
+
+                  <form onSubmit={handleAddExameAdicional} className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <input
+                        type="text"
+                        placeholder="Nome do exame"
+                        value={novoExameAdicional.nome}
+                        onChange={(e) => setNovoExameAdicional({ ...novoExameAdicional, nome: e.target.value })}
+                        className="p-2 bg-white border rounded-xl text-xs"
+                      />
+                      <select
+                        value={novoExameAdicional.categoria}
+                        onChange={(e) => setNovoExameAdicional({ ...novoExameAdicional, categoria: e.target.value as ExameAdicional['categoria'] })}
+                        className="p-2 bg-white border rounded-xl text-xs"
+                      >
+                        <option value="Ecografia">Ecografia</option>
+                        <option value="Laboratorial">Laboratorial</option>
+                        <option value="Outro">Outro</option>
+                      </select>
+                      <input
+                        type="text"
+                        placeholder="Sinônimos (separados por vírgula)"
+                        value={novoExameAdicional.sinonimosTexto}
+                        onChange={(e) => setNovoExameAdicional({ ...novoExameAdicional, sinonimosTexto: e.target.value })}
+                        className="p-2 bg-white border rounded-xl text-xs"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-[var(--brand-primary)] text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer text-xs"
+                    >
+                      <Plus className="w-4 h-4" /> Adicionar exame
+                    </button>
+                  </form>
+
+                  {examesAdicionaisList.length === 0 ? (
+                    <div className="p-4 text-center text-gray-400 bg-gray-50 rounded-2xl border border-dashed text-xs">
+                      Nenhum exame adicional cadastrado.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {examesAdicionaisList.map((ex) => (
+                        <div key={ex.id} className="p-3 bg-gray-50 border rounded-2xl grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto] gap-2 items-center">
+                          <input
+                            type="text"
+                            value={ex.nome}
+                            onChange={(e) => handleEditarExameAdicional(ex.id, { nome: e.target.value })}
+                            className="p-2 bg-white border rounded-xl text-xs font-bold text-gray-900"
+                            aria-label="Nome do exame"
+                          />
+                          <select
+                            value={ex.categoria}
+                            onChange={(e) => handleEditarExameAdicional(ex.id, { categoria: e.target.value as ExameAdicional['categoria'] })}
+                            className="p-2 bg-white border rounded-xl text-xs"
+                            aria-label="Categoria do exame"
+                          >
+                            <option value="Ecografia">Ecografia</option>
+                            <option value="Laboratorial">Laboratorial</option>
+                            <option value="Outro">Outro</option>
+                          </select>
+                          <input
+                            type="text"
+                            value={ex.sinonimos.join(', ')}
+                            onChange={(e) => handleEditarExameAdicional(ex.id, { sinonimos: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
+                            placeholder="Sinônimos"
+                            className="p-2 bg-white border rounded-xl text-xs"
+                            aria-label="Sinônimos do exame"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveExameAdicional(ex.id)}
+                            className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl cursor-pointer justify-self-end"
+                            title="Remover exame adicional"
+                          >
+                            Remover
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* PREFERÊNCIAS DE LEITURA DA IA */}
+                <div className="space-y-3 pt-2 border-t border-gray-100">
+                  <div>
+                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">Preferências de leitura da IA</span>
+                    <p className="text-gray-500 mt-1">Defina o que você prefere que a IA destaque nos laudos. Essas instruções orientam a análise e não substituem sua avaliação clínica.</p>
+                  </div>
+
+                  {(Object.keys(LABEL_MODALIDADE) as ModalidadeExame[]).map((modalidade) => {
+                    const texto = instrucoes[modalidade] || '';
+                    return (
+                      <div key={modalidade}>
+                        <label className="font-bold text-gray-700 uppercase text-[10px] block mb-1">{LABEL_MODALIDADE[modalidade].titulo}</label>
+                        <textarea
+                          value={texto}
+                          onChange={(e) => setInstrucoes({ ...instrucoes, [modalidade]: e.target.value.slice(0, LIMITE_CARACTERES_INSTRUCAO_IA) })}
+                          placeholder={LABEL_MODALIDADE[modalidade].pergunta}
+                          rows={3}
+                          maxLength={LIMITE_CARACTERES_INSTRUCAO_IA}
+                          className="w-full p-2.5 bg-gray-50 border rounded-xl text-xs resize-y"
+                        />
+                        <span className="text-[10px] text-gray-400 block text-right mt-0.5">
+                          {texto.length} / {LIMITE_CARACTERES_INSTRUCAO_IA}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-4 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl cursor-pointer"
+                  >
+                    Fechar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveExamAIConfig}
+                    disabled={isSavingExamAI}
+                    className="px-5 py-2.5 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  >
+                    <Save className="w-4 h-4" /> {isSavingExamAI ? 'Salvando...' : 'Salvar Exames & IA'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
 

@@ -133,6 +133,12 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
   const [visualizacaoGPG, setVisualizacaoGPG] = useState<'grafico' | 'tabela'>('grafico');
 
   const [examesExpandidos, setExamesExpandidos] = useState<Set<string>>(new Set());
+
+  // UX-05.2 — alternância Por exame/Por data da aba Exames Laboratoriais,
+  // mesmo padrão do toggle Gráfico/Tabela do GPG. As duas visões respondem
+  // perguntas diferentes (o que falta pedir vs. o que saiu numa consulta),
+  // por isso nenhuma substitui a outra.
+  const [visualizacaoLab, setVisualizacaoLab] = useState<'porExame' | 'porData'>('porExame');
   const toggleExameExpandido = (id: string) => {
     setExamesExpandidos((prev) => {
       const novo = new Set(prev);
@@ -250,7 +256,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
       label: 'Exames',
       items: [
         { id: 'examesTabela', label: 'Exames Laboratoriais', desc: 'Resultados e histórico de exames', icon: FlaskConical, tint: 'bg-emerald-50 text-emerald-600', allowed: hasPermission(userRole, 'canViewExamReports') },
-        { id: 'examesCentral', label: 'Central de Exames + IA', desc: 'Envie laudos e receba leitura com IA', icon: FolderOpen, tint: 'bg-violet-50 text-violet-600', allowed: hasPermission(userRole, 'canViewExamReports') },
+        { id: 'examesCentral', label: 'Central de Laudos e Imagens', desc: 'Ecografias, laudos e outros documentos de imagem', icon: FolderOpen, tint: 'bg-violet-50 text-violet-600', allowed: hasPermission(userRole, 'canViewExamReports') },
       ]
     },
     {
@@ -742,65 +748,102 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
           {/* TAB EXAMES */}
           {activeTab === 'examesTabela' && hasPermission(userRole, 'canViewExamReports') && (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4 print:hidden">
-              <div className="flex justify-between items-center border-b pb-3">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-3 gap-3">
                 <div>
-                  <h3 className="font-bold text-gray-900 text-base">Tabela de Exames Laboratoriais</h3>
+                  <h3 className="font-bold text-gray-900 text-base">Exames Laboratoriais</h3>
                   <p className="text-xs text-gray-500">Resultados numéricos e sorologias do pré-natal</p>
                 </div>
-                {userRole === 'medica' && (
-                  <button
-                    onClick={() => {
-                      setEditExamesData(currentPatient.examesTabela || {});
-                      setShowEditExamesModal(true);
-                    }}
-                    className="bg-[var(--brand-primary)] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Edit3 className="w-4 h-4" /> Preencher / Editar Exames
-                  </button>
-                )}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* UX-05.2 — Por exame (o que já existia: pendências visíveis,
+                      histórico por exame) e Por data (agrupamento criado na
+                      UX-05.1, removido da Central pra não duplicar) — a mesma
+                      pergunta respondida de dois jeitos, nenhum substitui o
+                      outro. */}
+                  <div className="flex items-center bg-gray-100 rounded-xl p-1 text-xs font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setVisualizacaoLab('porExame')}
+                      aria-pressed={visualizacaoLab === 'porExame'}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${visualizacaoLab === 'porExame' ? 'bg-white shadow-xs text-[var(--brand-primary)]' : 'text-gray-500'}`}
+                    >
+                      <FlaskConical className="w-3.5 h-3.5" /> Por exame
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVisualizacaoLab('porData')}
+                      aria-pressed={visualizacaoLab === 'porData'}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${visualizacaoLab === 'porData' ? 'bg-white shadow-xs text-[var(--brand-primary)]' : 'text-gray-500'}`}
+                    >
+                      <Calendar className="w-3.5 h-3.5" /> Por data
+                    </button>
+                  </div>
+                  {userRole === 'medica' && (
+                    <button
+                      onClick={() => {
+                        setEditExamesData(currentPatient.examesTabela || {});
+                        setShowEditExamesModal(true);
+                      }}
+                      className="bg-[var(--brand-primary)] text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                    >
+                      <Edit3 className="w-4 h-4" /> Preencher / Editar Exames
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div className="border border-gray-100 rounded-2xl divide-y divide-gray-100 overflow-hidden">
-                {LISTA_EXAMES_OFICIAIS.map(ex => {
-                  const historico = currentPatient.examesTabela?.[ex.id] || [];
-                  const [ultimo, ...anteriores] = historico;
-                  const expandido = examesExpandidos.has(ex.id);
-                  return (
-                    <div key={ex.id} className="p-3 hover:bg-gray-50">
-                      <div className="flex justify-between items-center gap-2">
-                        <div className="min-w-0">
-                          <strong className="text-xs text-gray-900 block">{ex.label}</strong>
-                          {ultimo ? (
-                            <span className="text-xs text-gray-700">
-                              <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md mr-2">{formatDateDisplay(ultimo.data)}</span>
-                              {ultimo.resultado}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-gray-300 italic">Pendente ({ex.placeholder})</span>
+              {visualizacaoLab === 'porExame' ? (
+                <div className="border border-gray-100 rounded-2xl divide-y divide-gray-100 overflow-hidden">
+                  {LISTA_EXAMES_OFICIAIS.map(ex => {
+                    const historico = currentPatient.examesTabela?.[ex.id] || [];
+                    const [ultimo, ...anteriores] = historico;
+                    const expandido = examesExpandidos.has(ex.id);
+                    return (
+                      <div key={ex.id} className="p-3 hover:bg-gray-50">
+                        <div className="flex justify-between items-center gap-2">
+                          <div className="min-w-0">
+                            <strong className="text-xs text-gray-900 block">{ex.label}</strong>
+                            {ultimo ? (
+                              <span className="text-xs text-gray-700">
+                                <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md mr-2">{formatDateDisplay(ultimo.data)}</span>
+                                {ultimo.resultado}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-gray-300 italic">Pendente ({ex.placeholder})</span>
+                            )}
+                          </div>
+                          {anteriores.length > 0 && (
+                            <button
+                              onClick={() => toggleExameExpandido(ex.id)}
+                              className="text-[10px] font-bold text-gray-500 underline shrink-0 cursor-pointer"
+                            >
+                              {expandido ? 'Ocultar' : `Ver histórico (${anteriores.length})`}
+                            </button>
                           )}
                         </div>
-                        {anteriores.length > 0 && (
-                          <button
-                            onClick={() => toggleExameExpandido(ex.id)}
-                            className="text-[10px] font-bold text-gray-500 underline shrink-0 cursor-pointer"
-                          >
-                            {expandido ? 'Ocultar' : `Ver histórico (${anteriores.length})`}
-                          </button>
+                        {expandido && anteriores.length > 0 && (
+                          <div className="mt-2 pl-2.5 border-l-2 border-gray-200 space-y-1">
+                            {anteriores.map((h, i) => (
+                              <div key={i} className="text-[11px] text-gray-500">
+                                <span className="font-semibold">{formatDateDisplay(h.data)}:</span> {h.resultado}
+                              </div>
+                            ))}
+                          </div>
                         )}
                       </div>
-                      {expandido && anteriores.length > 0 && (
-                        <div className="mt-2 pl-2.5 border-l-2 border-gray-200 space-y-1">
-                          {anteriores.map((h, i) => (
-                            <div key={i} className="text-[11px] text-gray-500">
-                              <span className="font-semibold">{formatDateDisplay(h.data)}:</span> {h.resultado}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                gruposExamesLaboratoriais.length > 0 ? (
+                  <div className="space-y-2">
+                    {gruposExamesLaboratoriais.map((grupo) => (
+                      <GrupoExameLaboratorialCard key={grupo.data} grupo={grupo} />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400">Nenhum laboratório encontrado.</p>
+                )
+              )}
             </div>
           )}
 
@@ -1278,12 +1321,17 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-4 print:hidden">
               <div className="flex justify-between items-center border-b pb-3">
                 <div>
-                  <h3 className="font-bold text-gray-900 text-base">Central de Laudos e Ecografias</h3>
+                  {/* UX-05.2: renomeada de "Central de Laudos e Ecografias" —
+                      agora concentra ecografias, tomografias, ressonâncias e
+                      outros documentos de imagem; resultado laboratorial
+                      passou a viver só na aba Exames Laboratoriais (seção 2
+                      da fase). */}
+                  <h3 className="font-bold text-gray-900 text-base">Central de Laudos e Imagens</h3>
                   {/* UX-05.1: a menção ao Gemini saiu daqui — a paciente não vê
                       mais a análise de IA (seção 6 da fase), então prometer
                       isso no subtítulo ficaria contraditório com o que a tela
                       realmente mostra agora. */}
-                  <p className="text-xs text-gray-500">Envie laudos e ecografias para o prontuário</p>
+                  <p className="text-xs text-gray-500">Envie laudos e imagens para o prontuário</p>
                 </div>
                 {/* Ação principal ("+ Anexar Exame", preenchida) vs. secundária
                     ("Nova Solicitação", contorno) — já era essa a distinção, só
@@ -1329,23 +1377,12 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                 <p className="text-xs text-gray-400">Nenhuma solicitação realizada.</p>
               )}
 
-              {/* UX-05.1: cada grupo de data virou um card expansível (fechado
-                  = data + contagem + resumo dos nomes; aberto = cada
-                  resultado em lista vertical) — a tabela sempre-expandida da
-                  UX-05 virava planilha no mobile com muitos exames. Mesmos
-                  dados de sempre (examesTabela), só reapresentados. */}
-              {gruposExamesLaboratoriais.length > 0 ? (
-                <div className="space-y-2">
-                  <h4 className="text-sm font-bold text-gray-800">Exames laboratoriais</h4>
-                  <div className="space-y-2">
-                    {gruposExamesLaboratoriais.map((grupo) => (
-                      <GrupoExameLaboratorialCard key={grupo.data} grupo={grupo} />
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <p className="text-xs text-gray-400">Nenhum laboratório encontrado.</p>
-              )}
+              {/* UX-05.2: os resultados laboratoriais agrupados por data (UX-05.1)
+                  saíram daqui — essa visão passou a viver só na aba Exames
+                  Laboratoriais (alternador Por exame/Por data), pra não
+                  duplicar o mesmo dado em duas telas. Nenhum dado foi apagado:
+                  gruposExamesLaboratoriais/GrupoExameLaboratorialCard
+                  continuam existindo, só mudaram de endereço. */}
 
               {/* D2.3: ecografias/imagem organizadas por data — mesmo dado de
                   sempre (examesEnviados), só filtrado por tipo e com uma

@@ -7,6 +7,7 @@ rules_version = '2';
 //   doctors/{doctorId}/patients/{patientId}     -> prontuários das gestantes daquele médico
 //   doctors/{doctorId}/secretaries/{email}      -> equipe (secretárias) daquele médico
 //   doctors/{doctorId}/payments/{paymentId}     -> extrato de pagamentos daquele médico
+//   doctors/{doctorId}/config/exames             -> preferências de IA e exames adicionais daquele médico (privado — NÃO é o doctors/{doctorId} público)
 //   saas_config/financeiro                      -> configuração global (chave PIX, etc.)
 //
 // IMPORTANTE: a lista de super admins abaixo precisa ficar igual à constante
@@ -123,6 +124,17 @@ service cloud.firestore {
         // ignora estas regras) grava novos registros.
         allow read: if isSuperAdmin() || isOwnerDoctor(doctorId);
         allow write: if isSuperAdmin();
+      }
+
+      match /config/{configId} {
+        // UX-05.2 — preferências de leitura da IA (por modalidade de exame) e
+        // exames adicionais/sinônimos. Mais restrito que o padrão de equipe
+        // (isStaffOfDoctor, que inclui secretárias): secretária não tem
+        // canViewExamReports no RBAC do app hoje, então também não deve ler
+        // nem gravar instrução clínica de IA — só a própria médica dona do
+        // consultório (ou o Super Admin em suporte).
+        allow read: if isSuperAdmin() || isOwnerDoctor(doctorId);
+        allow write: if isSuperAdmin() || isOwnerDoctor(doctorId);
       }
     }
 

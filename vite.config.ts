@@ -32,6 +32,9 @@ export default defineConfig({
     // e mais rápido que simular um navegador (jsdom). Se no futuro surgirem
     // testes de componente, troque para 'jsdom'.
     environment: 'node',
-    include: ['src/**/*.test.ts']
+    // 'api/**' incluído a partir da UX-05.2: a montagem do prompt do Gemini
+    // (api/_lib/examPromptConfig.ts) também é função pura, testável sem
+    // Firestore nem rede — mesmo critério que já vale para src/utils.
+    include: ['src/**/*.test.ts', 'api/**/*.test.ts']
   }
 })

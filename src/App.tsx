@@ -27,6 +27,7 @@ import { generateAppointmentReminderLink } from './utils/whatsapp';
 import { generatePatientPin } from './utils/pin';
 import { processExamWithGeminiIA } from './services/geminiService';
 import { useDoctorsDirectory } from './hooks/useDoctorsDirectory';
+import { useExamAIConfig } from './hooks/useExamAIConfig';
 import { usePatients } from './hooks/usePatients';
 import { useSecretaries } from './hooks/useSecretaries';
 import { useBlockedSlots } from './hooks/useBlockedSlots';
@@ -202,6 +203,7 @@ export default function App() {
   // relacionado a login/sessão, vive em hooks próprios (src/hooks/) — o
   // App.tsx só usa o resultado.
   const { saasDoctors, saveSaasDoctorsToFirestore } = useDoctorsDirectory();
+  const { config: examAIConfig, status: examAIConfigStatus, salvarConfigExamesIA } = useExamAIConfig(currentDoctorProfile.id);
 
   // Mantém o perfil da médica de demonstração atualizado sempre que o
   // diretório de médicos mudar (comportamento igual ao de antes da divisão).
@@ -383,7 +385,7 @@ export default function App() {
       const mimeType = selectedFile.type || "application/pdf";
 
       // 1. Processa no Gemini
-      const resultIA = await processExamWithGeminiIA(base64Content, mimeType, examCategory, examName);
+      const resultIA = await processExamWithGeminiIA(base64Content, mimeType, examCategory, examName, currentDoctorProfile.id);
 
       // 2. Cria o registro do exame (SEM salvar o Base64 gigante no Firestore para não estourar o limite de 1MB)
       const novoExame = {
@@ -1072,6 +1074,9 @@ export default function App() {
           await saveSaasDoctorsToFirestore(updatedList);
           setShowDoctorSettingsModal(false);
         }}
+        examAIConfig={examAIConfig}
+        examAIConfigStatus={examAIConfigStatus}
+        onSaveExamAIConfig={salvarConfigExamesIA}
       />
 
       {/* MODAL TRIAL 14 DIAS */}

@@ -1,4 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getAdminFirestore } from './_lib/firebaseAdmin.js';
+import { montarBlocoPreferenciaModalidade, type ExameAIConfig } from './_lib/examPromptConfig.js';
 
 // Esta função roda no servidor da Vercel, não no navegador — por isso a chave
 // do Gemini (GEMINI_API_KEY) fica guardada aqui e nunca é enviada ao cliente.
@@ -11,7 +13,25 @@ interface ExamIAResponse {
   examesExtraidos?: Record<string, string>;
 }
 
-function buildPrompt(examCategory: string, examName: string) {
+// UX-05.2 — busca doctors/{doctorId}/config/exames com o Admin SDK (ignora
+// as regras do Firestore, mesmo padrão de api/patient-login.ts). Esse
+// documento é separado do doctors/{doctorId} público de propósito: a
+// instrução clínica da médica nunca deve ficar no documento que qualquer
+// visitante do site pode ler (ver firestore.rules). Ausência do documento —
+// médico ainda não configurou nada — devolve null, e o prompt segue idêntico
+// ao de antes desta fase.
+async function buscarConfigExamesIA(doctorId: string): Promise<ExameAIConfig | null> {
+  if (!doctorId) return null;
+  try {
+    const snap = await getAdminFirestore().doc(`doctors/${doctorId}/config/exames`).get();
+    return snap.exists ? (snap.data() as ExameAIConfig) : null;
+  } catch (error) {
+    console.error('Erro ao buscar preferências de IA do médico:', error);
+    return null;
+  }
+}
+
+function buildPrompt(examCategory: string, examName: string, preferenciaModalidade: string) {
   return `
 Você é um assistente especializado em análise de exames obstétricos
 integrado ao software MaternaIA.
@@ -63,7 +83,7 @@ REGRAS IMPORTANTES:
 - Leia também tabelas e imagens presentes no PDF.
 - Não faça diagnóstico definitivo.
 - Não altere os valores encontrados no documento.
-
+${preferenciaModalidade}
 Retorne SOMENTE JSON válido:
 
 {
@@ -89,7 +109,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'GEMINI_API_KEY não configurada no servidor.' });
   }
 
-  const { base64Content, mimeType, examCategory, examName } = req.body || {};
+  const { base64Content, mimeType, examCategory, examName, doctorId } = req.body || {};
   if (!base64Content) {
     return res.status(400).json({ error: 'Arquivo do exame não foi enviado.' });
   }
@@ -103,6 +123,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const modelName = 'gemini-3.6-flash';
 
   try {
+    // UX-05.2 — a preferência da médica nunca chega pelo corpo da requisição:
+    // o cliente manda só o doctorId, e é o servidor que busca a instrução e
+    // monta o texto final. Sem isso, qualquer visitante poderia inspecionar
+    // a chamada de rede e ler a instrução clínica de outro consultório.
+    const configExamesIA = await buscarConfigExamesIA(String(doctorId || ''));
+    const preferenciaModalidade = montarBlocoPreferenciaModalidade(configExamesIA, examCategory || '');
+
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
       {
@@ -112,7 +139,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           contents: [
             {
               parts: [
-                { text: buildPrompt(examCategory || '', examName || '') },
+                { text: buildPrompt(examCategory || '', examName || '', preferenciaModalidade) },
                 { inlineData: { mimeType: mimeType || 'application/pdf', data: cleanBase64 } }
               ]
             }
