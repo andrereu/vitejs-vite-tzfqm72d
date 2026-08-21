@@ -20,6 +20,16 @@ export function valorParaSelecao(codigo: string, descricao: string): Diagnostico
   return { codigo, descricao };
 }
 
+// Exibição em texto do diagnóstico já registrado — mesmo formato em toda
+// leitura (card mobile da Evolução, UX-03): "CÓDIGO — descrição" quando veio
+// de uma seleção do CID, só a descrição quando é texto livre ou registro
+// antigo. Nunca expõe score/origem/distância — esses dados nem chegam a
+// existir aqui, DiagnosticoRegistrado só guarda codigo/descricao.
+export function formatarDiagnostico(d: DiagnosticoRegistrado | undefined): string {
+  if (!d) return '';
+  return d.codigo ? `${d.codigo} — ${d.descricao}` : d.descricao;
+}
+
 // Normaliza o valor de diagnostico vindo do Firestore: registros salvos
 // antes da D2-CID-3C guardavam uma string solta ("Cefaleia"); registros
 // novos guardam { codigo?, descricao }. Convertido na leitura (mesmo padrão

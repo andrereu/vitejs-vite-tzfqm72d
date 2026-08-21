@@ -10,6 +10,7 @@ import type { Patient, AgendaConsulta, ConsultaEvolucao, MarcoPersonalizado, Use
 import type { DoctorTenant } from '../types/saas';
 import { PatientHome } from './PatientHome';
 import { PatientContextBar } from './PatientContextBar';
+import { ConsultaEvolucaoCard } from './ConsultaEvolucaoCard';
 import { PatientFinancialTab } from './PatientFinancialTab';
 import { PrenatalChatTab } from './PrenatalChatTab';
 import { PatientAuditLog } from './PatientAuditLog';
@@ -1049,7 +1050,9 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                   </button>
                 )}
               </div>
-              <div className="overflow-x-auto">
+              {/* Desktop (md+): mesma tabela densa de sempre, intocada — UX-01
+                  seção 12 já validou que ela funciona bem nesse tamanho de tela. */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-gray-50 border-b">
                     <tr>
@@ -1105,6 +1108,27 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Mobile (< md): cards expansíveis — UX-03. Mesmos dados da tabela
+                  acima, só a apresentação muda; a solicitação vinculada é
+                  procurada aqui (dado já carregado no paciente, sem nova consulta
+                  ao Firestore) e passada pronta pro card. */}
+              <div className="md:hidden space-y-2">
+                {currentPatient.consultasEvolucao.map(c => {
+                  const solicitacaoVinculada = (currentPatient.solicitacoes || []).find(
+                    (s) => s.consultaEvolucaoId === c.id
+                  );
+                  return (
+                    <ConsultaEvolucaoCard
+                      key={c.id}
+                      consulta={c}
+                      solicitacao={solicitacaoVinculada}
+                      onEditar={userRole === 'medica' ? () => onEditarEvolucao(c) : undefined}
+                      whatsappHref={userRole === 'medica' ? generateConsultationSummaryLink(currentPatient, c) : undefined}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}

@@ -2,7 +2,7 @@
 // (CidAutocomplete) e da compatibilidade com registros antigos. Cobre os
 // itens 13-17 da bateria pedida na integração.
 import { describe, expect, it } from 'vitest';
-import { normalizarDiagnostico, valorParaSelecao, valorParaTextoLivre } from './diagnostico';
+import { formatarDiagnostico, normalizarDiagnostico, valorParaSelecao, valorParaTextoLivre } from './diagnostico';
 
 describe('valorParaTextoLivre — texto livre sem seleção (item 13)', () => {
   it('texto não vazio vira { descricao } sem código', () => {
@@ -63,5 +63,19 @@ describe('normalizarDiagnostico — compatibilidade com registros antigos (itens
   it('formato inesperado (nem string nem objeto com descricao) vira undefined, não quebra', () => {
     expect(normalizarDiagnostico(42)).toBeUndefined();
     expect(normalizarDiagnostico({ codigo: 'R51' })).toBeUndefined();
+  });
+});
+
+describe('formatarDiagnostico — exibição no card de Evolução (UX-03)', () => {
+  it('com código, mostra "CÓDIGO — descrição"', () => {
+    expect(formatarDiagnostico({ codigo: 'R51', descricao: 'Cefaleia' })).toBe('R51 — Cefaleia');
+  });
+
+  it('sem código (texto livre ou registro antigo), mostra só a descrição', () => {
+    expect(formatarDiagnostico({ descricao: 'Dor abdominal' })).toBe('Dor abdominal');
+  });
+
+  it('sem diagnóstico nenhum, mostra string vazia (card não exibe a seção)', () => {
+    expect(formatarDiagnostico(undefined)).toBe('');
   });
 });
