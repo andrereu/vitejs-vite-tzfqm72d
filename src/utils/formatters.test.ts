@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { formatDateDisplay, formatDateBR, calculateWeeksAndDays, formatarHorarioResumo } from './formatters';
+import { formatDateDisplay, formatDateBR, formatarDataAgrupador, calculateWeeksAndDays, formatarHorarioResumo } from './formatters';
 
 describe('formatDateDisplay', () => {
   it('retorna vazio quando não há data', () => {
@@ -12,6 +12,24 @@ describe('formatDateDisplay', () => {
 
   it('devolve a string original se não tiver o formato esperado', () => {
     expect(formatDateDisplay('15/03/2026')).toBe('15/03/2026');
+  });
+});
+
+describe('formatarDataAgrupador — cabeçalho de grupo temporal (UX-05)', () => {
+  it('converte AAAA-MM-DD para "D MÊS AAAA"', () => {
+    expect(formatarDataAgrupador('2026-08-20')).toBe('20 AGO 2026');
+  });
+
+  it('dia sem zero à esquerda', () => {
+    expect(formatarDataAgrupador('2026-01-05')).toBe('5 JAN 2026');
+  });
+
+  it('retorna vazio quando não há data', () => {
+    expect(formatarDataAgrupador('')).toBe('');
+  });
+
+  it('devolve a string original se não tiver o formato esperado', () => {
+    expect(formatarDataAgrupador('20/08/2026')).toBe('20/08/2026');
   });
 });
 

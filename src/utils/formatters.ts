@@ -16,6 +16,22 @@ export const formatDateBR = (dateStr: string): string => {
   return dateStr;
 };
 
+const MESES_ABREV = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+
+// UX-05 — "20 AGO 2026": formato pra cabeçalho de agrupador temporal (Central
+// de Exames), mais escaneável que DD/MM/AAAA quando a data é o âncora de um
+// bloco de itens, não o dado principal de uma linha. Não usada nos itens em
+// si (esses continuam com formatDateBR) — só nos cabeçalhos de grupo.
+export const formatarDataAgrupador = (dateStr: string): string => {
+  if (!dateStr || !dateStr.includes('-')) return dateStr;
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  const [ano, mes, dia] = parts;
+  const mesIdx = parseInt(mes, 10) - 1;
+  if (mesIdx < 0 || mesIdx > 11) return dateStr;
+  return `${parseInt(dia, 10)} ${MESES_ABREV[mesIdx]} ${ano}`;
+};
+
 // Data civil local (YYYY-MM-DD) a partir dos componentes locais do Date, em
 // vez de new Date().toISOString().split('T')[0] — que passa por UTC antes de
 // cortar a data e pode devolver o dia seguinte (ou anterior) dependendo do

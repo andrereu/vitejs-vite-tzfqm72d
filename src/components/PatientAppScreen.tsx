@@ -11,13 +11,14 @@ import type { DoctorTenant } from '../types/saas';
 import { PatientHome } from './PatientHome';
 import { PatientContextBar } from './PatientContextBar';
 import { ConsultaEvolucaoCard } from './ConsultaEvolucaoCard';
+import { DocumentoExameCard } from './DocumentoExameCard';
 import { PatientFinancialTab } from './PatientFinancialTab';
 import { PrenatalChatTab } from './PrenatalChatTab';
 import { PatientAuditLog } from './PatientAuditLog';
 import { GestationTimeline } from './GestationTimeline';
 import { criarMarcoPersonalizado } from '../utils/gestationTimeline';
 import { agruparExamesTabelaPorData } from '../utils/examesOrganizacao';
-import { formatDateDisplay, formatDateBR } from '../utils/formatters';
+import { formatDateDisplay, formatDateBR, formatarDataAgrupador } from '../utils/formatters';
 import { compararAgendamentos } from '../utils/agendaScheduling';
 import { encontrarSolicitacaoDoAtendimento } from '../utils/solicitacoes';
 import { AppointmentStatusBadge } from './agenda/AppointmentStatusBadge';
@@ -309,51 +310,6 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
         );
       })}
     </>
-  );
-
-  // D2.3: card de um exame anexado (laudo/imagem + leitura Gemini) — mesma
-  // renderização que já existia na Central de Exames antes desta fase,
-  // só extraída pra função porque agora é usada tanto na seção "Ecografias"
-  // quanto em "Outros Documentos Anexados".
-  const renderCardExameAnexado = (ex: any) => (
-    <div key={ex.id} className="p-5 bg-gray-50 rounded-2xl border space-y-3">
-      <div className="flex justify-between items-start">
-        <div>
-          <strong className="text-sm font-bold text-gray-900 block">{ex.nome}</strong>
-          <span className="text-[10px] text-gray-500 uppercase font-bold">{ex.tipo} • {ex.dataUpload}</span>
-        </div>
-      </div>
-      {/* PREVIEW: IMAGEM OU PDF */}
-      {ex.fileData && (
-        ex.fileData.startsWith('data:application/pdf') ? (
-          <div className="flex items-center justify-between p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">📄</span>
-              <div>
-                <strong className="text-rose-900 block font-bold">Documento Laudo em PDF</strong>
-                <span className="text-[10px] text-rose-700">Arquivo processado pelo Gemini IA</span>
-              </div>
-            </div>
-            <a
-              href={ex.fileData}
-              download={`${ex.nome || 'laudo'}.pdf`}
-              className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold text-[10px] transition-all cursor-pointer"
-            >
-              Baixar PDF
-            </a>
-          </div>
-        ) : (
-          <img
-            src={ex.fileData}
-            alt={ex.nome}
-            className="max-h-68 rounded-xl object-contain border bg-black/5 p-1"
-          />
-        )
-      )}
-
-      <div className="bg-pink-50/80 p-3.5 rounded-xl text-xs text-gray-800 whitespace-pre-line border border-pink-200">{ex.resumoIA}</div>
-      <div className="bg-emerald-50/80 p-3.5 rounded-xl text-xs text-gray-900 whitespace-pre-line border border-emerald-200">{ex.notaDra}</div>
-    </div>
   );
 
   return (
@@ -1315,12 +1271,17 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                 <div>
                   <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
                     Central de Laudos e Ecografias
-                    <span className="bg-pink-100 text-pink-800 px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1">
-                      <Bot className="w-3 h-3 text-pink-600" /> Leitura Gemini IA Ativa
+                    {/* UX-05: badge da IA discreto — a função principal é o exame,
+                        não o Gemini (seção 6 da fase). */}
+                    <span className="text-[10px] text-pink-500 font-medium flex items-center gap-1">
+                      ✨ IA Gemini
                     </span>
                   </h3>
                   <p className="text-xs text-gray-500">Envie laudos: o Gemini extrai os dados e resume tudo para a mãe</p>
                 </div>
+                {/* Ação principal ("+ Anexar Exame", preenchida) vs. secundária
+                    ("Nova Solicitação", contorno) — já era essa a distinção, só
+                    confirmada/preservada nesta fase (seção 2). */}
                 <div className="flex flex-wrap gap-2">
                   {userRole === 'medica' && (
                     <button onClick={onAbrirNovaSolicitacao} className="bg-white border border-[var(--brand-primary)] text-[var(--brand-primary)] px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer">
@@ -1335,14 +1296,18 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
 
               {/* D2.2/D2.3: prescrições e solicitações — são PEDIDOS, não
                   resultado. Ficam separadas das seções de exame realizado
-                  abaixo, pra nunca dar a entender que foram feitos. */}
-              {(currentPatient.solicitacoes || []).length > 0 && (
+                  abaixo, pra nunca dar a entender que foram feitos. Ícone +
+                  estilo neutro (nunca verde de "concluído") reforçam "isto foi
+                  pedido", não "isto é resultado" (seção 3 da UX-05). */}
+              {(currentPatient.solicitacoes || []).length > 0 ? (
                 <div className="space-y-2">
                   <h4 className="text-[11px] font-bold text-gray-400 uppercase">Solicitações (ainda não é resultado)</h4>
                   {[...(currentPatient.solicitacoes || [])].reverse().map((s) => (
                     <div key={s.id} className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs space-y-1">
                       <div className="flex justify-between items-center gap-2">
-                        <span className="font-bold text-gray-800">{formatDateBR(s.data)}</span>
+                        <span className="font-bold text-gray-800 flex items-center gap-1.5">
+                          <ClipboardList className="w-3.5 h-3.5 text-gray-400" /> {formatDateBR(s.data)}
+                        </span>
                         {s.consultaEvolucaoId && <span className="text-[10px] text-gray-400 shrink-0">Vinculada a um atendimento</span>}
                       </div>
                       {s.prescricoes.length > 0 && (
@@ -1354,17 +1319,19 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                     </div>
                   ))}
                 </div>
+              ) : (
+                <p className="text-xs text-gray-400">Nenhuma solicitação realizada.</p>
               )}
 
               {/* D2.3: laboratórios organizados por data, a partir da MESMA
                   Tabela de Exames da aba "Exames Laboratoriais" (nenhum dado
                   novo, só reorganizado por data em vez de por exame). */}
-              {gruposExamesLaboratoriais.length > 0 && (
+              {gruposExamesLaboratoriais.length > 0 ? (
                 <div className="space-y-2">
                   <h4 className="text-[11px] font-bold text-gray-400 uppercase">Exames Laboratoriais</h4>
                   {gruposExamesLaboratoriais.map((grupo) => (
                     <div key={grupo.data} className="border border-gray-100 rounded-xl overflow-hidden">
-                      <div className="bg-gray-50 px-3 py-1.5 text-[11px] font-bold text-gray-600 border-b border-gray-100">{formatDateBR(grupo.data)}</div>
+                      <div className="bg-gray-50 px-3 py-1.5 text-[11px] font-bold text-gray-600 border-b border-gray-100">{formatarDataAgrupador(grupo.data)}</div>
                       <div className="divide-y divide-gray-100">
                         {grupo.itens.map((item) => (
                           <div key={item.exameId} className="flex justify-between items-center gap-2 px-3 py-2 text-xs">
@@ -1376,30 +1343,35 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                     </div>
                   ))}
                 </div>
+              ) : (
+                <p className="text-xs text-gray-400">Nenhum laboratório encontrado.</p>
               )}
 
               {/* D2.3: ecografias/imagem organizadas por data — mesmo dado de
                   sempre (examesEnviados), só filtrado por tipo e com uma
                   data de cabeçalho quando muda de dia. Laudo e análise
-                  Gemini continuam exatamente como já funcionavam. */}
-              {ecografiasEnviadas.length > 0 && (
+                  Gemini continuam exatamente como já funcionavam, agora no
+                  card expansível DocumentoExameCard (UX-05). */}
+              {ecografiasEnviadas.length > 0 ? (
                 <div className="space-y-2">
                   <h4 className="text-[11px] font-bold text-gray-400 uppercase">Ecografias</h4>
                   {ecografiasEnviadas.map((ex, i) => (
                     <React.Fragment key={ex.id}>
                       {(i === 0 || ex.dataUpload !== ecografiasEnviadas[i - 1].dataUpload) && (
-                        <div className="text-[11px] font-bold text-gray-600 pt-1">{ex.dataUpload}</div>
+                        <div className="text-[11px] font-bold text-gray-600 pt-1">{formatarDataAgrupador(ex.dataUpload)}</div>
                       )}
-                      {renderCardExameAnexado(ex)}
+                      <DocumentoExameCard exame={ex} />
                     </React.Fragment>
                   ))}
                 </div>
+              ) : (
+                <p className="text-xs text-gray-400">Nenhuma ecografia anexada.</p>
               )}
 
               {outrosDocumentosAnexados.length > 0 && (
-                <div className="space-y-4">
+                <div className="space-y-2">
                   <h4 className="text-[11px] font-bold text-gray-400 uppercase">Outros Documentos Anexados</h4>
-                  {outrosDocumentosAnexados.map((ex) => renderCardExameAnexado(ex))}
+                  {outrosDocumentosAnexados.map((ex) => <DocumentoExameCard key={ex.id} exame={ex} />)}
                 </div>
               )}
             </div>
