@@ -990,6 +990,10 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                   <span className="text-xs font-bold text-slate-700 tracking-wide uppercase">
                     Ganho recomendado: {referenciaGPG.faixa.ganhoTotal.min}–{referenciaGPG.faixa.ganhoTotal.max} kg até 40 semanas
                   </span>
+                  {/* NOTA PROVISÓRIA (UX-04 / UX-04.1) — some da UI de produção
+                      depois da validação final da Dra. sobre as curvas
+                      digitalizadas (seção 13 da UX-04.1); não é conteúdo
+                      clínico permanente. */}
                   <span className="text-[10px] text-gray-400 text-center max-w-md">
                     Curvas de percentil ({referenciaGPG.faixa.percentis.join(', ')}) digitalizadas a partir do gráfico oficial da clínica — vale conferir os pontos-chave antes de considerar definitivo.
                   </span>
@@ -1004,7 +1008,14 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
 
               {visualizacaoGPG === 'grafico' ? (
                 temPesoInicialValido ? (
-                  <div className="bg-white p-3 rounded-2xl border border-slate-200 overflow-x-auto">
+                  <div className="space-y-1.5">
+                    {/* UX-04.1: a grade semanal inteira não cabe em 375px sem rolar —
+                        indicação discreta de que há mais conteúdo, fora do container
+                        que rola (senão ela mesma ficaria "escondida" fora da tela). */}
+                    <p className="md:hidden flex items-center justify-center gap-1 text-[10px] text-gray-400">
+                      Deslize para ver todas as semanas <ChevronRight className="w-3 h-3" />
+                    </p>
+                    <div className="bg-white p-3 rounded-2xl border border-slate-200 overflow-x-auto">
                     <svg viewBox="0 0 720 400" className="w-full min-w-[650px] font-sans" role="img" aria-label="Gráfico de ganho de peso ao longo da gestação">
                       <rect x="50" y="40" width="620" height="300" fill="#FAFAFA" stroke="#CBD5E1" strokeWidth="1.5" />
                       {Array.from({ length: 30 }, (_, i) => i - 4).map((kg) => {
@@ -1051,12 +1062,29 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                           'Z'
                         ].join(' ');
 
+                        // UX-04.1 seção 6: os rótulos de percentil (P10, P18...) partem
+                        // da posição real da curva em semana 40, mas quando duas curvas
+                        // terminam perto uma da outra os rótulos se sobrepunham (achado
+                        // real nos prints). Declutter simples: ordena por y e garante uma
+                        // distância mínima entre rótulos vizinhos, empurrando pra baixo
+                        // quando precisa — nunca muda os dados, só onde o texto aparece.
+                        const ESPACAMENTO_MINIMO_LABEL = 9;
+                        const labelsOrdenados = faixa.percentis
+                          .map((p, idx) => ({ texto: p, x: curvasPontos[idx][curvasPontos[idx].length - 1].x, y: curvasPontos[idx][curvasPontos[idx].length - 1].y }))
+                          .sort((a, b) => a.y - b.y);
+                        for (let i = 1; i < labelsOrdenados.length; i++) {
+                          const minY = labelsOrdenados[i - 1].y + ESPACAMENTO_MINIMO_LABEL;
+                          if (labelsOrdenados[i].y < minY) labelsOrdenados[i].y = minY;
+                        }
+                        const labelPorTexto = Object.fromEntries(labelsOrdenados.map((l) => [l.texto, l]));
+
                         return (
                           <g>
                             <path d={areaPath} fill={faixa.corHex} fillOpacity="0.08" stroke="none" />
                             {faixa.percentis.map((p, idx) => {
                               const pontos = curvasPontos[idx];
-                              const ultimo = pontos[pontos.length - 1];
+                              const pontoReal = pontos[pontos.length - 1];
+                              const label = labelPorTexto[p];
                               const éExtremo = idx === 0 || idx === faixa.percentis.length - 1;
                               return (
                                 <g key={p}>
@@ -1068,10 +1096,26 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                                     strokeDasharray={éExtremo ? '4 3' : undefined}
                                     points={pontos.map((pt) => `${pt.x},${pt.y}`).join(' ')}
                                   />
-                                  <text x={ultimo.x + 4} y={ultimo.y + 3} fontSize="8" fontWeight="bold" fill={faixa.corHex}>{p}</text>
+                                  {/* linha-guia curta só quando o rótulo foi deslocado pelo declutter */}
+                                  {Math.abs(label.y - pontoReal.y) > 1 && (
+                                    <line x1={pontoReal.x + 1} y1={pontoReal.y} x2={label.x + 2} y2={label.y} stroke={faixa.corHex} strokeOpacity="0.4" strokeWidth="0.75" />
+                                  )}
+                                  <text x={label.x + 4} y={label.y + 3} fontSize="8" fontWeight="bold" fill={faixa.corHex}>{p}</text>
                                 </g>
                               );
                             })}
+                          </g>
+                        );
+                      })()}
+                      {/* Linha vertical da semana atual (UX-04.1 seção 9) — cor forte e
+                          distinta tanto das divisórias de trimestre (vermelho) quanto da
+                          cor de categoria, pra funcionar como um "você está aqui" claro. */}
+                      {currentGest.weeks >= 10 && currentGest.weeks <= 40 && (() => {
+                        const x = 50 + ((currentGest.weeks - 10) / 30) * 620;
+                        return (
+                          <g>
+                            <line x1={x} y1="40" x2={x} y2="340" stroke="#0F172A" strokeWidth="2" strokeDasharray="2 2" />
+                            <text x={x} y="14" fontSize="9" fontWeight="bold" fill="#0F172A" textAnchor="middle">Hoje</text>
                           </g>
                         );
                       })()}
@@ -1099,6 +1143,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                     <p className="text-[10px] text-gray-400 text-center mt-1.5">
                       Eixo horizontal: semanas gestacionais · Eixo vertical: ganho de peso (kg) em relação ao peso pré-gestacional
                     </p>
+                    </div>
                   </div>
                 ) : (
                   <div className="bg-gray-50 border border-dashed border-gray-300 rounded-2xl p-6 text-center text-xs text-gray-500">

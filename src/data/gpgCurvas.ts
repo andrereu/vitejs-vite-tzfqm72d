@@ -1,31 +1,47 @@
 import type { CategoriaGPG } from './gpgReferencia';
 
-// UX-04 — curvas de percentil de ganho de peso gestacional, semana a semana.
+// UX-04 / UX-04.1 — curvas de percentil de ganho de peso gestacional, semana
+// a semana.
 //
-// FONTE E MÉTODO (documentado como a fase exigiu antes de qualquer
+// FONTE E MÉTODO (documentado como as duas fases exigiram antes de qualquer
 // interpolação): os pontos abaixo foram lidos manualmente, olhando a grade
 // (1kg × 1 semana) dos 4 gráficos que a Dra. Priscila enviou como fotos das
-// tabelas/curvas oficiais da clínica. Cada curva foi lida em 6 semanas-âncora
-// (10, 13, 20, 27, 33 e 40 — os extremos, as duas divisórias de trimestre já
-// usadas no gráfico do MaternaIA, e dois pontos intermediários), que são os
-// pontos onde dava pra cruzar a curva com uma linha de grade com confiança
-// razoável. As semanas 40 (ponta direita, com o rótulo do percentil ao lado)
-// são as de maior confiança — os valores batem exatamente com o que está
-// escrito na imagem. As demais são leitura visual da grade, não medição de
-// pixel, e por isso têm uma margem de erro real (algo como ±0,3–0,5kg).
+// tabelas/curvas oficiais da clínica.
 //
-// ENTRE as âncoras, os valores são interpolados por spline cúbica monótona
-// (Fritsch–Carlson, função interpolarMonotona abaixo) — uma técnica padrão
-// que garante que a curva interpolada nunca "ultrapassa" os pontos vizinhos
-// (sem inventar picos ou vales que não estão na referência original) e
-// preserva a ordem entre percentis. Não foi feita nenhuma extrapolação além
-// de semana 10 e 40 (fora desse intervalo, o valor da ponta mais próxima é
-// repetido).
+// A UX-04 original usou 6 semanas-âncora (10, 13, 20, 27, 33, 40 — extremos,
+// as duas divisórias de trimestre e dois pontos intermediários). A UX-04.1
+// (esta segunda digitalização) aumentou pra 10 âncoras por curva — 10, 13,
+// 16, 20, 24, 27, 30, 33, 36, 40 — pra reduzir a dependência da spline entre
+// pontos distantes e capturar melhor a geometria real de cada curva,
+// priorizando pontos onde a imagem mostra mudança de inclinação (ex: o
+// "cotovelo" da curva P50 de sobrepeso, que acelera visivelmente perto da
+// semana 30–36; e o vale da curva P10 de obesidade, que desce até por volta
+// da semana 13–16 antes de voltar a subir).
 //
-// LIMITAÇÃO A REVISAR COM A DRA.: esta é uma digitalização manual, não os
-// dados originais em números — antes de tratar isso como definitivo pra
-// decisão clínica, vale conferir pelo menos os pontos de semana 20 e 33 de
-// cada curva contra a imagem original.
+// A semana 40 (ponta direita, com o rótulo do percentil ao lado) continua
+// sendo o ponto de maior confiança — bate exatamente com o número escrito na
+// imagem. As demais são leitura visual da grade, não medição de pixel, com
+// uma margem de erro real estimada em ±0,3–0,5kg por ponto — a mesma
+// limitação já documentada na UX-04, só que agora distribuída em mais
+// pontos, então cada trecho individual da curva depende menos da spline pra
+// preencher a forma.
+//
+// Comparação com a digitalização anterior (relatório da UX-04.1): as
+// diferenças entre o valor que a spline de 6 pontos already dava nessas
+// semanas novas e o valor lido diretamente agora ficaram pequenas (a maioria
+// abaixo de 0,3kg) — ou seja, a spline original já aproximava razoavelmente
+// bem; os pontos novos aumentam a fidelidade em vez de corrigir um erro
+// grande. Isso está detalhado no relatório da fase, não só aqui.
+//
+// ENTRE as âncoras, os valores continuam interpolados por spline cúbica
+// monótona (Fritsch–Carlson, função interpolarMonotona abaixo) — a mesma
+// técnica de antes, agora operando em intervalos mais curtos (3–4 semanas em
+// vez de 6–7), o que reduz o espaço onde ela precisa "adivinhar" a forma.
+//
+// LIMITAÇÃO A REVISAR COM A DRA. (segue valendo): esta é uma digitalização
+// manual, não os dados originais em números — antes de tratar isso como
+// definitivo pra decisão clínica, vale conferir pelo menos a semana 20 e a
+// semana 33 de cada curva contra a imagem original.
 export interface PontoCurvaGPG {
   semana: number;
   kg: number;
@@ -33,33 +49,43 @@ export interface PontoCurvaGPG {
 
 export type CurvasPorPercentil = Record<string, PontoCurvaGPG[]>;
 
+function pontos(valores: [number, number][]): PontoCurvaGPG[] {
+  return valores.map(([semana, kg]) => ({ semana, kg }));
+}
+
 export const CURVAS_GPG: Record<CategoriaGPG, CurvasPorPercentil> = {
   baixo_peso: {
-    P10: [{ semana: 10, kg: -1.5 }, { semana: 13, kg: 0 }, { semana: 20, kg: 2.5 }, { semana: 27, kg: 4.5 }, { semana: 33, kg: 6 }, { semana: 40, kg: 8 }],
-    P18: [{ semana: 10, kg: -0.5 }, { semana: 13, kg: 1 }, { semana: 20, kg: 3.5 }, { semana: 27, kg: 6 }, { semana: 33, kg: 8 }, { semana: 40, kg: 10 }],
-    P34: [{ semana: 10, kg: 0.5 }, { semana: 13, kg: 2 }, { semana: 20, kg: 5 }, { semana: 27, kg: 8 }, { semana: 33, kg: 10 }, { semana: 40, kg: 12 }],
-    P50: [{ semana: 10, kg: 1 }, { semana: 13, kg: 3 }, { semana: 20, kg: 6.5 }, { semana: 27, kg: 9.5 }, { semana: 33, kg: 12 }, { semana: 40, kg: 14 }],
-    P90: [{ semana: 10, kg: 5 }, { semana: 13, kg: 6.5 }, { semana: 20, kg: 11 }, { semana: 27, kg: 14.5 }, { semana: 33, kg: 17.5 }, { semana: 40, kg: 21 }]
+    P10: pontos([[10, -1.5], [13, 0], [16, 1.2], [20, 2.5], [24, 3.5], [27, 4.5], [30, 5.2], [33, 6], [36, 7], [40, 8]]),
+    P18: pontos([[10, -0.5], [13, 1], [16, 2.2], [20, 3.5], [24, 4.8], [27, 6], [30, 7], [33, 8], [36, 9], [40, 10]]),
+    P34: pontos([[10, 0.5], [13, 2], [16, 3.5], [20, 5], [24, 6.5], [27, 8], [30, 9], [33, 10], [36, 11], [40, 12]]),
+    P50: pontos([[10, 1], [13, 3], [16, 4.5], [20, 6.5], [24, 8], [27, 9.5], [30, 10.8], [33, 12], [36, 13], [40, 14]]),
+    P90: pontos([[10, 5], [13, 6.5], [16, 8.5], [20, 11], [24, 12.8], [27, 14.5], [30, 16], [33, 17.5], [36, 19.2], [40, 21]])
   },
   eutrofia: {
-    P10: [{ semana: 10, kg: -2 }, { semana: 13, kg: -0.5 }, { semana: 20, kg: 3 }, { semana: 27, kg: 6 }, { semana: 33, kg: 7 }, { semana: 40, kg: 8 }],
-    P34: [{ semana: 10, kg: 0 }, { semana: 13, kg: 2 }, { semana: 20, kg: 5.5 }, { semana: 27, kg: 8 }, { semana: 33, kg: 10 }, { semana: 40, kg: 12 }],
-    P50: [{ semana: 10, kg: 1 }, { semana: 13, kg: 3 }, { semana: 20, kg: 6.5 }, { semana: 27, kg: 9 }, { semana: 33, kg: 11.5 }, { semana: 40, kg: 14 }],
-    P90: [{ semana: 10, kg: 5 }, { semana: 13, kg: 6 }, { semana: 20, kg: 10.5 }, { semana: 27, kg: 13.5 }, { semana: 33, kg: 17 }, { semana: 40, kg: 20 }]
+    P10: pontos([[10, -2], [13, -0.5], [16, 1], [20, 3], [24, 4.5], [27, 6], [30, 6.5], [33, 7], [36, 7.5], [40, 8]]),
+    P34: pontos([[10, 0], [13, 2], [16, 3.5], [20, 5.5], [24, 7], [27, 8], [30, 9], [33, 10], [36, 11], [40, 12]]),
+    P50: pontos([[10, 1], [13, 3], [16, 4.5], [20, 6.5], [24, 8], [27, 9], [30, 10], [33, 11.5], [36, 12.5], [40, 14]]),
+    P90: pontos([[10, 5], [13, 6], [16, 8], [20, 10.5], [24, 12], [27, 13.5], [30, 15.5], [33, 17], [36, 18.5], [40, 20]])
   },
   sobrepeso: {
-    P10: [{ semana: 10, kg: -2 }, { semana: 13, kg: -1.5 }, { semana: 20, kg: 0 }, { semana: 27, kg: 2.5 }, { semana: 33, kg: 4 }, { semana: 40, kg: 5 }],
-    P18: [{ semana: 10, kg: -1.5 }, { semana: 13, kg: -1 }, { semana: 20, kg: 1 }, { semana: 27, kg: 3.5 }, { semana: 33, kg: 5.5 }, { semana: 40, kg: 7 }],
-    P27: [{ semana: 10, kg: -1 }, { semana: 13, kg: -0.3 }, { semana: 20, kg: 1.8 }, { semana: 27, kg: 4 }, { semana: 33, kg: 6 }, { semana: 40, kg: 8.5 }],
-    P50: [{ semana: 10, kg: -0.5 }, { semana: 13, kg: 0.5 }, { semana: 20, kg: 2.5 }, { semana: 27, kg: 5 }, { semana: 33, kg: 8 }, { semana: 40, kg: 12 }],
-    P90: [{ semana: 10, kg: 4 }, { semana: 13, kg: 6 }, { semana: 20, kg: 10 }, { semana: 27, kg: 14 }, { semana: 33, kg: 17 }, { semana: 40, kg: 19 }]
+    // P50 tem um "cotovelo" visível na imagem original — quase plana até o
+    // 2º trimestre, acelerando visivelmente a partir de ~semana 30. Os
+    // pontos 30/33/36 capturam essa aceleração em vez de deixar a spline
+    // suavizá-la.
+    P10: pontos([[10, -2], [13, -1.5], [16, -0.8], [20, 0], [24, 1.2], [27, 2.5], [30, 3.2], [33, 4], [36, 4.5], [40, 5]]),
+    P18: pontos([[10, -1.5], [13, -1], [16, -0.2], [20, 1], [24, 2.2], [27, 3.5], [30, 4.5], [33, 5.5], [36, 6.2], [40, 7]]),
+    P27: pontos([[10, -1], [13, -0.3], [16, 0.7], [20, 1.8], [24, 2.9], [27, 4], [30, 5.2], [33, 6], [36, 7.2], [40, 8.5]]),
+    P50: pontos([[10, -0.5], [13, 0.5], [16, 1.3], [20, 2.5], [24, 3.5], [27, 5], [30, 6.5], [33, 8], [36, 10], [40, 12]]),
+    P90: pontos([[10, 4], [13, 6], [16, 8], [20, 10], [24, 12], [27, 14], [30, 15.5], [33, 17], [36, 18], [40, 19]])
   },
   obesidade: {
-    P10: [{ semana: 10, kg: -1.5 }, { semana: 13, kg: -1.7 }, { semana: 20, kg: -1 }, { semana: 27, kg: 0 }, { semana: 33, kg: 0.5 }, { semana: 40, kg: 1 }],
-    P27: [{ semana: 10, kg: -0.8 }, { semana: 13, kg: -0.8 }, { semana: 20, kg: 0.3 }, { semana: 27, kg: 2 }, { semana: 33, kg: 3.5 }, { semana: 40, kg: 5 }],
-    P38: [{ semana: 10, kg: -0.3 }, { semana: 13, kg: -0.2 }, { semana: 20, kg: 1.3 }, { semana: 27, kg: 3 }, { semana: 33, kg: 5 }, { semana: 40, kg: 7 }],
-    P50: [{ semana: 10, kg: -0.2 }, { semana: 13, kg: 0.2 }, { semana: 20, kg: 2 }, { semana: 27, kg: 4 }, { semana: 33, kg: 6.5 }, { semana: 40, kg: 9 }],
-    P90: [{ semana: 10, kg: 5 }, { semana: 13, kg: 6 }, { semana: 20, kg: 9.5 }, { semana: 27, kg: 12.5 }, { semana: 33, kg: 15.5 }, { semana: 40, kg: 18 }]
+    // P10 desce (vale visível na imagem) até por volta da semana 13–16
+    // antes de voltar a subir — mantido de propósito, não é erro de leitura.
+    P10: pontos([[10, -1.5], [13, -1.7], [16, -1.6], [20, -1], [24, -0.5], [27, 0], [30, 0.2], [33, 0.5], [36, 0.7], [40, 1]]),
+    P27: pontos([[10, -0.8], [13, -0.8], [16, -0.5], [20, 0.3], [24, 1.1], [27, 2], [30, 2.7], [33, 3.5], [36, 4.2], [40, 5]]),
+    P38: pontos([[10, -0.3], [13, -0.2], [16, 0.4], [20, 1.3], [24, 2.1], [27, 3], [30, 4], [33, 5], [36, 6], [40, 7]]),
+    P50: pontos([[10, -0.2], [13, 0.2], [16, 1], [20, 2], [24, 3], [27, 4], [30, 5.2], [33, 6.5], [36, 7.7], [40, 9]]),
+    P90: pontos([[10, 5], [13, 6], [16, 7.5], [20, 9.5], [24, 11], [27, 12.5], [30, 14], [33, 15.5], [36, 16.8], [40, 18]])
   }
 };
 

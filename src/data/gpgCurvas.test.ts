@@ -48,10 +48,10 @@ describe('13. CURVAS_GPG — mesma quantidade e rótulos de percentil que FAIXAS
     }
   });
 
-  it('cada curva tem exatamente as 6 semanas-âncora documentadas (10, 13, 20, 27, 33, 40)', () => {
+  it('UX-04.1: cada curva tem exatamente as 10 semanas-âncora documentadas (10, 13, 16, 20, 24, 27, 30, 33, 36, 40)', () => {
     for (const categoria of Object.keys(CURVAS_GPG) as (keyof typeof CURVAS_GPG)[]) {
       for (const pontos of Object.values(CURVAS_GPG[categoria])) {
-        expect(pontos.map((p) => p.semana)).toEqual([10, 13, 20, 27, 33, 40]);
+        expect(pontos.map((p) => p.semana)).toEqual([10, 13, 16, 20, 24, 27, 30, 33, 36, 40]);
       }
     }
   });
