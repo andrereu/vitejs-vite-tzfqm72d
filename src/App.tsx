@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { LogOut, Smartphone, WifiOff } from 'lucide-react';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
-import type { Patient, AgendaConsulta, ResultadoExame, ItemPrescricao, ItemExameSolicitado, SolicitacaoClinica } from './types/prenatal';
+import type { Patient, AgendaConsulta, ResultadoExame, ItemPrescricao, ItemExameSolicitado, SolicitacaoClinica, DiagnosticoRegistrado } from './types/prenatal';
 import type { DoctorTenant, SaasGlobalConfig } from './types/saas';
 
 import { db } from './firebase';
@@ -170,7 +170,7 @@ export default function App() {
   const [newConsulta, setNewConsulta] = useState({
     data: new Date().toISOString().split('T')[0],
     peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente',
-    queixas: '', diagnostico: '', conduta: ''
+    queixas: '', diagnostico: undefined as DiagnosticoRegistrado | undefined, conduta: ''
   });
 
   useEffect(() => {
@@ -648,7 +648,7 @@ export default function App() {
     setNewConsulta({
       data: app.data,
       peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente',
-      queixas: '', diagnostico: '', conduta: ''
+      queixas: '', diagnostico: undefined, conduta: ''
     });
     setConsultaAgendaVinculada({ app, pat });
     setEditingConsultaId(null);
@@ -666,7 +666,7 @@ export default function App() {
     setNewConsulta({
       data: getLocalDateString(),
       peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente',
-      queixas: '', diagnostico: '', conduta: ''
+      queixas: '', diagnostico: undefined, conduta: ''
     });
     setConsultaAgendaVinculada(null);
     setEditingConsultaId(null);
@@ -688,7 +688,10 @@ export default function App() {
       bcfMf: consulta.bcfMf,
       edema: consulta.edema,
       queixas: consulta.queixas || '',
-      diagnostico: consulta.diagnostico || '',
+      // consulta.diagnostico já vem normalizado (string antiga -> {descricao}
+      // sem código, objeto novo passa direto) por normalizarPaciente em
+      // usePatients.ts — a médica pode selecionar um CID de novo se quiser.
+      diagnostico: consulta.diagnostico,
       conduta: consulta.conduta
     });
     setConsultaAgendaVinculada(null);

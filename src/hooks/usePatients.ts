@@ -3,6 +3,7 @@ import { addDoc, collection, deleteDoc, doc, onSnapshot, serverTimestamp, setDoc
 import { auth, db } from '../firebase';
 import type { Patient, ResultadoExame, UserRole } from '../types/prenatal';
 import { initialPatientsList } from '../types/prenatal';
+import { normalizarDiagnostico } from '../utils/diagnostico';
 
 // examesTabela mudou de "2 colunas fixas" (d1/r1/d2/r2) pra uma lista livre
 // de resultados — essa função protege contra prontuários salvos antes dessa
@@ -34,11 +35,20 @@ function normalizarAgendaConsultas(raw: any[] | undefined): Patient['agendaConsu
   return (raw || []).map((ag) => (ag?.status === 'agendada' ? { ...ag, status: 'confirmada' } : ag));
 }
 
+// D2-CID-3C: diagnostico mudou de string solta ("Cefaleia") pra
+// { codigo?, descricao } — mesmo padrão de normalizarExamesTabela acima,
+// convertido só na leitura. Registros que nunca tiveram esse campo
+// continuam sem ele (undefined), exibidos normalmente.
+function normalizarConsultasEvolucao(raw: any[] | undefined): Patient['consultasEvolucao'] {
+  return (raw || []).map((c) => ({ ...c, diagnostico: normalizarDiagnostico(c?.diagnostico) }));
+}
+
 function normalizarPaciente(raw: any): Patient {
   return {
     ...raw,
     examesTabela: normalizarExamesTabela(raw?.examesTabela),
-    agendaConsultas: normalizarAgendaConsultas(raw?.agendaConsultas)
+    agendaConsultas: normalizarAgendaConsultas(raw?.agendaConsultas),
+    consultasEvolucao: normalizarConsultasEvolucao(raw?.consultasEvolucao)
   } as Patient;
 }
 

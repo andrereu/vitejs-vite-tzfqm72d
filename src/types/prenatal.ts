@@ -17,6 +17,18 @@ export interface ResultadoExame {
   resultado: string;
 }
 
+// D2-CID-3C — diagnóstico da evolução, com ou sem código CID associado.
+// `codigo` só existe quando a médica escolheu explicitamente uma sugestão do
+// autocomplete (CidAutocomplete); texto livre nunca ganha código sozinho — o
+// MaternaIA nunca aplica um CID automaticamente. Registros salvos antes desta
+// fase guardavam `diagnostico` como string solta; normalizarDiagnostico()
+// (src/utils/diagnostico.ts) converte pra este formato na leitura, sem exigir
+// migração nem regravar nada no Firestore.
+export interface DiagnosticoRegistrado {
+  codigo?: string;
+  descricao: string;
+}
+
 export interface ConsultaEvolucao {
   id: string;
   data: string;
@@ -31,7 +43,7 @@ export interface ConsultaEvolucao {
   // migração de registros antigos, que continuam sendo exibidos normalmente
   // sem esses dados.
   queixas?: string;
-  diagnostico?: string; // CID / Diagnóstico
+  diagnostico?: DiagnosticoRegistrado;
   // Vínculo opcional com a AgendaConsulta que originou este registro —
   // só existe quando o formulário foi aberto a partir da Agenda ("Registrar
   // atendimento"). Registros do fluxo antigo ("Registrar Nova Consulta" no

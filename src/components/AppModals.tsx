@@ -5,7 +5,8 @@ import {
 import { auth, googleProvider, signInWithPopup } from '../firebase';
 import { formatDateBR } from '../utils/formatters';
 import { PrescricaoExamesEditor } from './PrescricaoExamesEditor';
-import type { ItemPrescricao, ItemExameSolicitado, SolicitacaoClinica } from '../types/prenatal';
+import { CidAutocomplete } from './CidAutocomplete';
+import type { ItemPrescricao, ItemExameSolicitado, SolicitacaoClinica, DiagnosticoRegistrado } from '../types/prenatal';
 
 
 interface AppModalsProps {
@@ -773,7 +774,11 @@ export const AppModals: React.FC<AppModalsProps> = (props) => {
 
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-gray-400 block uppercase">Diagnóstico</label>
-              <input type="text" placeholder="CID / Diagnóstico" value={props.newConsulta.diagnostico} onChange={(e) => props.setNewConsulta({ ...props.newConsulta, diagnostico: e.target.value })} className="w-full text-xs p-2.5 border rounded-xl" />
+              <CidAutocomplete
+                id="diagnostico-consulta"
+                value={props.newConsulta.diagnostico as DiagnosticoRegistrado | undefined}
+                onChange={(v) => props.setNewConsulta({ ...props.newConsulta, diagnostico: v })}
+              />
             </div>
 
             <div className="space-y-2">
