@@ -4,7 +4,7 @@ import {
   Edit3, Bot, MapPin, CalendarPlus, Calendar, Share2, Send, Download, ShieldAlert,
   Activity, FlaskConical, CalendarClock,
   LayoutDashboard, History, CreditCard, ClipboardList, BarChart3, FolderOpen, LayoutGrid, X,
-  ChevronRight
+  ChevronRight, LineChart, Table2
 } from 'lucide-react';
 import type { Patient, AgendaConsulta, ConsultaEvolucao, MarcoPersonalizado, UserRole } from '../types/prenatal';
 import type { DoctorTenant } from '../types/saas';
@@ -26,6 +26,8 @@ import { downloadPatientData } from '../utils/dataExport';
 import { hasPermission } from '../utils/rbac';
 import { isDoctorBlocked } from '../utils/subscription';
 import { LISTA_EXAMES_OFICIAIS } from '../constants/examesList';
+import type { ReferenciaGPG } from '../data/gpgReferencia';
+import { construirTabelaGPG } from '../data/gpgTabela';
 
 interface PatientAppScreenProps {
   currentPatient: Patient;
@@ -36,7 +38,7 @@ interface PatientAppScreenProps {
   setActiveTab: (tab: string) => void;
   nextAppointment: AgendaConsulta | null;
   examAlerts: { titulo: string; desc: string }[];
-  bmiInfo: { cat: string; recom: string; bg: string };
+  referenciaGPG: ReferenciaGPG;
   patients: Patient[];
   saveToFirestore: (updatedList: Patient[]) => Promise<void>;
   setShowRequestAppointmentModal: (v: boolean) => void;
@@ -78,7 +80,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
   setActiveTab,
   nextAppointment,
   examAlerts,
-  bmiInfo,
+  referenciaGPG,
   patients,
   saveToFirestore,
   setShowRequestAppointmentModal,
@@ -122,6 +124,10 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
   const outrosDocumentosAnexados = examesEnviadosOrdenados.filter((ex: any) => ex.tipo !== 'Ecografia');
 
   const [showMoreSheet, setShowMoreSheet] = useState(false);
+
+  // UX-04: alternância Gráfico/Tabela do GPG — só controla apresentação,
+  // os dados são sempre currentPatient.consultasEvolucao.
+  const [visualizacaoGPG, setVisualizacaoGPG] = useState<'grafico' | 'tabela'>('grafico');
 
   const [examesExpandidos, setExamesExpandidos] = useState<Set<string>>(new Set());
   const toggleExameExpandido = (id: string) => {
@@ -928,80 +934,160 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
           )}
 
           {/* TAB GRÁFICO GPG */}
-          {activeTab === 'graficos' && (
+          {activeTab === 'graficos' && (() => {
+            // UX-04: sem o fallback de 60kg que existia antes — sem um peso
+            // pré-gestacional real, não dá pra calcular ganho nenhum (nem
+            // pro gráfico, nem pra tabela), então mostramos isso explicitamente
+            // em vez de desenhar uma curva baseada num número inventado.
+            const pesoInicialNum = parseFloat(currentPatient.pesoInicial);
+            const temPesoInicialValido = Number.isFinite(pesoInicialNum) && pesoInicialNum > 0;
+
+            return (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-5 print:hidden">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 gap-3">
                 <div>
                   <h3 className="font-serif text-lg font-bold text-[var(--brand-primary)] uppercase tracking-wide">
                     Gráfico de Ganho de Peso
                   </h3>
-                  <p className="text-xs text-gray-500">Padrão da Caderneta de Saúde da Gestante (MS / Atalah)</p>
+                  <p className="text-xs text-gray-500">Referência de ganho de peso gestacional da Caderneta da Gestante</p>
                 </div>
-                {userRole === 'medica' && (
-                  <button onClick={onAbrirNovaEvolucao} className="bg-[var(--brand-primary)] text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs cursor-pointer">
-                    + Registrar Atendimento
-                  </button>
-                )}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center bg-gray-100 rounded-xl p-1 text-xs font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setVisualizacaoGPG('grafico')}
+                      aria-pressed={visualizacaoGPG === 'grafico'}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${visualizacaoGPG === 'grafico' ? 'bg-white shadow-xs text-[var(--brand-primary)]' : 'text-gray-500'}`}
+                    >
+                      <LineChart className="w-3.5 h-3.5" /> Gráfico
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVisualizacaoGPG('tabela')}
+                      aria-pressed={visualizacaoGPG === 'tabela'}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${visualizacaoGPG === 'tabela' ? 'bg-white shadow-xs text-[var(--brand-primary)]' : 'text-gray-500'}`}
+                    >
+                      <Table2 className="w-3.5 h-3.5" /> Tabela
+                    </button>
+                  </div>
+                  {userRole === 'medica' && (
+                    <button onClick={onAbrirNovaEvolucao} className="bg-[var(--brand-primary)] text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs cursor-pointer whitespace-nowrap">
+                      + Registrar Atendimento
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div className="flex flex-col items-center justify-center space-y-1 py-2">
-                <div className={`px-6 py-2 text-white font-bold text-sm rounded-full shadow-sm text-center ${bmiInfo.bg}`}>
-                  {bmiInfo.cat}
+              {/* Categoria/referência — substitui o antigo badge baseado no IOM
+                  (UX-04). Sem peso e altura pré-gestacionais válidos, nunca
+                  inventa uma faixa: mostra que a referência está indisponível. */}
+              {referenciaGPG.faixa ? (
+                <div className="flex flex-col items-center justify-center gap-1 py-2">
+                  <div className={`px-6 py-2 text-white font-bold text-sm rounded-full shadow-sm text-center ${referenciaGPG.faixa.corBadge}`}>
+                    {referenciaGPG.faixa.label} · IMC inicial {referenciaGPG.imcInicial!.toFixed(1)}
+                  </div>
+                  <span className="text-xs font-bold text-slate-700 tracking-wide uppercase">
+                    Ganho recomendado: {referenciaGPG.faixa.ganhoTotal.min}–{referenciaGPG.faixa.ganhoTotal.max} kg até 40 semanas
+                  </span>
+                  <span className="text-[10px] text-gray-400 text-center max-w-md">
+                    Curvas de percentil ({referenciaGPG.faixa.percentis.join(', ')}) desta categoria ainda não são desenhadas no gráfico — faltam os valores exatos por semana.
+                  </span>
                 </div>
-                <span className="text-xs font-bold text-slate-700 tracking-wide uppercase">
-                  {bmiInfo.recom}
-                </span>
-              </div>
+              ) : (
+                <div className="flex items-center justify-center py-2">
+                  <span className="text-xs text-gray-400 italic text-center max-w-md">
+                    Referência de ganho de peso indisponível — falta peso e/ou altura pré-gestacionais cadastrados.
+                  </span>
+                </div>
+              )}
 
-              <div className="bg-white p-3 rounded-2xl border border-slate-200 overflow-x-auto">
-                <svg viewBox="0 0 720 400" className="w-full min-w-[650px] font-sans">
-                  <rect x="50" y="40" width="620" height="300" fill="#FAFAFA" stroke="#CBD5E1" strokeWidth="1.5" />
-                  {Array.from({ length: 30 }, (_, i) => i - 4).map((kg) => {
-                    if (kg % 2 !== 0 && kg !== 25) return null;
-                    const y = 340 - ((kg + 4) / 29) * 300;
-                    return (
-                      <g key={kg}>
-                        <line x1="50" y1={y} x2="670" y2={y} stroke={kg === 0 ? "#64748B" : "#E2E8F0"} strokeWidth={kg === 0 ? "1.5" : "1"} />
-                        <text x="42" y={y + 3} fontSize="9" fontWeight="bold" fill="#475569" textAnchor="end">{kg}</text>
-                        <text x="678" y={y + 3} fontSize="9" fontWeight="bold" fill="#475569" textAnchor="start">{kg}</text>
-                      </g>
-                    );
-                  })}
-                  {Array.from({ length: 31 }, (_, i) => i + 10).map((sem) => {
-                    const x = 50 + ((sem - 10) / 30) * 620;
-                    const isDivisoria = sem === 13 || sem === 27;
-                    return (
-                      <g key={sem}>
-                        <line x1={x} y1="40" x2={x} y2="340" stroke={isDivisoria ? "#E11D48" : "#F1F5F9"} strokeWidth={isDivisoria ? "2" : "1"} />
-                        <text x={x} y="34" fontSize="9" fontWeight={isDivisoria ? "bold" : "medium"} fill={isDivisoria ? "#E11D48" : "#64748B"} textAnchor="middle">{sem}</text>
-                        <text x={x} y="352" fontSize="9" fontWeight={isDivisoria ? "bold" : "medium"} fill={isDivisoria ? "#E11D48" : "#64748B"} textAnchor="middle">{sem}</text>
-                      </g>
-                    );
-                  })}
-                  {(() => {
-                    const realPoints = currentPatient.consultasEvolucao
-                      .filter(c => c.igSem >= 10 && c.igSem <= 40)
-                      .map(c => ({
-                        x: 50 + ((c.igSem - 10) / 30) * 620,
-                        y: 340 - (((c.peso - (parseFloat(currentPatient.pesoInicial) || 60)) + 4) / 29) * 300,
-                        ganho: (c.peso - (parseFloat(currentPatient.pesoInicial) || 60)).toFixed(1),
-                        ...c
-                      }));
-                    return (
-                      <g>
-                        {realPoints.length > 1 && (
-                          <polyline fill="none" stroke="var(--brand-primary)" strokeWidth="3.5" points={realPoints.map(p => `${p.x},${p.y}`).join(" ")} />
-                        )}
-                        {realPoints.map(p => (
-                          <circle key={p.id} cx={p.x} cy={p.y} r="5" fill="var(--brand-gold)" stroke="var(--brand-primary)" strokeWidth="2" />
-                        ))}
-                      </g>
-                    );
-                  })()}
-                </svg>
-              </div>
+              {visualizacaoGPG === 'grafico' ? (
+                temPesoInicialValido ? (
+                  <div className="bg-white p-3 rounded-2xl border border-slate-200 overflow-x-auto">
+                    <svg viewBox="0 0 720 400" className="w-full min-w-[650px] font-sans" role="img" aria-label="Gráfico de ganho de peso ao longo da gestação">
+                      <rect x="50" y="40" width="620" height="300" fill="#FAFAFA" stroke="#CBD5E1" strokeWidth="1.5" />
+                      {Array.from({ length: 30 }, (_, i) => i - 4).map((kg) => {
+                        if (kg % 2 !== 0 && kg !== 25) return null;
+                        const y = 340 - ((kg + 4) / 29) * 300;
+                        return (
+                          <g key={kg}>
+                            <line x1="50" y1={y} x2="670" y2={y} stroke={kg === 0 ? "#64748B" : "#E2E8F0"} strokeWidth={kg === 0 ? "1.5" : "1"} />
+                            <text x="42" y={y + 3} fontSize="9" fontWeight="bold" fill="#475569" textAnchor="end">{kg}</text>
+                            <text x="678" y={y + 3} fontSize="9" fontWeight="bold" fill="#475569" textAnchor="start">{kg}</text>
+                          </g>
+                        );
+                      })}
+                      {Array.from({ length: 31 }, (_, i) => i + 10).map((sem) => {
+                        const x = 50 + ((sem - 10) / 30) * 620;
+                        const isDivisoria = sem === 13 || sem === 27;
+                        return (
+                          <g key={sem}>
+                            <line x1={x} y1="40" x2={x} y2="340" stroke={isDivisoria ? "#E11D48" : "#F1F5F9"} strokeWidth={isDivisoria ? "2" : "1"} />
+                            <text x={x} y="34" fontSize="9" fontWeight={isDivisoria ? "bold" : "medium"} fill={isDivisoria ? "#E11D48" : "#64748B"} textAnchor="middle">{sem}</text>
+                            <text x={x} y="352" fontSize="9" fontWeight={isDivisoria ? "bold" : "medium"} fill={isDivisoria ? "#E11D48" : "#64748B"} textAnchor="middle">{sem}</text>
+                          </g>
+                        );
+                      })}
+                      {(() => {
+                        const realPoints = currentPatient.consultasEvolucao
+                          .filter(c => c.igSem >= 10 && c.igSem <= 40)
+                          .map(c => ({
+                            x: 50 + ((c.igSem - 10) / 30) * 620,
+                            y: 340 - (((c.peso - pesoInicialNum) + 4) / 29) * 300,
+                            ganho: (c.peso - pesoInicialNum).toFixed(1),
+                            ...c
+                          }));
+                        return (
+                          <g>
+                            {realPoints.length > 1 && (
+                              <polyline fill="none" stroke="var(--brand-primary)" strokeWidth="3.5" points={realPoints.map(p => `${p.x},${p.y}`).join(" ")} />
+                            )}
+                            {realPoints.map(p => (
+                              <circle key={p.id} cx={p.x} cy={p.y} r="5" fill="var(--brand-gold)" stroke="var(--brand-primary)" strokeWidth="2" />
+                            ))}
+                          </g>
+                        );
+                      })()}
+                    </svg>
+                    <p className="text-[10px] text-gray-400 text-center mt-1.5">
+                      Eixo horizontal: semanas gestacionais · Eixo vertical: ganho de peso (kg) em relação ao peso pré-gestacional
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 border border-dashed border-gray-300 rounded-2xl p-6 text-center text-xs text-gray-500">
+                    Sem peso pré-gestacional cadastrado — não é possível calcular o ganho de peso. Preencha em "Editar Dados" pra habilitar o gráfico.
+                  </div>
+                )
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-gray-50 border-b">
+                      <tr>
+                        <th className="p-2.5">Data</th>
+                        <th className="p-2.5">IG</th>
+                        <th className="p-2.5">Peso</th>
+                        <th className="p-2.5">Ganho acumulado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {construirTabelaGPG(currentPatient.consultasEvolucao, currentPatient.pesoInicial).map((linha) => (
+                        <tr key={linha.id} className="border-b">
+                          <td className="p-2.5 font-bold">{formatDateBR(linha.data)}</td>
+                          <td className="p-2.5">{linha.igSem} sem</td>
+                          <td className="p-2.5">{linha.peso}kg</td>
+                          <td className="p-2.5">{linha.ganho !== null ? `${linha.ganho > 0 ? '+' : ''}${linha.ganho}kg` : '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {currentPatient.consultasEvolucao.length === 0 && (
+                    <p className="text-xs text-gray-400 text-center py-4">Nenhuma pesagem registrada ainda.</p>
+                  )}
+                </div>
+              )}
             </div>
-          )}
+            );
+          })()}
 
           {/* TAB CALCULADORA */}
           {activeTab === 'calculadora' && (

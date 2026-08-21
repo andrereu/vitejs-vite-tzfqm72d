@@ -33,6 +33,7 @@ import { useBlockedSlots } from './hooks/useBlockedSlots';
 import { encontrarBloqueioConflitante, mensagemBloqueioAgenda } from './utils/agendaScheduling';
 import { selecionarProximaConsulta } from './utils/nextAppointment';
 import { encontrarSolicitacaoDoAtendimento } from './utils/solicitacoes';
+import { obterReferenciaGPG } from './data/gpgReferencia';
 import { useAuthSession } from './hooks/useAuthSession';
 import { useBrandTheme } from './hooks/useBrandTheme';
 import { LISTA_EXAMES_OFICIAIS } from './constants/examesList';
@@ -319,21 +320,16 @@ export default function App() {
     [currentPatient.agendaConsultas]
   );
 
-  const bmiInfo = useMemo(() => {
-    const p0 = parseFloat(currentPatient.pesoInicial) || 60;
-    const h = parseFloat(currentPatient.altura) || 1.65;
-    const bmi = p0 / (h * h);
-
-    if (bmi < 18.5) {
-      return { cat: 'Baixo peso (IMC < 18,5)', recom: 'Ganho Recomendado: 12,5 a 18,0 kg', bg: 'bg-blue-600' };
-    } else if (bmi < 25.0) {
-      return { cat: 'Adequado / Normal (IMC 18,5 a 24,9)', recom: 'Ganho Recomendado: 11,5 a 16,0 kg', bg: 'bg-emerald-600' };
-    } else if (bmi < 30.0) {
-      return { cat: 'Sobrepeso (IMC 25,0 a 29,9)', recom: 'Ganho Recomendado até 40 sem: 7 a 9 kg', bg: 'bg-rose-600' };
-    } else {
-      return { cat: 'Obesidade (IMC ≥ 30,0)', recom: 'Ganho Recomendado: 5,0 a 9,0 kg', bg: 'bg-purple-600' };
-    }
-  }, [currentPatient.pesoInicial, currentPatient.altura]);
+  // UX-04: substitui o antigo bmiInfo (faixas do IOM, americanas e já
+  // desatualizadas no Brasil desde 2022) pela referência de GPG que a Dra.
+  // Priscila já usa na Caderneta impressa da clínica (src/data/gpgReferencia.ts).
+  // Sem o fallback de 60kg/1,65m que existia antes — peso/altura ausentes ou
+  // inválidos agora resultam em "referência indisponível" (faixa: null),
+  // nunca numa faixa clínica inventada.
+  const referenciaGPG = useMemo(
+    () => obterReferenciaGPG(currentPatient.pesoInicial, currentPatient.altura),
+    [currentPatient.pesoInicial, currentPatient.altura]
+  );
 
   const handleCalculateUsg = (e: React.FormEvent) => {
     e.preventDefault();
@@ -977,7 +973,7 @@ export default function App() {
             setActiveTab={setActiveTab}
             nextAppointment={nextAppointment}
             examAlerts={examAlerts}
-            bmiInfo={bmiInfo}
+            referenciaGPG={referenciaGPG}
             patients={patients}
             saveToFirestore={saveToFirestore}
             setShowRequestAppointmentModal={setShowRequestAppointmentModal}
@@ -1023,7 +1019,7 @@ export default function App() {
             setActiveTab={setActiveTab}
             nextAppointment={nextAppointment}
             examAlerts={examAlerts}
-            bmiInfo={bmiInfo}
+            referenciaGPG={referenciaGPG}
             patients={patients}
             saveToFirestore={saveToFirestore}
             setShowRequestAppointmentModal={setShowRequestAppointmentModal}
