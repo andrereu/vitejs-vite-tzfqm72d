@@ -28,6 +28,7 @@ import { isDoctorBlocked } from '../utils/subscription';
 import { LISTA_EXAMES_OFICIAIS } from '../constants/examesList';
 import type { ReferenciaGPG } from '../data/gpgReferencia';
 import { construirTabelaGPG } from '../data/gpgTabela';
+import { CURVAS_GPG, gerarPontosCurva } from '../data/gpgCurvas';
 
 interface PatientAppScreenProps {
   currentPatient: Patient;
@@ -990,7 +991,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                     Ganho recomendado: {referenciaGPG.faixa.ganhoTotal.min}–{referenciaGPG.faixa.ganhoTotal.max} kg até 40 semanas
                   </span>
                   <span className="text-[10px] text-gray-400 text-center max-w-md">
-                    Curvas de percentil ({referenciaGPG.faixa.percentis.join(', ')}) desta categoria ainda não são desenhadas no gráfico — faltam os valores exatos por semana.
+                    Curvas de percentil ({referenciaGPG.faixa.percentis.join(', ')}) digitalizadas a partir do gráfico oficial da clínica — vale conferir os pontos-chave antes de considerar definitivo.
                   </span>
                 </div>
               ) : (
@@ -1028,6 +1029,52 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                           </g>
                         );
                       })}
+                      {/* Faixas/curvas de referência (UX-04) — desenhadas ANTES da linha
+                          da paciente, pra ela continuar sendo o elemento de maior
+                          contraste (seção 4/6 da fase). Semitransparentes, cor de
+                          categoria (nunca a cor de marca nem a semântica de status
+                          clínico já usada em outro lugar do app). */}
+                      {referenciaGPG.faixa && (() => {
+                        const faixa = referenciaGPG.faixa;
+                        const toXY = (semana: number, kg: number) => ({
+                          x: 50 + ((semana - 10) / 30) * 620,
+                          y: 340 - ((kg + 4) / 29) * 300
+                        });
+                        const curvasPontos = faixa.percentis.map((p) =>
+                          gerarPontosCurva(CURVAS_GPG[faixa.categoria][p], 10, 40).map((pt) => toXY(pt.semana, pt.kg))
+                        );
+                        const inferior = curvasPontos[0];
+                        const superior = curvasPontos[curvasPontos.length - 1];
+                        const areaPath = [
+                          ...superior.map((pt, i) => `${i === 0 ? 'M' : 'L'}${pt.x},${pt.y}`),
+                          ...[...inferior].reverse().map((pt) => `L${pt.x},${pt.y}`),
+                          'Z'
+                        ].join(' ');
+
+                        return (
+                          <g>
+                            <path d={areaPath} fill={faixa.corHex} fillOpacity="0.08" stroke="none" />
+                            {faixa.percentis.map((p, idx) => {
+                              const pontos = curvasPontos[idx];
+                              const ultimo = pontos[pontos.length - 1];
+                              const éExtremo = idx === 0 || idx === faixa.percentis.length - 1;
+                              return (
+                                <g key={p}>
+                                  <polyline
+                                    fill="none"
+                                    stroke={faixa.corHex}
+                                    strokeOpacity="0.55"
+                                    strokeWidth={p === 'P50' ? '1.75' : '1.1'}
+                                    strokeDasharray={éExtremo ? '4 3' : undefined}
+                                    points={pontos.map((pt) => `${pt.x},${pt.y}`).join(' ')}
+                                  />
+                                  <text x={ultimo.x + 4} y={ultimo.y + 3} fontSize="8" fontWeight="bold" fill={faixa.corHex}>{p}</text>
+                                </g>
+                              );
+                            })}
+                          </g>
+                        );
+                      })()}
                       {(() => {
                         const realPoints = currentPatient.consultasEvolucao
                           .filter(c => c.igSem >= 10 && c.igSem <= 40)

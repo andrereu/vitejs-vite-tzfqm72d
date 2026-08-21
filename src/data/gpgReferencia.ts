@@ -1,19 +1,15 @@
 // UX-04 — referência de Ganho de Peso Gestacional (GPG) fornecida pela Dra.
 // Priscila: as 4 categorias de IMC pré-gestacional que ela já usa na
 // Caderneta impressa da clínica. Fonte de verdade desta fase — não é IOM,
-// não é a curva de Atalah, não foi buscada na internet. Os únicos números
-// que temos com confiança são os limites de IMC e o ganho total recomendado
-// até 40 semanas por categoria, mais os rótulos dos percentis que aparecem
-// em cada tabela/gráfico impresso (a quantidade de percentis por categoria é
-// diferente de propósito — baixo peso/sobrepeso/obesidade têm 5, eutrofia
-// tem 4 — e isso não é pra ser uniformizado).
+// não é a curva de Atalah, não foi buscada na internet. Os limites de IMC,
+// o ganho total recomendado até 40 semanas e os rótulos dos percentis vêm
+// diretamente das 4 tabelas fornecidas (a quantidade de percentis por
+// categoria é diferente de propósito — baixo peso/sobrepeso/obesidade têm 5,
+// eutrofia tem 4 — e isso não é pra ser uniformizado).
 //
-// O que NÃO temos ainda: os valores de cada percentil semana a semana (10 a
-// 40 semanas) — só o ponto final (ganho total até 40 sem) e os rótulos dos
-// percentis, sem a curva entre eles. Por isso o motor de gráfico (GestationTimeline
-// não, o componente do Gráfico GPG em PatientAppScreen.tsx) ainda não desenha
-// as faixas/curvas em si — só a classificação e o range total, que são os
-// únicos dados desta referência precisos o bastante pra virar código.
+// As curvas semana a semana (gpgCurvas.ts) vêm da digitalização manual das 4
+// imagens dos gráficos oficiais que a Dra. enviou — ver o cabeçalho daquele
+// arquivo pra a metodologia e o nível de confiança de cada ponto.
 export type CategoriaGPG = 'baixo_peso' | 'eutrofia' | 'sobrepeso' | 'obesidade';
 
 export interface FaixaGPG {
@@ -25,6 +21,8 @@ export interface FaixaGPG {
   percentis: string[]; // rótulos exatamente como fornecidos pela Dra., sem uniformizar
   /** Cor de categoria — não usa a semântica de sucesso/pendência/urgência já usada no resto do app (seção 9 da fase). */
   corBadge: string;
+  /** Mesma cor, em hex, pro SVG do gráfico (Tailwind bg-* não é utilizável dentro de <svg fill>/<stroke>). */
+  corHex: string;
 }
 
 export const FAIXAS_GPG: FaixaGPG[] = [
@@ -35,7 +33,8 @@ export const FAIXAS_GPG: FaixaGPG[] = [
     imcMax: 18.5,
     ganhoTotal: { min: 9.7, max: 12.2 },
     percentis: ['P10', 'P18', 'P34', 'P50', 'P90'],
-    corBadge: 'bg-sky-600'
+    corBadge: 'bg-sky-600',
+    corHex: '#0284c7'
   },
   {
     categoria: 'eutrofia',
@@ -44,7 +43,8 @@ export const FAIXAS_GPG: FaixaGPG[] = [
     imcMax: 25.0,
     ganhoTotal: { min: 8, max: 12 },
     percentis: ['P10', 'P34', 'P50', 'P90'],
-    corBadge: 'bg-indigo-600'
+    corBadge: 'bg-indigo-600',
+    corHex: '#4f46e5'
   },
   {
     categoria: 'sobrepeso',
@@ -53,7 +53,8 @@ export const FAIXAS_GPG: FaixaGPG[] = [
     imcMax: 30.0,
     ganhoTotal: { min: 7, max: 9 },
     percentis: ['P10', 'P18', 'P27', 'P50', 'P90'],
-    corBadge: 'bg-violet-600'
+    corBadge: 'bg-violet-600',
+    corHex: '#7c3aed'
   },
   {
     categoria: 'obesidade',
@@ -62,7 +63,8 @@ export const FAIXAS_GPG: FaixaGPG[] = [
     imcMax: null,
     ganhoTotal: { min: 5, max: 7.2 },
     percentis: ['P10', 'P27', 'P38', 'P50', 'P90'],
-    corBadge: 'bg-stone-600'
+    corBadge: 'bg-stone-600',
+    corHex: '#57534e'
   }
 ];
 
