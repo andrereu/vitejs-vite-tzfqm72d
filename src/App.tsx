@@ -32,6 +32,7 @@ import { useSecretaries } from './hooks/useSecretaries';
 import { useBlockedSlots } from './hooks/useBlockedSlots';
 import { encontrarBloqueioConflitante, mensagemBloqueioAgenda } from './utils/agendaScheduling';
 import { selecionarProximaConsulta } from './utils/nextAppointment';
+import { encontrarSolicitacaoDoAtendimento } from './utils/solicitacoes';
 import { useAuthSession } from './hooks/useAuthSession';
 import { useBrandTheme } from './hooks/useBrandTheme';
 import { LISTA_EXAMES_OFICIAIS } from './constants/examesList';
@@ -558,7 +559,7 @@ export default function App() {
   // (decidir se cria uma solicitação nova ou não mexe em nada).
   const pacienteParaConsulta = consultaAgendaVinculada?.pat ?? currentPatient;
   const solicitacaoExistenteDoAtendimento = editingConsultaId
-    ? (pacienteParaConsulta.solicitacoes || []).find((s) => s.consultaEvolucaoId === editingConsultaId) ?? null
+    ? encontrarSolicitacaoDoAtendimento(pacienteParaConsulta.solicitacoes, editingConsultaId) ?? null
     : null;
 
   const handleAddConsulta = (e: React.FormEvent) => {

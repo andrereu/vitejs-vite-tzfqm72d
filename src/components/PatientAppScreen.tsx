@@ -19,6 +19,7 @@ import { criarMarcoPersonalizado } from '../utils/gestationTimeline';
 import { agruparExamesTabelaPorData } from '../utils/examesOrganizacao';
 import { formatDateDisplay, formatDateBR } from '../utils/formatters';
 import { compararAgendamentos } from '../utils/agendaScheduling';
+import { encontrarSolicitacaoDoAtendimento } from '../utils/solicitacoes';
 import { AppointmentStatusBadge } from './agenda/AppointmentStatusBadge';
 import { generateAppointmentReminderLink, generateConsultationSummaryLink, sharePatientCard, cleanPhoneNumber } from '../utils/whatsapp';
 import { downloadPatientData } from '../utils/dataExport';
@@ -1116,9 +1117,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                   ao Firestore) e passada pronta pro card. */}
               <div className="md:hidden space-y-2">
                 {currentPatient.consultasEvolucao.map(c => {
-                  const solicitacaoVinculada = (currentPatient.solicitacoes || []).find(
-                    (s) => s.consultaEvolucaoId === c.id
-                  );
+                  const solicitacaoVinculada = encontrarSolicitacaoDoAtendimento(currentPatient.solicitacoes, c.id);
                   return (
                     <ConsultaEvolucaoCard
                       key={c.id}

@@ -41,7 +41,11 @@ export const PatientContextBar: React.FC<PatientContextBarProps> = ({
         {weeks}sem + {days}d
       </span>
       {dueDate && (
-        <span className="text-xs text-gray-500 whitespace-nowrap">DPP {formatDateBR(dueDate)}</span>
+        // UX-03.1: "DPP dd/mm/aaaa" ganhou peso/contraste (text-gray-500 → 600
+        // + font-semibold) — estava visualmente mais fraco que a IG a ponto de
+        // sumir ao lado do chip colorido. Continua sem chip e sem cor de marca,
+        // só um degrau de legibilidade, preservando a hierarquia (nome > IG > DPP).
+        <span className="text-xs text-gray-600 font-semibold whitespace-nowrap">DPP {formatDateBR(dueDate)}</span>
       )}
       {temLinhaSecundaria && (
         <span className="w-full text-[11px] text-gray-400 truncate">

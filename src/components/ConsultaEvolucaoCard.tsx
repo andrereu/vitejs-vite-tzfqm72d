@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ChevronDown, Edit3, Send } from 'lucide-react';
 import type { ConsultaEvolucao, SolicitacaoClinica } from '../types/prenatal';
 import { formatarDiagnostico } from '../utils/diagnostico';
+import { formatDateBR } from '../utils/formatters';
 
 interface ConsultaEvolucaoCardProps {
   consulta: ConsultaEvolucao;
@@ -47,7 +48,7 @@ export const ConsultaEvolucaoCard: React.FC<ConsultaEvolucaoCardProps> = ({
       >
         <div className="min-w-0">
           <div className="flex items-baseline gap-2 flex-wrap">
-            <span className="font-bold text-gray-900 text-sm">{consulta.data}</span>
+            <span className="font-bold text-gray-900 text-sm">{formatDateBR(consulta.data)}</span>
             <span className="text-xs text-gray-500">{consulta.igSem} sem</span>
           </div>
           <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-600">
