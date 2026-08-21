@@ -4,6 +4,7 @@ import { auth, db } from '../firebase';
 import type { Patient, ResultadoExame, UserRole } from '../types/prenatal';
 import { initialPatientsList } from '../types/prenatal';
 import { normalizarDiagnostico } from '../utils/diagnostico';
+import { limparParaFirestore } from '../utils/firestoreSanitize';
 
 // examesTabela mudou de "2 colunas fixas" (d1/r1/d2/r2) pra uma lista livre
 // de resultados — essa função protege contra prontuários salvos antes dessa
@@ -140,11 +141,23 @@ export function usePatients({ doctorId, doctorName, userRole, selectedPatientDoc
       const nextIds = new Set(updatedList.map((p) => p.id));
       const changed = updatedList.filter((p) => prevMap.get(p.id) !== p);
 
+      // HOTFIX: o Firestore lança (síncrono) se QUALQUER valor undefined
+      // aparecer em qualquer profundidade do documento — inclusive dentro de
+      // consultasEvolucao[i].diagnostico quando o atendimento é salvo sem CID
+      // selecionado (o caso mais comum). Sem essa limpeza, esse throw
+      // acontecia aqui dentro do .map(), antes de "logs"/"deletes" sequer
+      // rodarem, e era engolido pelo catch abaixo — nada era escrito, mas a
+      // tela já tinha atualizado de forma otimista (setPatients acima),
+      // então só sumia no próximo reload.
       const writes = changed.map((p) => {
         const pDoctorId = p.doctorId || doctorId;
         const cpfDigits = (p.cpf || '').replace(/\D/g, '');
         const emailLower = (p.email || '').toLowerCase().trim();
-        return setDoc(doc(db, 'doctors', pDoctorId, 'patients', p.id), { ...p, doctorId: pDoctorId, cpfDigits, emailLower }, { merge: true });
+        return setDoc(
+          doc(db, 'doctors', pDoctorId, 'patients', p.id),
+          limparParaFirestore({ ...p, doctorId: pDoctorId, cpfDigits, emailLower }),
+          { merge: true }
+        );
       });
 
       // Log de auditoria: quem mexeu no prontuário, quando e em qual seção —
