@@ -519,9 +519,16 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
               nextAppointment={nextAppointment}
               examAlerts={examAlerts}
               ultimaConsulta={ultimaConsulta}
+              ultimoGrupoLaboratorial={gruposExamesLaboratoriais[0]}
+              ultimaEcografia={ecografiasEnviadas[0]}
               onViewAgenda={() => setActiveTab('agenda')}
               onRequestAppointment={() => setShowRequestAppointmentModal(true)}
               onAddAgenda={() => setShowAddAgendaModal(true)}
+              onViewEvolucao={() => setActiveTab('consultas')}
+              onViewExamesLaboratoriais={() => setActiveTab('examesTabela')}
+              onViewCentralLaudos={() => setActiveTab('examesCentral')}
+              onRegistrarAtendimento={onAbrirNovaEvolucao}
+              onNovaSolicitacao={onAbrirNovaSolicitacao}
             />
           )}
 
