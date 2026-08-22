@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import {
   Upload, Plus, Printer, Syringe, Calculator, AlertCircle,
   Edit3, Bot, MapPin, CalendarPlus, Calendar, Share2, Send, Download, ShieldAlert,
-  Activity, FlaskConical, CalendarClock,
+  Activity, FlaskConical, CalendarClock, LogOut,
   LayoutDashboard, History, CreditCard, ClipboardList, BarChart3, FolderOpen, LayoutGrid, X,
   ChevronRight, LineChart, Table2
 } from 'lucide-react';
 import type { Patient, AgendaConsulta, ConsultaEvolucao, MarcoPersonalizado, UserRole } from '../types/prenatal';
 import type { DoctorTenant } from '../types/saas';
 import { PatientHome } from './PatientHome';
+import { MaternaLogo } from './MaternaLogo';
 import { PatientContextBar } from './PatientContextBar';
 import { ConsultaEvolucaoCard } from './ConsultaEvolucaoCard';
 import { DocumentoExameCard } from './DocumentoExameCard';
@@ -69,6 +70,10 @@ interface PatientAppScreenProps {
   setCalcUsgDias: (v: string) => void;
   calcResultado: any;
   setShowUploadExamModal: (v: boolean) => void;
+  /** UX-06.4 — só a paciente enxerga estas ações (menu "Mais"/barra lateral); a equipe continua
+   *  com Instalar/Sair no header do DoctorShell, de sempre, sem passar por aqui. */
+  onInstallPWA?: () => void;
+  onLogout?: () => void;
 }
 
 // Carteirinha digital da gestante: cabeçalho, seletor de abas, e o conteúdo
@@ -106,7 +111,9 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
   calcUsgDias,
   setCalcUsgDias,
   calcResultado,
-  setShowUploadExamModal
+  setShowUploadExamModal,
+  onInstallPWA,
+  onLogout
 }) => {
   // 'canManageSchedule' também é dada à paciente (só pra ela ver a própria
   // aba de agenda e solicitar consulta) — então ações de uso exclusivo da
@@ -349,6 +356,33 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                 </div>
               </div>
             )}
+
+            {/* UX-06.4 — Instalar/Sair da paciente moram aqui no desktop (mesmo
+                lugar da identidade da Dra., mesmo padrão de botão da navegação
+                acima); a equipe continua com as duas ações no header do
+                DoctorShell, de sempre — nada muda pra ela. */}
+            {!isStaff && (onInstallPWA || onLogout) && (
+              <div className={doctorProfile ? 'pt-1' : 'mt-auto pt-3 border-t border-gray-100'}>
+                {onInstallPWA && (
+                  <button
+                    type="button"
+                    onClick={onInstallPWA}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-gray-600 font-semibold hover:bg-gray-100 transition-all cursor-pointer text-left"
+                  >
+                    <Download className="w-4 h-4 shrink-0" /> Instalar aplicativo
+                  </button>
+                )}
+                {onLogout && (
+                  <button
+                    type="button"
+                    onClick={onLogout}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-rose-600 font-semibold hover:bg-rose-50 transition-all cursor-pointer text-left"
+                  >
+                    <LogOut className="w-4 h-4 shrink-0" /> Sair
+                  </button>
+                )}
+              </div>
+            )}
           </aside>
 
           {/* COLUNA DE CONTEÚDO — UX-06.3: o <nav> mobile fixo (abaixo) é um
@@ -432,6 +466,72 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                 </button>
               </div>
               <div className="overflow-y-auto p-4 flex-1 space-y-1">
+                {/* UX-06.4 — identidade da Dra./clínica + Instalar/Sair só pra
+                    paciente: saíram do header persistente que ocupava o topo
+                    da jornada dela e vieram morar aqui, no mesmo "Mais" que
+                    já existia. Pra equipe nada muda — ela continua com as
+                    duas ações no header do DoctorShell, de sempre. */}
+                {!isStaff && doctorProfile && (
+                  <div className="flex items-center gap-3 p-3 rounded-2xl bg-gray-50 mb-1">
+                    {doctorProfile.logoUrl ? (
+                      <img
+                        src={doctorProfile.logoUrl}
+                        alt={`Logo de ${doctorProfile.nome}`}
+                        className="w-11 h-11 rounded-2xl object-contain shrink-0 bg-white border border-gray-100"
+                      />
+                    ) : (
+                      <span className="w-11 h-11 rounded-2xl shrink-0 flex items-center justify-center">
+                        <MaternaLogo variant="icon" theme="dark" size="sm" />
+                      </span>
+                    )}
+                    <span className="flex-1 min-w-0">
+                      <span className="block font-bold text-sm text-gray-900 truncate">{doctorProfile.nome}</span>
+                      {doctorProfile.especialidade && (
+                        <span className="block text-xs text-gray-500 truncate">{doctorProfile.especialidade}</span>
+                      )}
+                    </span>
+                  </div>
+                )}
+                {!isStaff && onInstallPWA && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onInstallPWA();
+                      setShowMoreSheet(false);
+                    }}
+                    className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer text-left"
+                  >
+                    <span className="w-11 h-11 rounded-2xl bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
+                      <Download className="w-5 h-5" />
+                    </span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block font-bold text-sm text-gray-900">Instalar aplicativo</span>
+                      <span className="block text-xs text-gray-500 truncate">Adicionar o MaternaIA à tela inicial</span>
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+                  </button>
+                )}
+                {!isStaff && onLogout && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onLogout();
+                      setShowMoreSheet(false);
+                    }}
+                    className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-rose-50 transition-all cursor-pointer text-left"
+                  >
+                    <span className="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                      <LogOut className="w-5 h-5" />
+                    </span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block font-bold text-sm text-gray-900">Sair</span>
+                      <span className="block text-xs text-gray-500 truncate">Encerrar sua sessão</span>
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+                  </button>
+                )}
+                {!isStaff && <div className="pt-2" />}
+
                 {/* AÇÕES — Compartilhar/Imprimir/Meus Dados moraram aqui, saíram do topo da home */}
                 <button
                   type="button"

@@ -19,7 +19,6 @@ import { RequestAppointmentModal } from './components/RequestAppointmentModal';
 import { AppointmentConfirmModal } from './components/AppointmentConfirmModal';
 import { MaternaLogo } from './components/MaternaLogo';
 import { TwoFactorVerifyModal } from './components/TwoFactorVerifyModal';
-import { PatientShell } from './components/PatientShell';
 import { DoctorShell } from './components/DoctorShell';
 
 import { calculateWeeksAndDays, fileToBase64, getLocalDateString } from './utils/formatters';
@@ -773,9 +772,11 @@ export default function App() {
         </div>
       )}
 
-      {/* CABEÇALHO — só sobra pra landing/master admin; paciente e área
-          profissional ganharam moldura própria (PatientShell/DoctorShell,
-          fase 1 da reforma App-First) mais abaixo. */}
+      {/* CABEÇALHO — só sobra pra landing/master admin; área profissional
+          ganhou moldura própria (DoctorShell, fase 1 da reforma App-First)
+          mais abaixo. A paciente não tem header persistente nenhum desde a
+          UX-06.4 — a jornada dela começa direto pela saudação; identidade da
+          Dra./Instalar/Sair moraram pro menu "Mais" dela. */}
       {(currentScreen === 'landing' || currentScreen === 'master_admin') && (
       <header className={`text-white shadow-md sticky top-0 z-40 print:hidden ${
         currentScreen === 'master_admin' ? 'bg-black border-b border-slate-800' : 'bg-[var(--brand-primary)] border-b border-[var(--brand-primary-border)]'
@@ -956,51 +957,50 @@ export default function App() {
       )}
 
       {/* 3. ÁREA DA PACIENTE — a moldura depende de QUEM está olhando, não só
-          da tela: a própria gestante ganha o shell leve (PatientShell); a
-          equipe navegando o prontuário de uma paciente continua com o shell
-          profissional (DoctorShell), inclusive o atalho de volta pra Lista
-          de Pacientes — sem isso ela ficaria sem rota de volta. */}
+          da tela: a equipe navegando o prontuário de uma paciente continua
+          com o shell profissional (DoctorShell), inclusive o atalho de volta
+          pra Lista de Pacientes — sem isso ela ficaria sem rota de volta. A
+          própria gestante (UX-06.4) não tem mais shell/header nenhum aqui —
+          a tela dela começa direto pela saudação de PatientHome; Instalar e
+          Sair vão como prop pro próprio PatientAppScreen, que os move pro
+          menu "Mais"/barra lateral dela. */}
       {currentScreen === 'patient_app' && userRole === 'paciente' && (
-        <PatientShell
+        <PatientAppScreen
+          currentPatient={currentPatient}
           doctorProfile={patientDoctorProfile}
+          currentGest={currentGest}
+          userRole={userRole}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          nextAppointment={nextAppointment}
+          examAlerts={examAlerts}
+          referenciaGPG={referenciaGPG}
+          patients={patients}
+          saveToFirestore={saveToFirestore}
+          setShowRequestAppointmentModal={setShowRequestAppointmentModal}
+          setShowAddAgendaModal={setShowAddAgendaModal}
+          setEditProfileData={setEditProfileData}
+          setShowEditProfileModal={setShowEditProfileModal}
+          setEditVacinasData={setEditVacinasData}
+          setShowEditVacinasModal={setShowEditVacinasModal}
+          setEditExamesData={setEditExamesData}
+          setShowEditExamesModal={setShowEditExamesModal}
+          setSelectedAppointmentForConfirm={setSelectedAppointmentForConfirm}
+          onAbrirNovaEvolucao={handleAbrirNovaEvolucao}
+          onEditarEvolucao={handleEditarEvolucao}
+          onAbrirNovaSolicitacao={handleAbrirNovaSolicitacao}
+          handleCalculateUsg={handleCalculateUsg}
+          calcUsgData={calcUsgData}
+          setCalcUsgData={setCalcUsgData}
+          calcUsgSemanas={calcUsgSemanas}
+          setCalcUsgSemanas={setCalcUsgSemanas}
+          calcUsgDias={calcUsgDias}
+          setCalcUsgDias={setCalcUsgDias}
+          calcResultado={calcResultado}
+          setShowUploadExamModal={setShowUploadExamModal}
           onInstallPWA={handleInstallPWA}
           onLogout={handleLogout}
-        >
-          <PatientAppScreen
-            currentPatient={currentPatient}
-            doctorProfile={patientDoctorProfile}
-            currentGest={currentGest}
-            userRole={userRole}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            nextAppointment={nextAppointment}
-            examAlerts={examAlerts}
-            referenciaGPG={referenciaGPG}
-            patients={patients}
-            saveToFirestore={saveToFirestore}
-            setShowRequestAppointmentModal={setShowRequestAppointmentModal}
-            setShowAddAgendaModal={setShowAddAgendaModal}
-            setEditProfileData={setEditProfileData}
-            setShowEditProfileModal={setShowEditProfileModal}
-            setEditVacinasData={setEditVacinasData}
-            setShowEditVacinasModal={setShowEditVacinasModal}
-            setEditExamesData={setEditExamesData}
-            setShowEditExamesModal={setShowEditExamesModal}
-            setSelectedAppointmentForConfirm={setSelectedAppointmentForConfirm}
-            onAbrirNovaEvolucao={handleAbrirNovaEvolucao}
-            onEditarEvolucao={handleEditarEvolucao}
-            onAbrirNovaSolicitacao={handleAbrirNovaSolicitacao}
-            handleCalculateUsg={handleCalculateUsg}
-            calcUsgData={calcUsgData}
-            setCalcUsgData={setCalcUsgData}
-            calcUsgSemanas={calcUsgSemanas}
-            setCalcUsgSemanas={setCalcUsgSemanas}
-            calcUsgDias={calcUsgDias}
-            setCalcUsgDias={setCalcUsgDias}
-            calcResultado={calcResultado}
-            setShowUploadExamModal={setShowUploadExamModal}
-          />
-        </PatientShell>
+        />
       )}
 
       {currentScreen === 'patient_app' && (userRole === 'medica' || userRole === 'secretaria') && (
