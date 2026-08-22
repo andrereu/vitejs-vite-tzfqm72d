@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { LogOut, Smartphone, WifiOff } from 'lucide-react';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
@@ -36,6 +36,7 @@ import { encontrarSolicitacaoDoAtendimento } from './utils/solicitacoes';
 import { obterReferenciaGPG } from './data/gpgReferencia';
 import { useAuthSession } from './hooks/useAuthSession';
 import { useBrandTheme } from './hooks/useBrandTheme';
+import { useBackNavigation } from './hooks/useBackNavigation';
 import { LISTA_EXAMES_OFICIAIS } from './constants/examesList';
 
 export default function App() {
@@ -88,6 +89,11 @@ export default function App() {
   const [selectedPatientId, setSelectedPatientId] = useState("");
   const [selectedPatientDoctorId, setSelectedPatientDoctorId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('resumo');
+  // BUG-01.1 — subiu de dentro de PatientAppScreen.tsx (era useState local
+  // ali) pra entrar no cômputo de "existe overlay aberto?" do modelo de
+  // navegação Back (useBackNavigation, mais abaixo). Comportamento visual
+  // inalterado — só de onde o estado vive.
+  const [showMoreSheet, setShowMoreSheet] = useState(false);
 
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [, setIsInstallable] = useState(false);
@@ -223,6 +229,13 @@ export default function App() {
     if (found) setCurrentDoctorProfile(found);
   }, [saasDoctors, currentDoctorProfile.id]);
 
+  // BUG-01.1 — ponte pra useBackNavigation (definida bem mais abaixo, depois
+  // de useAuthSession) poder ser chamada por resetSessionState (definida
+  // antes de useAuthSession, já que é passada como onResetLocalState pra
+  // ele). O ref é reatribuído a cada render com a versão mais atual do hook —
+  // ver o comentário perto de "const backNav = useBackNavigation(...)".
+  const backNavRef = useRef<{ resetToRest: () => void }>({ resetToRest: () => {} });
+
   // BUG-02.2 — reset central de sessão. Chamado por "Sair" e por "Trocar
   // usuário" (via onResetLocalState, dentro de useAuthSession) — a lista
   // completa de estado a limpar mora só aqui, uma vez, pra logout e troca de
@@ -230,11 +243,17 @@ export default function App() {
   // exatamente o levantamento da investigação BUG-02.1: perfil da médica,
   // paciente selecionada, aba ativa, e todo modal/rascunho que poderia
   // sobreviver de uma identidade pra outra no mesmo aparelho.
+  //
+  // BUG-01.1 — também zera o histórico de navegação (backNavRef.resetToRest)
+  // na mesma tacada: sem isso, um Back logo depois de "Trocar usuário"
+  // poderia alcançar uma entrada de histórico ainda associada à identidade
+  // anterior (Seção 9 do pedido).
   const resetSessionState = () => {
     setCurrentDoctorProfile(NEUTRAL_DOCTOR_PROFILE);
     setSelectedPatientId('');
     setSelectedPatientDoctorId(null);
     setActiveTab('resumo');
+    setShowMoreSheet(false);
 
     setShowDoctorTrialModal(false);
     setShowDoctorSettingsModal(false);
@@ -273,6 +292,8 @@ export default function App() {
     setNewAgenda(initialNewAgenda());
     setNewPatient(initialNewPatient());
     setNewConsulta(initialNewConsulta());
+
+    backNavRef.current.resetToRest();
   };
 
   const {
@@ -307,7 +328,8 @@ export default function App() {
     setCurrentDoctorProfile,
     setSelectedPatientId,
     setSelectedPatientDoctorId,
-    onResetLocalState: resetSessionState
+    onResetLocalState: resetSessionState,
+    onResetNavigation: () => backNavRef.current.resetToRest()
   });
 
   // Endereço próprio por médica: maternaia.com.br/{slug} mostra uma landing
@@ -702,6 +724,18 @@ export default function App() {
     setExamesRascunho([]);
   };
 
+  // BUG-01.1 — nomeado (antes era uma arrow inline só no onCancelarConsulta
+  // do AppModals) pra o Back poder chamar exatamente esta mesma função
+  // quando fecha o overlay "Registrar Atendimento", sem duplicar a limpeza
+  // de rascunho num segundo lugar.
+  const handleCancelarConsulta = () => {
+    setShowAddConsultaModal(false);
+    setConsultaAgendaVinculada(null);
+    setEditingConsultaId(null);
+    setPrescricoesRascunho([]);
+    setExamesRascunho([]);
+  };
+
   // Ponto de entrada "🩺 Registrar atendimento" na Agenda — abre o MESMO
   // modal de sempre ("Registrar Atendimento"), só pré-preenchendo a data da
   // AgendaConsulta selecionada (e a IG já calculada pra essa data) e
@@ -812,6 +846,82 @@ export default function App() {
     saveToFirestore(patients.map((p) => (p.id === updated.id ? updated : p)));
     handleCancelarSolicitacao();
   };
+
+  // BUG-01.1 — modelo de navegação Back (3 níveis fixos: overlay > drill >
+  // aba, cada um substituindo — nunca empilhando — sucessivas transições do
+  // mesmo tipo; ver useBackNavigation.ts). Os 3 booleanos abaixo são
+  // DERIVADOS de estado que o app já muda por outros motivos — nenhum "avisa
+  // o hook" novo foi espalhado pelos ~18 pontos que abrem modal/sheet, aba ou
+  // prontuário de paciente.
+  //
+  // hasDrill: só a equipe "entra" numa paciente a partir do painel (a própria
+  // paciente não tem tela de repouso separada da sua ficha).
+  const hasDrillOpen = (userRole === 'medica' || userRole === 'secretaria') && currentScreen === 'patient_app';
+  // hasTab: sair da aba 'resumo' dentro de patient_app, seja na própria
+  // ficha da paciente ou na da equipe navegando — mesma regra pros dois papéis.
+  const hasTabOpen = currentScreen === 'patient_app' && activeTab !== 'resumo';
+  // hasOverlay: OR de todo modal/sheet/confirmação do app — na prática nunca
+  // mais de um verdadeiro ao mesmo tempo (mutuamente exclusivos por
+  // construção), então tratar como uma camada só é seguro.
+  const hasOverlayOpen =
+    showMoreSheet ||
+    !!selectedAppointmentForConfirm ||
+    showTwoFactorModal ||
+    showAddConsultaModal ||
+    showSolicitacaoModal ||
+    showDoctorSettingsModal ||
+    showDoctorTrialModal ||
+    showRequestAppointmentModal ||
+    showInstallModal ||
+    showEditProfileModal ||
+    showEditVacinasModal ||
+    showEditExamesModal ||
+    showAddAgendaModal ||
+    showUploadExamModal ||
+    showNewPatientModal ||
+    showPatientLoginModal ||
+    showDoctorLoginModal ||
+    showMasterLoginModal;
+
+  // Fecha o overlay que estiver aberto usando EXATAMENTE o mesmo handler já
+  // ligado ao botão "Cancelar"/X de cada um — nunca um fechamento paralelo,
+  // pra nunca pular a limpeza de rascunho que alguns deles já fazem
+  // (Registrar Atendimento, Nova Solicitação, 2FA). Só um é verdadeiro por
+  // vez hoje, então a ordem dos ifs não decide prioridade nenhuma.
+  const closeTopmostOverlay = () => {
+    if (showMoreSheet) { setShowMoreSheet(false); return; }
+    if (selectedAppointmentForConfirm) { setSelectedAppointmentForConfirm(null); return; }
+    if (showTwoFactorModal) { setShowTwoFactorModal(false); setPendingTwoFactorUser(null); return; }
+    if (showAddConsultaModal) { handleCancelarConsulta(); return; }
+    if (showSolicitacaoModal) { handleCancelarSolicitacao(); return; }
+    if (showDoctorSettingsModal) { setShowDoctorSettingsModal(false); return; }
+    if (showDoctorTrialModal) { setShowDoctorTrialModal(false); return; }
+    if (showRequestAppointmentModal) { setShowRequestAppointmentModal(false); return; }
+    if (showInstallModal) { setShowInstallModal(false); return; }
+    if (showEditProfileModal) { setShowEditProfileModal(false); return; }
+    if (showEditVacinasModal) { setShowEditVacinasModal(false); return; }
+    if (showEditExamesModal) { setShowEditExamesModal(false); return; }
+    if (showAddAgendaModal) { setShowAddAgendaModal(false); return; }
+    if (showUploadExamModal) { setShowUploadExamModal(false); return; }
+    if (showNewPatientModal) { setShowNewPatientModal(false); return; }
+    if (showPatientLoginModal) { setShowPatientLoginModal(false); return; }
+    if (showDoctorLoginModal) { setShowDoctorLoginModal(false); return; }
+    if (showMasterLoginModal) { setShowMasterLoginModal(false); return; }
+  };
+
+  const backNav = useBackNavigation({
+    hasDrill: hasDrillOpen,
+    hasTab: hasTabOpen,
+    hasOverlay: hasOverlayOpen,
+    onPopOverlay: closeTopmostOverlay,
+    onPopTab: () => setActiveTab('resumo'),
+    onPopDrill: () => setCurrentScreen('doctor_panel')
+  });
+  // resetSessionState (definida antes de useAuthSession, que por sua vez
+  // precisa vir antes de useBackNavigation por causa de currentScreen/
+  // userRole) chama resetToRest através deste ref — sempre a versão mais
+  // recente do hook, sem inverter a ordem de declaração dos dois.
+  backNavRef.current = backNav;
 
   return (
     <div className={`min-h-screen font-sans pb-12 print:bg-white print:pb-0 ${
@@ -1071,6 +1181,8 @@ export default function App() {
           userRole={userRole}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
+          showMoreSheet={showMoreSheet}
+          setShowMoreSheet={setShowMoreSheet}
           nextAppointment={nextAppointment}
           examAlerts={examAlerts}
           referenciaGPG={referenciaGPG}
@@ -1120,6 +1232,8 @@ export default function App() {
             userRole={userRole}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
+            showMoreSheet={showMoreSheet}
+            setShowMoreSheet={setShowMoreSheet}
             nextAppointment={nextAppointment}
             examAlerts={examAlerts}
             referenciaGPG={referenciaGPG}
@@ -1189,6 +1303,15 @@ export default function App() {
           setCurrentDoctorProfile(newDoctor);
           setUserRole('medica');
           setCurrentScreen('doctor_panel');
+          // BUG-01.1 — achado colateral: este sucesso nunca fechava o próprio
+          // modal (isOpen ficava true mesmo depois de navegar pra
+          // doctor_panel) — sem fechar, hasOverlayOpen nunca cairia e o Back
+          // ficaria preso tentando fechar um modal que já devia ter sumido.
+          // Fora do escopo original do BUG-01.1 corrigir isso a fundo, mas é
+          // o mínimo necessário pra este caminho de login funcionar com o
+          // modelo de Back.
+          setShowDoctorTrialModal(false);
+          backNavRef.current.resetToRest();
         }}
       />
 
@@ -1288,13 +1411,7 @@ export default function App() {
         } : null}
         isEditingConsulta={!!editingConsultaId}
         igAutomatica={calculateWeeksAndDays(pacienteParaConsulta.dum, newConsulta.data)}
-        onCancelarConsulta={() => {
-          setShowAddConsultaModal(false);
-          setConsultaAgendaVinculada(null);
-          setEditingConsultaId(null);
-          setPrescricoesRascunho([]);
-          setExamesRascunho([]);
-        }}
+        onCancelarConsulta={handleCancelarConsulta}
         prescricoesRascunho={prescricoesRascunho}
         examesRascunho={examesRascunho}
         onAdicionarPrescricao={handleAdicionarPrescricao}
@@ -1354,6 +1471,7 @@ export default function App() {
             setCurrentScreen('doctor_panel');
             setShowTwoFactorModal(false);
             setPendingTwoFactorUser(null);
+            backNavRef.current.resetToRest();
           }}
         />
       )}

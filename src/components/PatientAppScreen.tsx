@@ -40,6 +40,12 @@ interface PatientAppScreenProps {
   userRole: UserRole | null;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  // BUG-01.1 — subida de estado: era useState local aqui; precisou virar
+  // prop controlada por App.tsx pra entrar no cômputo de "existe overlay
+  // aberto?" do modelo de navegação Back (useBackNavigation). Nenhum
+  // comportamento visual muda, só de onde o estado vem.
+  showMoreSheet: boolean;
+  setShowMoreSheet: (v: boolean) => void;
   nextAppointment: AgendaConsulta | null;
   examAlerts: { titulo: string; desc: string }[];
   referenciaGPG: ReferenciaGPG;
@@ -87,6 +93,8 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
   userRole,
   activeTab,
   setActiveTab,
+  showMoreSheet,
+  setShowMoreSheet,
   nextAppointment,
   examAlerts,
   referenciaGPG,
@@ -134,8 +142,6 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
   const examesEnviadosOrdenados = [...(currentPatient.examesEnviados || [])].sort((a: any, b: any) => (a.dataUpload < b.dataUpload ? 1 : a.dataUpload > b.dataUpload ? -1 : 0));
   const ecografiasEnviadas = examesEnviadosOrdenados.filter((ex: any) => ex.tipo === 'Ecografia');
   const outrosDocumentosAnexados = examesEnviadosOrdenados.filter((ex: any) => ex.tipo !== 'Ecografia');
-
-  const [showMoreSheet, setShowMoreSheet] = useState(false);
 
   // UX-04: alternância Gráfico/Tabela do GPG — só controla apresentação,
   // os dados são sempre currentPatient.consultasEvolucao.

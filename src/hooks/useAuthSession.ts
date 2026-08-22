@@ -31,6 +31,14 @@ interface UseAuthSessionOptions {
   // Chamado tanto por "Sair" quanto por "Trocar usuário", pra nunca duplicar
   // a lista de que estado precisa ser resetado em dois lugares.
   onResetLocalState: () => void;
+  // BUG-01.1 — zera o histórico de navegação Back (useBackNavigation, em
+  // App.tsx). Chamado nos mesmos pontos que onResetLocalState (logout, trocar
+  // usuário) e também logo depois de todo login bem-sucedido — login sempre
+  // deve começar em repouso (Seção 10 do pedido), mesmo que isso já
+  // aconteça de graça pelo fechamento do próprio modal de login (rastreado
+  // como overlay); chamar aqui também deixa a garantia explícita, em vez de
+  // depender só desse efeito colateral.
+  onResetNavigation: () => void;
 }
 
 // Tudo relacionado a "quem está logado e como" (telas de login, 2FA, sessão do
@@ -42,7 +50,8 @@ export function useAuthSession({
   setCurrentDoctorProfile,
   setSelectedPatientId,
   setSelectedPatientDoctorId,
-  onResetLocalState
+  onResetLocalState,
+  onResetNavigation
 }: UseAuthSessionOptions) {
   const [currentScreen, setCurrentScreen] = useState<AppScreen>('landing');
   const [userRole, setUserRole] = useState<UserRole | null>(null);
@@ -191,6 +200,7 @@ export function useAuthSession({
 
       setCurrentScreen('doctor_panel');
       setShowDoctorLoginModal(false);
+      onResetNavigation();
     } catch (err) {
       setLoginError('E-mail ou senha incorretos.');
     }
@@ -208,6 +218,7 @@ export function useAuthSession({
         setUserRole('medica');
         setCurrentScreen('master_admin');
         setShowMasterLoginModal(false);
+        onResetNavigation();
       } else {
         setLoginError('Acesso negado: este e-mail não possui permissões de Super Admin.');
         await signOut(auth);
@@ -237,6 +248,7 @@ export function useAuthSession({
         setUserRole('paciente');
         setCurrentScreen('patient_app');
         setShowPatientLoginModal(false);
+        onResetNavigation();
       } else {
         setLoginError(
           `O e-mail ${userEmail} ainda não está vinculado a nenhum pré-natal cadastrado. Peça à sua médica para incluir seu e-mail no cadastro.`
@@ -273,6 +285,7 @@ export function useAuthSession({
       setCurrentScreen('patient_app');
       setShowPatientLoginModal(false);
       setLoginSenha('');
+      onResetNavigation();
     } catch (err) {
       console.error('Erro ao autenticar paciente:', err);
       setLoginError('Erro ao entrar. Tente novamente.');
@@ -290,6 +303,7 @@ export function useAuthSession({
         setUserRole('medica');
         setCurrentScreen('master_admin');
         setShowDoctorLoginModal(false);
+        onResetNavigation();
         return;
       }
 
@@ -304,6 +318,7 @@ export function useAuthSession({
           setUserRole('medica');
           setCurrentScreen('doctor_panel');
           setShowDoctorLoginModal(false);
+          onResetNavigation();
         }
         return;
       }
@@ -329,6 +344,7 @@ export function useAuthSession({
           setUserRole('secretaria');
           setCurrentScreen('doctor_panel');
           setShowDoctorLoginModal(false);
+          onResetNavigation();
         }
         return;
       }
@@ -395,6 +411,7 @@ export function useAuthSession({
     await signOut(auth);
     setUserRole(null);
     onResetLocalState();
+    onResetNavigation();
     resetLocalAuthUI();
     setCurrentScreen('landing');
   };
@@ -408,6 +425,7 @@ export function useAuthSession({
     await signOut(auth);
     setUserRole(null);
     onResetLocalState();
+    onResetNavigation();
     resetLocalAuthUI();
     setCurrentScreen('switch_user');
   };
