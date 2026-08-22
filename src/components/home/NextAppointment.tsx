@@ -58,7 +58,7 @@ export const NextAppointment: React.FC<NextAppointmentProps> = ({
               href={generateAppointmentReminderLink(currentPatient, nextAppointment)}
               target="_blank"
               rel="noreferrer"
-              className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-[11px] lg:text-xs font-bold flex items-center gap-1.5 shadow-xs shrink-0"
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[11px] lg:text-xs font-bold flex items-center gap-1.5 shadow-xs shrink-0"
             >
               <Send className="w-3.5 h-3.5" /> Zap
             </a>

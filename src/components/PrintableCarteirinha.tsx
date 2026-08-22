@@ -99,7 +99,7 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
               </span>
             </div>
 
-            <div className="bg-[#F8FAF6] border border-[var(--brand-primary)]/20 p-3 rounded-xl space-y-2">
+            <div className="bg-[var(--brand-primary)]/5 border border-[var(--brand-primary)]/20 p-3 rounded-xl space-y-2">
               <h2 className="text-xs font-bold text-[var(--brand-primary)] uppercase border-b border-[var(--brand-primary)]/10 pb-1">
                 Identificação da Gestante
               </h2>
@@ -116,11 +116,11 @@ export const PrintableCarteirinha: React.FC<PrintableCarteirinhaProps> = ({
                 Parâmetros Gestacionais
               </h2>
               <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
-                <div className="bg-[#F8FAF6] p-2 rounded-lg border border-[var(--brand-primary)]/10">
+                <div className="bg-[var(--brand-primary)]/5 p-2 rounded-lg border border-[var(--brand-primary)]/10">
                   <span className="text-gray-500 block text-[9px]">DUM</span>
                   <strong className="text-gray-800">{patient?.dum || '—'}</strong>
                 </div>
-                <div className="bg-[#F8FAF6] p-2 rounded-lg border border-[var(--brand-primary)]/10">
+                <div className="bg-[var(--brand-primary)]/5 p-2 rounded-lg border border-[var(--brand-primary)]/10">
                   <span className="text-gray-500 block text-[9px]">DPP</span>
                   <strong className="text-emerald-800">{patient?.dpp || '—'}</strong>
                 </div>

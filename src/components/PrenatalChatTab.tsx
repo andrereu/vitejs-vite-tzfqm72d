@@ -97,7 +97,7 @@ export const PrenatalChatTab: React.FC<PrenatalChatTabProps> = ({
       </div>
 
       {/* Lista de Mensagens */}
-      <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#F8FAF6]">
+      <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[var(--brand-primary)]/5">
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -168,7 +168,7 @@ export const PrenatalChatTab: React.FC<PrenatalChatTabProps> = ({
         <button
           type="submit"
           disabled={!inputMessage.trim() || isLoading}
-          className="px-4 bg-[var(--brand-primary)] hover:bg-[#243921] disabled:opacity-50 text-white rounded-2xl flex items-center justify-center shrink-0 transition-colors"
+          className="px-4 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] disabled:opacity-50 text-white rounded-2xl flex items-center justify-center shrink-0 transition-colors"
         >
           <Send className="w-4 h-4" />
         </button>

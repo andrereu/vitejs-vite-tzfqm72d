@@ -374,7 +374,7 @@ export const ClinicScheduleManager: React.FC<ClinicScheduleManagerProps> = ({
                       href={generateAppointmentReminderLink(item.patient, item)}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center gap-1"
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1"
                     >
                       <Send className="w-3 h-3" /> Zap
                     </a>
