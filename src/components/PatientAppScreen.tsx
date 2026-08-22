@@ -463,7 +463,9 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
             </div>
           </nav>
 
-          {/* FOLHA "MAIS" (CELULAR) — lista única (sem cabeçalhos de grupo), ícone + título + descrição + chevron */}
+          {/* FOLHA "MAIS" (CELULAR) — UX-08: agrupada com os mesmos cabeçalhos
+              discretos de NAV_GROUPS (identidade → grupos de navegação →
+              Ações → Conta); cada item continua ícone + título + descrição + chevron */}
           {showMoreSheet && (
             <div className="lg:hidden fixed inset-0 z-50 bg-white flex flex-col print:hidden animate-in fade-in slide-in-from-bottom duration-200">
               <div className="flex items-center justify-between p-4 border-b border-gray-100 shrink-0">
@@ -477,11 +479,15 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                 </button>
               </div>
               <div className="overflow-y-auto p-4 flex-1 space-y-1">
-                {/* UX-06.4 — identidade da Dra./clínica + Instalar/Sair só pra
-                    paciente: saíram do header persistente que ocupava o topo
-                    da jornada dela e vieram morar aqui, no mesmo "Mais" que
-                    já existia. Pra equipe nada muda — ela continua com as
-                    duas ações no header do DoctorShell, de sempre. */}
+                {/* UX-08 — a folha "Mais" ganha a mesma hierarquia de grupos que
+                    a barra lateral do desktop já tinha (NAV_GROUPS): identidade
+                    no topo (não é item de navegação), depois um cabeçalho
+                    discreto por grupo (Visão Geral, Agenda & Financeiro,
+                    Prontuário Clínico, Exames, Ferramentas), e por fim Ações e
+                    Conta — cada uma com seu próprio cabeçalho, no final, porque
+                    são "o que fazer", não "pra onde ir". Antes disso a folha
+                    era uma lista única achatada, sem nenhum título separando
+                    navegação de ação de conta. */}
                 {!isStaff && doctorProfile && (
                   <div className="flex items-center gap-3 p-3 rounded-2xl bg-gray-50 mb-1">
                     {doctorProfile.logoUrl ? (
@@ -503,66 +509,49 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                     </span>
                   </div>
                 )}
-                {!isStaff && onInstallPWA && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onInstallPWA();
-                      setShowMoreSheet(false);
-                    }}
-                    className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer text-left"
-                  >
-                    <span className="w-11 h-11 rounded-2xl bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
-                      <Download className="w-5 h-5" />
-                    </span>
-                    <span className="flex-1 min-w-0">
-                      <span className="block font-bold text-sm text-gray-900">Instalar aplicativo</span>
-                      <span className="block text-xs text-gray-500 truncate">Adicionar o MaternaIA à tela inicial</span>
-                    </span>
-                    <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
-                  </button>
-                )}
-                {!isStaff && onSwitchUser && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onSwitchUser();
-                      setShowMoreSheet(false);
-                    }}
-                    className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer text-left"
-                  >
-                    <span className="w-11 h-11 rounded-2xl bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
-                      <UserCog className="w-5 h-5" />
-                    </span>
-                    <span className="flex-1 min-w-0">
-                      <span className="block font-bold text-sm text-gray-900">Trocar usuário</span>
-                      <span className="block text-xs text-gray-500 truncate">Sair e entrar com outra conta</span>
-                    </span>
-                    <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
-                  </button>
-                )}
-                {!isStaff && onLogout && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onLogout();
-                      setShowMoreSheet(false);
-                    }}
-                    className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-rose-50 transition-all cursor-pointer text-left"
-                  >
-                    <span className="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
-                      <LogOut className="w-5 h-5" />
-                    </span>
-                    <span className="flex-1 min-w-0">
-                      <span className="block font-bold text-sm text-gray-900">Sair</span>
-                      <span className="block text-xs text-gray-500 truncate">Encerrar sua sessão</span>
-                    </span>
-                    <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
-                  </button>
-                )}
-                {!isStaff && <div className="pt-2" />}
 
-                {/* AÇÕES — Compartilhar/Imprimir/Meus Dados moraram aqui, saíram do topo da home */}
+                {NAV_GROUPS.map((group) => {
+                  const visibleItems = group.items.filter((item) => item.allowed && !PRIMARY_MOBILE_IDS.includes(item.id));
+                  if (visibleItems.length === 0) return null;
+                  return (
+                    <div key={group.label}>
+                      <div className="px-1 pt-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                        {group.label}
+                      </div>
+                      {visibleItems.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              setActiveTab(item.id);
+                              setShowMoreSheet(false);
+                            }}
+                            className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer text-left"
+                          >
+                            <span className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${item.tint}`}>
+                              <Icon className="w-5 h-5" />
+                            </span>
+                            <span className="flex-1 min-w-0">
+                              <span className="block font-bold text-sm text-gray-900">{item.label}</span>
+                              <span className="block text-xs text-gray-500 truncate">{item.desc}</span>
+                            </span>
+                            <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+
+                {/* AÇÕES — Compartilhar/Imprimir/Meus Dados: operam sempre sobre
+                    a paciente atual, por isso ficam visíveis tanto pra ela
+                    quanto pra equipe navegando o prontuário (nenhuma mudança
+                    de gating aqui — só ganharam um cabeçalho de grupo). */}
+                <div className="px-1 pt-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                  Ações
+                </div>
                 <button
                   type="button"
                   onClick={() => {
@@ -609,39 +598,83 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                     <Download className="w-5 h-5" />
                   </span>
                   <span className="flex-1 min-w-0">
-                    <span className="block font-bold text-sm text-gray-900">Meus Dados</span>
-                    <span className="block text-xs text-gray-500 truncate">Baixar uma cópia dos seus dados (LGPD)</span>
+                    <span className="block font-bold text-sm text-gray-900">{isStaff ? 'Dados da paciente' : 'Meus Dados'}</span>
+                    <span className="block text-xs text-gray-500 truncate">
+                      {isStaff ? `Baixar uma cópia dos dados de ${currentPatient.nome} (LGPD)` : 'Baixar uma cópia dos seus dados (LGPD)'}
+                    </span>
                   </span>
                   <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
                 </button>
 
-                <div className="pt-2" />
-
-                {allNavItems
-                  .filter((item) => item.allowed && !PRIMARY_MOBILE_IDS.includes(item.id))
-                  .map((item) => {
-                    const Icon = item.icon;
-                    return (
+                {/* CONTA — Instalar/Trocar usuário/Sair: só existem pra própria
+                    paciente (a equipe já tem as mesmas ações no header do
+                    DoctorShell). "Trocar usuário" usa o mesmo tom neutro dos
+                    outros itens do grupo — só "Sair" carrega a cor de alerta,
+                    porque é a única ação de encerramento de verdade aqui. */}
+                {!isStaff && (onInstallPWA || onSwitchUser || onLogout) && (
+                  <>
+                    <div className="px-1 pt-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                      Conta
+                    </div>
+                    {onInstallPWA && (
                       <button
-                        key={item.id}
                         type="button"
                         onClick={() => {
-                          setActiveTab(item.id);
+                          onInstallPWA();
                           setShowMoreSheet(false);
                         }}
                         className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer text-left"
                       >
-                        <span className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${item.tint}`}>
-                          <Icon className="w-5 h-5" />
+                        <span className="w-11 h-11 rounded-2xl bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
+                          <Download className="w-5 h-5" />
                         </span>
                         <span className="flex-1 min-w-0">
-                          <span className="block font-bold text-sm text-gray-900">{item.label}</span>
-                          <span className="block text-xs text-gray-500 truncate">{item.desc}</span>
+                          <span className="block font-bold text-sm text-gray-900">Instalar aplicativo</span>
+                          <span className="block text-xs text-gray-500 truncate">Adicionar o MaternaIA à tela inicial</span>
                         </span>
                         <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
                       </button>
-                    );
-                  })}
+                    )}
+                    {onSwitchUser && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSwitchUser();
+                          setShowMoreSheet(false);
+                        }}
+                        className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer text-left"
+                      >
+                        <span className="w-11 h-11 rounded-2xl bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
+                          <UserCog className="w-5 h-5" />
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block font-bold text-sm text-gray-900">Trocar usuário</span>
+                          <span className="block text-xs text-gray-500 truncate">Sair e entrar com outra conta</span>
+                        </span>
+                        <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+                      </button>
+                    )}
+                    {onLogout && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onLogout();
+                          setShowMoreSheet(false);
+                        }}
+                        className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-rose-50 transition-all cursor-pointer text-left"
+                      >
+                        <span className="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                          <LogOut className="w-5 h-5" />
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block font-bold text-sm text-gray-900">Sair</span>
+                          <span className="block text-xs text-gray-500 truncate">Encerrar sua sessão</span>
+                        </span>
+                        <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+                      </button>
+                    )}
+                  </>
+                )}
 
                 <div className="mt-4 bg-rose-50 border border-rose-100 rounded-2xl p-4 text-center">
                   <p className="text-xs font-semibold text-rose-800">Seus dados são seguros e confidenciais.</p>
