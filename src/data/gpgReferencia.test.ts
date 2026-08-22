@@ -75,6 +75,21 @@ describe('FAIXAS_GPG — estrutura fornecida pela Dra., sem uniformizar percenti
     expect(FAIXAS_GPG.find((f) => f.categoria === 'obesidade')?.ganhoTotal).toEqual({ min: 5, max: 7.2 });
   });
 
+  it('UX-04.4 — percentisFaixaCentral bate com a relação validada contra as imagens na UX-04.2', () => {
+    const porCategoria = Object.fromEntries(FAIXAS_GPG.map((f) => [f.categoria, f.percentisFaixaCentral]));
+    expect(porCategoria.baixo_peso).toEqual(['P18', 'P34']);
+    expect(porCategoria.eutrofia).toEqual(['P10', 'P34']);
+    expect(porCategoria.sobrepeso).toEqual(['P18', 'P27']);
+    expect(porCategoria.obesidade).toEqual(['P27', 'P38']);
+  });
+
+  it('UX-04.4 — os dois percentis da faixa central sempre existem em percentis (nunca um rótulo inventado)', () => {
+    for (const faixa of FAIXAS_GPG) {
+      expect(faixa.percentis).toContain(faixa.percentisFaixaCentral[0]);
+      expect(faixa.percentis).toContain(faixa.percentisFaixaCentral[1]);
+    }
+  });
+
   it('nenhuma categoria usa cor de status já reservada (success/warning/danger) para a categoria de IMC', () => {
     const coresReservadas = ['bg-emerald', 'bg-amber', 'bg-rose', 'bg-red', 'bg-green'];
     for (const faixa of FAIXAS_GPG) {

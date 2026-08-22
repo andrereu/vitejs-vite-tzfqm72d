@@ -1060,6 +1060,22 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                           'Z'
                         ].join(' ');
 
+                        // UX-04.4 — faixa central mais escura, exatamente como nas 4 imagens
+                        // da Caderneta: NÃO é um retângulo pelo ganho total em 40 semanas, é a
+                        // área entre as duas curvas de percentil de faixa.percentisFaixaCentral
+                        // (mesma relação validada contra as imagens na UX-04.2 — ver cabeçalho
+                        // de gpgCurvas.ts). Reaproveita os pontos já calculados em curvasPontos
+                        // pelo índice de cada percentil, sem gerar a curva de novo.
+                        const idxCentralInf = faixa.percentis.indexOf(faixa.percentisFaixaCentral[0]);
+                        const idxCentralSup = faixa.percentis.indexOf(faixa.percentisFaixaCentral[1]);
+                        const centralInferior = curvasPontos[idxCentralInf];
+                        const centralSuperior = curvasPontos[idxCentralSup];
+                        const areaCentralPath = [
+                          ...centralSuperior.map((pt, i) => `${i === 0 ? 'M' : 'L'}${pt.x},${pt.y}`),
+                          ...[...centralInferior].reverse().map((pt) => `L${pt.x},${pt.y}`),
+                          'Z'
+                        ].join(' ');
+
                         // UX-04.3: o declutter da UX-04.1 empurrava os rótulos verticalmente,
                         // mas eles continuavam colados na borda direita, exatamente onde fica
                         // a escala do eixo Y (x=678) — colidindo com os números da escala em
@@ -1069,6 +1085,10 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                         return (
                           <g>
                             <path d={areaPath} fill={faixa.corHex} fillOpacity="0.08" stroke="none" />
+                            {/* UX-04.4 — faixa central (referência visual, NUNCA um veredito de
+                                "adequado"/"normal"/"alto"/"baixo": nenhum texto é gerado a partir
+                                da posição da linha da paciente em relação a ela). */}
+                            <path d={areaCentralPath} fill={faixa.corHex} fillOpacity="0.2" stroke="none" />
                             {faixa.percentis.map((p, idx) => {
                               const pontos = curvasPontos[idx];
                               const éExtremo = idx === 0 || idx === faixa.percentis.length - 1;

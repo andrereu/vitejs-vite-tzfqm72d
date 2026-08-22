@@ -19,6 +19,15 @@ export interface FaixaGPG {
   imcMax: number | null; // null = sem teto superior (obesidade)
   ganhoTotal: { min: number; max: number }; // kg, até 40 semanas
   percentis: string[]; // rótulos exatamente como fornecidos pela Dra., sem uniformizar
+  /**
+   * UX-04.4 — os dois percentis (já presentes em `percentis`) que delimitam a
+   * faixa central mais escura nas 4 imagens originais da Caderneta — a mesma
+   * relação já documentada e validada contra as imagens na UX-04.2 (ver
+   * cabeçalho de gpgCurvas.ts), não uma posição calculada a partir da lista
+   * (o índice não é uniforme: eutrofia tem só 4 percentis e sua faixa central
+   * usa os dois primeiros, as outras 3 categorias têm 5 e usam o 2º/3º).
+   */
+  percentisFaixaCentral: [string, string];
   /** Cor de categoria — não usa a semântica de sucesso/pendência/urgência já usada no resto do app (seção 9 da fase). */
   corBadge: string;
   /** Mesma cor, em hex, pro SVG do gráfico (Tailwind bg-* não é utilizável dentro de <svg fill>/<stroke>). */
@@ -33,6 +42,7 @@ export const FAIXAS_GPG: FaixaGPG[] = [
     imcMax: 18.5,
     ganhoTotal: { min: 9.7, max: 12.2 },
     percentis: ['P10', 'P18', 'P34', 'P50', 'P90'],
+    percentisFaixaCentral: ['P18', 'P34'],
     corBadge: 'bg-sky-600',
     corHex: '#0284c7'
   },
@@ -43,6 +53,7 @@ export const FAIXAS_GPG: FaixaGPG[] = [
     imcMax: 25.0,
     ganhoTotal: { min: 8, max: 12 },
     percentis: ['P10', 'P34', 'P50', 'P90'],
+    percentisFaixaCentral: ['P10', 'P34'],
     corBadge: 'bg-indigo-600',
     corHex: '#4f46e5'
   },
@@ -53,6 +64,7 @@ export const FAIXAS_GPG: FaixaGPG[] = [
     imcMax: 30.0,
     ganhoTotal: { min: 7, max: 9 },
     percentis: ['P10', 'P18', 'P27', 'P50', 'P90'],
+    percentisFaixaCentral: ['P18', 'P27'],
     corBadge: 'bg-violet-600',
     corHex: '#7c3aed'
   },
@@ -63,6 +75,7 @@ export const FAIXAS_GPG: FaixaGPG[] = [
     imcMax: null,
     ganhoTotal: { min: 5, max: 7.2 },
     percentis: ['P10', 'P27', 'P38', 'P50', 'P90'],
+    percentisFaixaCentral: ['P27', 'P38'],
     corBadge: 'bg-stone-600',
     corHex: '#57534e'
   }
