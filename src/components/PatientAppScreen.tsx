@@ -320,7 +320,14 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
   );
 
   return (
-        <div className="max-w-5xl lg:max-w-7xl xl:max-w-[90rem] 2xl:max-w-[100rem] mx-auto px-4 pt-4 pb-20 lg:pb-0 space-y-6 lg:space-y-0 print:p-0 print:m-0 print:max-w-none">
+        // UX-06.3 — pb-20 fixo (80px) era calibrado pro pior caso (nav +
+        // maior safe-area), mas a altura real do nav mobile é ~52px; a
+        // sobra ficava mais visível na paciente depois da UX-06.2 compactar
+        // o conteúdo. Só o lado da paciente muda pra um valor mais próximo
+        // do nav de verdade (calc com env(safe-area-inset-bottom), mesma
+        // técnica já usada dentro do próprio <nav> abaixo) — staff continua
+        // com pb-20 exatamente como sempre, o nav em si não foi tocado.
+        <div className={`max-w-5xl lg:max-w-7xl xl:max-w-[90rem] 2xl:max-w-[100rem] mx-auto px-4 pt-4 ${isStaff ? 'pb-20' : 'pb-[calc(4rem+env(safe-area-inset-bottom))]'} lg:pb-0 space-y-6 lg:space-y-0 print:p-0 print:m-0 print:max-w-none`}>
         <div className="lg:flex lg:gap-6 xl:gap-8 lg:items-start">
 
           {/* BARRA LATERAL FIXA (DESKTOP) — mesmos grupos da navegação mobile, agrupados por área */}
@@ -344,8 +351,15 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
             )}
           </aside>
 
-          {/* COLUNA DE CONTEÚDO */}
-          <div className="flex-1 min-w-0 space-y-6">
+          {/* COLUNA DE CONTEÚDO — UX-06.3: o <nav> mobile fixo (abaixo) é um
+              filho real deste container mesmo sendo position:fixed, então o
+              space-y-6 aplicava margin-top de 24px no conteúdo da aba
+              seguinte (ex: PatientHome) só por ser o próximo irmão dele —
+              gerava um vão perceptível entre o header e a saudação na visão
+              da paciente. Reduzido só nesse lado (isStaff mantém space-y-6
+              idêntico ao de sempre); a PatientContextBar (staff) não é
+              afetada porque continua sendo o primeiro filho quando existe. */}
+          <div className={`flex-1 min-w-0 ${isStaff ? 'space-y-6' : 'space-y-2'}`}>
 
           {/* Tira de identificação — só pra equipe (médica/secretária navegando entre pacientes);
               a própria gestante já sabe de quem é o prontuário que está vendo, não precisa repetir.
