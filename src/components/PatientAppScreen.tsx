@@ -478,7 +478,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <div className="overflow-y-auto p-4 flex-1 space-y-1">
+              <div className="overflow-y-auto p-4 flex-1 space-y-0.5">
                 {/* UX-08 — a folha "Mais" ganha a mesma hierarquia de grupos que
                     a barra lateral do desktop já tinha (NAV_GROUPS): identidade
                     no topo (não é item de navegação), depois um cabeçalho
@@ -489,15 +489,15 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                     era uma lista única achatada, sem nenhum título separando
                     navegação de ação de conta. */}
                 {!isStaff && doctorProfile && (
-                  <div className="flex items-center gap-3 p-3 rounded-2xl bg-gray-50 mb-1">
+                  <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-gray-50 mb-1">
                     {doctorProfile.logoUrl ? (
                       <img
                         src={doctorProfile.logoUrl}
                         alt={`Logo de ${doctorProfile.nome}`}
-                        className="w-11 h-11 rounded-2xl object-contain shrink-0 bg-white border border-gray-100"
+                        className="w-10 h-10 rounded-2xl object-contain shrink-0 bg-white border border-gray-100"
                       />
                     ) : (
-                      <span className="w-11 h-11 rounded-2xl shrink-0 flex items-center justify-center">
+                      <span className="w-10 h-10 rounded-2xl shrink-0 flex items-center justify-center">
                         <MaternaLogo variant="icon" theme="dark" size="sm" />
                       </span>
                     )}
@@ -515,7 +515,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                   if (visibleItems.length === 0) return null;
                   return (
                     <div key={group.label}>
-                      <div className="px-1 pt-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                      <div className="px-1 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">
                         {group.label}
                       </div>
                       {visibleItems.map((item) => {
@@ -528,9 +528,9 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                               setActiveTab(item.id);
                               setShowMoreSheet(false);
                             }}
-                            className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer text-left"
+                            className="w-full flex items-center gap-2.5 p-2.5 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer text-left"
                           >
-                            <span className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${item.tint}`}>
+                            <span className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${item.tint}`}>
                               <Icon className="w-5 h-5" />
                             </span>
                             <span className="flex-1 min-w-0">
@@ -549,7 +549,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                     a paciente atual, por isso ficam visíveis tanto pra ela
                     quanto pra equipe navegando o prontuário (nenhuma mudança
                     de gating aqui — só ganharam um cabeçalho de grupo). */}
-                <div className="px-1 pt-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                <div className="px-1 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">
                   Ações
                 </div>
                 <button
@@ -558,9 +558,9 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                     sharePatientCard(currentPatient);
                     setShowMoreSheet(false);
                   }}
-                  className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer text-left"
+                  className="w-full flex items-center gap-2.5 p-2.5 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer text-left"
                 >
-                  <span className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                  <span className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
                     <Share2 className="w-5 h-5" />
                   </span>
                   <span className="flex-1 min-w-0">
@@ -575,9 +575,9 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                     window.print();
                     setShowMoreSheet(false);
                   }}
-                  className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer text-left"
+                  className="w-full flex items-center gap-2.5 p-2.5 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer text-left"
                 >
-                  <span className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                  <span className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
                     <Printer className="w-5 h-5" />
                   </span>
                   <span className="flex-1 min-w-0">
@@ -592,9 +592,9 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                     downloadPatientData(currentPatient);
                     setShowMoreSheet(false);
                   }}
-                  className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer text-left"
+                  className="w-full flex items-center gap-2.5 p-2.5 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer text-left"
                 >
-                  <span className="w-11 h-11 rounded-2xl bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
+                  <span className="w-10 h-10 rounded-2xl bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
                     <Download className="w-5 h-5" />
                   </span>
                   <span className="flex-1 min-w-0">
@@ -613,7 +613,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                     porque é a única ação de encerramento de verdade aqui. */}
                 {!isStaff && (onInstallPWA || onSwitchUser || onLogout) && (
                   <>
-                    <div className="px-1 pt-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                    <div className="px-1 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">
                       Conta
                     </div>
                     {onInstallPWA && (
@@ -623,9 +623,9 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                           onInstallPWA();
                           setShowMoreSheet(false);
                         }}
-                        className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer text-left"
+                        className="w-full flex items-center gap-2.5 p-2.5 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer text-left"
                       >
-                        <span className="w-11 h-11 rounded-2xl bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
+                        <span className="w-10 h-10 rounded-2xl bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
                           <Download className="w-5 h-5" />
                         </span>
                         <span className="flex-1 min-w-0">
@@ -642,9 +642,9 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                           onSwitchUser();
                           setShowMoreSheet(false);
                         }}
-                        className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer text-left"
+                        className="w-full flex items-center gap-2.5 p-2.5 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer text-left"
                       >
-                        <span className="w-11 h-11 rounded-2xl bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
+                        <span className="w-10 h-10 rounded-2xl bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
                           <UserCog className="w-5 h-5" />
                         </span>
                         <span className="flex-1 min-w-0">
@@ -661,9 +661,9 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                           onLogout();
                           setShowMoreSheet(false);
                         }}
-                        className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-rose-50 transition-all cursor-pointer text-left"
+                        className="w-full flex items-center gap-2.5 p-2.5 rounded-2xl hover:bg-rose-50 transition-all cursor-pointer text-left"
                       >
-                        <span className="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                        <span className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
                           <LogOut className="w-5 h-5" />
                         </span>
                         <span className="flex-1 min-w-0">
@@ -676,7 +676,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                   </>
                 )}
 
-                <div className="mt-4 bg-rose-50 border border-rose-100 rounded-2xl p-4 text-center">
+                <div className="mt-3 bg-rose-50 border border-rose-100 rounded-2xl p-3.5 text-center">
                   <p className="text-xs font-semibold text-rose-800">Seus dados são seguros e confidenciais.</p>
                   <p className="text-xs text-rose-700 mt-0.5">Maternidade é nossa prioridade. ❤️</p>
                 </div>
