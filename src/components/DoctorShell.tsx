@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, Smartphone, LogOut, Users } from 'lucide-react';
+import { Settings, Smartphone, LogOut, Users, UserCog } from 'lucide-react';
 import type { DoctorTenant } from '../types/saas';
 import type { UserRole } from '../types/prenatal';
 import { hasPermission } from '../utils/rbac';
@@ -9,6 +9,7 @@ interface DoctorShellProps {
   userRole: UserRole | null;
   onInstallPWA: () => void;
   onLogout: () => void;
+  onSwitchUser: () => void;
   onOpenSettings: () => void;
   onGoToPatientList: () => void;
   children: React.ReactNode;
@@ -29,6 +30,7 @@ export const DoctorShell: React.FC<DoctorShellProps> = ({
   userRole,
   onInstallPWA,
   onLogout,
+  onSwitchUser,
   onOpenSettings,
   onGoToPatientList,
   children
@@ -87,6 +89,16 @@ export const DoctorShell: React.FC<DoctorShellProps> = ({
               className="w-9 h-9 sm:w-auto sm:px-3 sm:py-2 rounded-xl text-xs font-semibold text-gray-600 hover:text-[var(--brand-primary)] hover:bg-gray-50 flex items-center justify-center sm:gap-1.5 cursor-pointer transition-all shrink-0"
             >
               <Smartphone className="w-4 h-4" /> <span className="hidden sm:inline">Instalar</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onSwitchUser}
+              aria-label="Trocar usuário"
+              title="Trocar usuário"
+              className="w-9 h-9 sm:w-auto sm:px-3 sm:py-2 rounded-xl text-xs font-semibold text-gray-600 hover:text-[var(--brand-primary)] hover:bg-gray-50 flex items-center justify-center sm:gap-1.5 cursor-pointer transition-all shrink-0"
+            >
+              <UserCog className="w-4 h-4" /> <span className="hidden sm:inline">Trocar usuário</span>
             </button>
 
             <button

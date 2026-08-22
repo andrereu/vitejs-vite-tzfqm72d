@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Upload, Plus, Printer, Syringe, Calculator, AlertCircle,
   Edit3, Bot, MapPin, CalendarPlus, Calendar, Share2, Send, Download, ShieldAlert,
-  Activity, FlaskConical, CalendarClock, LogOut,
+  Activity, FlaskConical, CalendarClock, LogOut, UserCog,
   LayoutDashboard, History, CreditCard, ClipboardList, BarChart3, FolderOpen, LayoutGrid, X,
   ChevronRight, LineChart, Table2
 } from 'lucide-react';
@@ -74,6 +74,7 @@ interface PatientAppScreenProps {
    *  com Instalar/Sair no header do DoctorShell, de sempre, sem passar por aqui. */
   onInstallPWA?: () => void;
   onLogout?: () => void;
+  onSwitchUser?: () => void;
 }
 
 // Carteirinha digital da gestante: cabeçalho, seletor de abas, e o conteúdo
@@ -113,7 +114,8 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
   calcResultado,
   setShowUploadExamModal,
   onInstallPWA,
-  onLogout
+  onLogout,
+  onSwitchUser
 }) => {
   // 'canManageSchedule' também é dada à paciente (só pra ela ver a própria
   // aba de agenda e solicitar consulta) — então ações de uso exclusivo da
@@ -361,7 +363,7 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                 lugar da identidade da Dra., mesmo padrão de botão da navegação
                 acima); a equipe continua com as duas ações no header do
                 DoctorShell, de sempre — nada muda pra ela. */}
-            {!isStaff && (onInstallPWA || onLogout) && (
+            {!isStaff && (onInstallPWA || onSwitchUser || onLogout) && (
               <div className={doctorProfile ? 'pt-1' : 'mt-auto pt-3 border-t border-gray-100'}>
                 {onInstallPWA && (
                   <button
@@ -370,6 +372,15 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-gray-600 font-semibold hover:bg-gray-100 transition-all cursor-pointer text-left"
                   >
                     <Download className="w-4 h-4 shrink-0" /> Instalar aplicativo
+                  </button>
+                )}
+                {onSwitchUser && (
+                  <button
+                    type="button"
+                    onClick={onSwitchUser}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-gray-600 font-semibold hover:bg-gray-100 transition-all cursor-pointer text-left"
+                  >
+                    <UserCog className="w-4 h-4 shrink-0" /> Trocar usuário
                   </button>
                 )}
                 {onLogout && (
@@ -507,6 +518,25 @@ export const PatientAppScreen: React.FC<PatientAppScreenProps> = ({
                     <span className="flex-1 min-w-0">
                       <span className="block font-bold text-sm text-gray-900">Instalar aplicativo</span>
                       <span className="block text-xs text-gray-500 truncate">Adicionar o MaternaIA à tela inicial</span>
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+                  </button>
+                )}
+                {!isStaff && onSwitchUser && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSwitchUser();
+                      setShowMoreSheet(false);
+                    }}
+                    className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer text-left"
+                  >
+                    <span className="w-11 h-11 rounded-2xl bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
+                      <UserCog className="w-5 h-5" />
+                    </span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block font-bold text-sm text-gray-900">Trocar usuário</span>
+                      <span className="block text-xs text-gray-500 truncate">Sair e entrar com outra conta</span>
                     </span>
                     <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
                   </button>

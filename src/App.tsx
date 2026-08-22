@@ -70,26 +70,22 @@ export default function App() {
     }
   };
 
-  const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>({
-    id: 'doc-priscila',
-    nome: 'Dra. Priscila Gapski',
-    email: 'dra.priscila@maternaia.com.br',
-    crm: '24734-PR',
-    telefone: '(41) 99999-8888',
-    clinicaNome: 'Consultório Dra. Priscila Gapski',
-    especialidade: 'Ginecologia & Obstetrícia',
-    enderecoConsultorio: 'Curitiba - PR',
-    plano: 'individual_pro',
-    status: 'active',
-    trialEndsAt: '2027-12-31',
-    diasRestantes: 365,
-    totalPacientes: 1,
-    dataCadastro: '2026-01-01',
-    valorMensalidade: 89.0,
-    metodoPagamento: 'pix'
-  });
+  // BUG-02.2 — perfil neutro de verdade: nada de "Dra. Priscila" nem de
+  // nenhuma outra médica fixa. É o valor inicial (antes de qualquer login) e
+  // também o alvo de resetSessionState() — currentDoctorProfile.id === ''
+  // já basta pra usePatients/useSecretaries/useBlockedSlots/useExamAIConfig
+  // não assinarem nada (todos checam `if (!doctorId) return`), sem precisar
+  // apontar pra nenhum médico real nem fictício.
+  const NEUTRAL_DOCTOR_PROFILE: DoctorTenant = {
+    id: '', nome: '', email: '', crm: '', telefone: '',
+    clinicaNome: '', especialidade: '', enderecoConsultorio: '',
+    plano: 'individual_pro', status: 'blocked', trialEndsAt: '',
+    totalPacientes: 0, dataCadastro: '', valorMensalidade: 0
+  };
 
-  const [selectedPatientId, setSelectedPatientId] = useState("gestante-01");
+  const [currentDoctorProfile, setCurrentDoctorProfile] = useState<DoctorTenant>(NEUTRAL_DOCTOR_PROFILE);
+
+  const [selectedPatientId, setSelectedPatientId] = useState("");
   const [selectedPatientDoctorId, setSelectedPatientDoctorId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('resumo');
 
@@ -154,26 +150,35 @@ export default function App() {
   const [editProfileData, setEditProfileData] = useState<any>({});
   const [editVacinasData, setEditVacinasData] = useState<any>({});
 
-  const [newAgenda, setNewAgenda] = useState({
+  // Fábricas do estado inicial de cada rascunho — usadas tanto no useState
+  // quanto em resetSessionState (BUG-02.2), pra "estado em branco" nunca
+  // ficar definido em dois lugares que podem desalinhar com o tempo. Nenhuma
+  // delas referencia currentDoctorProfile: um rascunho novo começa neutro
+  // ("Consultório Médico"), não com o endereço de uma médica específica —
+  // quem preenche já pode sobrescrever, e handleAddAgenda já cai pro
+  // endereço real da médica logada quando o campo fica vazio.
+  const initialNewAgenda = () => ({
     data: getLocalDateString(),
     horario: '14:00',
     tipo: 'Consulta Pré-Natal de Rotina',
-    local: 'Consultório Dra. Priscila Gapski',
+    local: 'Consultório Médico',
     observacoes: ''
   });
-
-  const [newPatient, setNewPatient] = useState({
+  const initialNewPatient = () => ({
     nome: '', cpf: '', telefone: '', idade: '28', pai: '', nomeBebe: '',
     dum: new Date().toISOString().split('T')[0],
     pesoInicial: '60.0', altura: '1.65', tipoSanguineo: 'O+', doencasPrevias: '',
     g: '1', p: '0', c: '0', a: '0'
   });
-
-  const [newConsulta, setNewConsulta] = useState({
+  const initialNewConsulta = () => ({
     data: new Date().toISOString().split('T')[0],
     peso: '', pa: '120/80', au: '', bcfMf: '140 bpm / MF+', edema: 'Ausente',
     queixas: '', diagnostico: undefined as DiagnosticoRegistrado | undefined, conduta: ''
   });
+
+  const [newAgenda, setNewAgenda] = useState(initialNewAgenda);
+  const [newPatient, setNewPatient] = useState(initialNewPatient);
+  const [newConsulta, setNewConsulta] = useState(initialNewConsulta);
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
@@ -204,12 +209,71 @@ export default function App() {
   const { saasDoctors, saveSaasDoctorsToFirestore } = useDoctorsDirectory();
   const { config: examAIConfig, status: examAIConfigStatus, salvarConfigExamesIA } = useExamAIConfig(currentDoctorProfile.id);
 
-  // Mantém o perfil da médica de demonstração atualizado sempre que o
-  // diretório de médicos mudar (comportamento igual ao de antes da divisão).
+  // BUG-02.1 — achado adjacente corrigido: a versão antiga resincronizava
+  // sempre com o id fixo 'doc-priscila', não importa quem estivesse logada —
+  // então o perfil de qualquer outra médica podia ser sobrescrito de volta
+  // pro perfil da Priscila assim que o diretório de médicos mudasse por
+  // qualquer motivo (ex: outra médica salvando as configurações dela). Agora
+  // só atualiza o PRÓPRIO registro já carregado (mesmo id de quem já está em
+  // currentDoctorProfile) — nunca troca pra outra médica sozinho. Com
+  // currentDoctorProfile.id === '' (estado neutro), não faz nada.
   useEffect(() => {
-    const found = saasDoctors.find((d) => d.id === 'doc-priscila');
+    if (!currentDoctorProfile.id) return;
+    const found = saasDoctors.find((d) => d.id === currentDoctorProfile.id);
     if (found) setCurrentDoctorProfile(found);
-  }, [saasDoctors]);
+  }, [saasDoctors, currentDoctorProfile.id]);
+
+  // BUG-02.2 — reset central de sessão. Chamado por "Sair" e por "Trocar
+  // usuário" (via onResetLocalState, dentro de useAuthSession) — a lista
+  // completa de estado a limpar mora só aqui, uma vez, pra logout e troca de
+  // usuário nunca divergirem sobre o que "sessão limpa" significa. Cobre
+  // exatamente o levantamento da investigação BUG-02.1: perfil da médica,
+  // paciente selecionada, aba ativa, e todo modal/rascunho que poderia
+  // sobreviver de uma identidade pra outra no mesmo aparelho.
+  const resetSessionState = () => {
+    setCurrentDoctorProfile(NEUTRAL_DOCTOR_PROFILE);
+    setSelectedPatientId('');
+    setSelectedPatientDoctorId(null);
+    setActiveTab('resumo');
+
+    setShowDoctorTrialModal(false);
+    setShowDoctorSettingsModal(false);
+
+    setShowAddConsultaModal(false);
+    setConsultaAgendaVinculada(null);
+    setEditingConsultaId(null);
+    setIdAtendimentoRascunho('');
+    setPrescricoesRascunho([]);
+    setExamesRascunho([]);
+    setShowSolicitacaoModal(false);
+    setShowUploadExamModal(false);
+    setShowNewPatientModal(false);
+    setShowEditExamesModal(false);
+    setShowAddAgendaModal(false);
+    setShowEditProfileModal(false);
+    setShowEditVacinasModal(false);
+
+    setShowRequestAppointmentModal(false);
+    setSelectedAppointmentForConfirm(null);
+
+    setCalcUsgData(new Date().toISOString().split('T')[0]);
+    setCalcUsgSemanas('8');
+    setCalcUsgDias('0');
+    setCalcResultado(null);
+
+    setSelectedFile(null);
+    setExamName('');
+    setExamCategory('Ecografia');
+    setIsUploading(false);
+
+    setEditExamesData({});
+    setEditProfileData({});
+    setEditVacinasData({});
+
+    setNewAgenda(initialNewAgenda());
+    setNewPatient(initialNewPatient());
+    setNewConsulta(initialNewConsulta());
+  };
 
   const {
     currentScreen, setCurrentScreen,
@@ -235,13 +299,15 @@ export default function App() {
     handlePatientLogin,
     handleGoogleDoctorLogin,
     handlePasswordReset,
-    handleLogout
+    handleLogout,
+    handleSwitchUser
   } = useAuthSession({
     saasDoctors,
     currentDoctorProfile,
     setCurrentDoctorProfile,
     setSelectedPatientId,
-    setSelectedPatientDoctorId
+    setSelectedPatientDoctorId,
+    onResetLocalState: resetSessionState
   });
 
   // Endereço próprio por médica: maternaia.com.br/{slug} mostra uma landing
@@ -489,7 +555,7 @@ export default function App() {
       data: getLocalDateString(),
       horario: '14:00',
       tipo: 'Consulta Pré-Natal de Rotina',
-      local: currentDoctorProfile.enderecoConsultorio || 'Consultório Dra. Priscila Gapski',
+      local: currentDoctorProfile.enderecoConsultorio || 'Consultório Médico',
       observacoes: ''
     });
   };
@@ -927,6 +993,38 @@ export default function App() {
         </div>
       )}
 
+      {/* BUG-02.2 — "Quem vai acessar?": destino de "Trocar usuário", sempre
+          neutro (resetSessionState já rodou antes de chegar aqui). Reaproveita
+          os mesmos modais de login que a landing já usa — nenhuma navegação
+          nova, nenhum formulário novo, só um ponto de entrada mais direto que
+          pula a landing pública de vendas. */}
+      {currentScreen === 'switch_user' && (
+        <div className="min-h-screen flex items-center justify-center p-4 print:hidden">
+          <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-8 max-w-sm w-full text-center space-y-5">
+            <div className="flex justify-center">
+              <MaternaLogo variant="icon" size="md" />
+            </div>
+            <h1 className="font-serif text-xl font-bold text-gray-900">Quem vai acessar?</h1>
+            <div className="space-y-2.5">
+              <button
+                type="button"
+                onClick={() => setShowDoctorLoginModal(true)}
+                className="w-full px-4 py-3 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white rounded-2xl text-sm font-bold transition-all cursor-pointer"
+              >
+                🩺 Entrar como médica/equipe
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPatientLoginModal(true)}
+                className="w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-2xl text-sm font-bold transition-all cursor-pointer"
+              >
+                👶 Entrar como paciente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 2. PAINEL DO MÉDICO & SECRETARIA — moldura profissional (DoctorShell) */}
       {currentScreen === 'doctor_panel' && (
         <DoctorShell
@@ -934,6 +1032,7 @@ export default function App() {
           userRole={userRole}
           onInstallPWA={handleInstallPWA}
           onLogout={handleLogout}
+          onSwitchUser={handleSwitchUser}
           onOpenSettings={() => setShowDoctorSettingsModal(true)}
           onGoToPatientList={() => setCurrentScreen('doctor_panel')}
         >
@@ -1000,6 +1099,7 @@ export default function App() {
           setShowUploadExamModal={setShowUploadExamModal}
           onInstallPWA={handleInstallPWA}
           onLogout={handleLogout}
+          onSwitchUser={handleSwitchUser}
         />
       )}
 
@@ -1009,6 +1109,7 @@ export default function App() {
           userRole={userRole}
           onInstallPWA={handleInstallPWA}
           onLogout={handleLogout}
+          onSwitchUser={handleSwitchUser}
           onOpenSettings={() => setShowDoctorSettingsModal(true)}
           onGoToPatientList={() => setCurrentScreen('doctor_panel')}
         >

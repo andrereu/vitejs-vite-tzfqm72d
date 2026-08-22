@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { collectionGroup, getDocs, query, where } from 'firebase/firestore';
 import { onAuthStateChanged, sendPasswordResetEmail, signInWithCustomToken, signInWithEmailAndPassword, signInWithPopup, signOut } from 'firebase/auth';
 import { auth, db, googleProvider } from '../firebase';
@@ -7,7 +7,12 @@ import type { UserRole } from '../types/prenatal';
 
 export const SUPER_ADMIN_EMAILS = ['admin@maternaia.com.br', 'andrereu@gmail.com'];
 
-export type AppScreen = 'landing' | 'doctor_panel' | 'patient_app' | 'master_admin';
+// 'switch_user' — BUG-02.2: tela neutra "Quem vai acessar?" entre uma
+// identidade e outra no mesmo aparelho. Não é a landing pública (essa
+// continua existindo pra quem nunca esteve logado) — é o destino de
+// "Trocar usuário", que precisa ficar sem qualquer rastro de quem usou o
+// aparelho antes (ver resetSessionState em App.tsx).
+export type AppScreen = 'landing' | 'doctor_panel' | 'patient_app' | 'master_admin' | 'switch_user';
 
 interface PendingTwoFactorUser {
   role: 'medica' | 'secretaria';
@@ -21,6 +26,11 @@ interface UseAuthSessionOptions {
   setCurrentDoctorProfile: (doctor: DoctorTenant) => void;
   setSelectedPatientId: (id: string) => void;
   setSelectedPatientDoctorId: (id: string | null) => void;
+  // BUG-02.2 — limpa todo o estado de sessão que vive em App.tsx (perfil da
+  // médica, paciente selecionada, aba ativa, modais/rascunhos abertos).
+  // Chamado tanto por "Sair" quanto por "Trocar usuário", pra nunca duplicar
+  // a lista de que estado precisa ser resetado em dois lugares.
+  onResetLocalState: () => void;
 }
 
 // Tudo relacionado a "quem está logado e como" (telas de login, 2FA, sessão do
@@ -31,7 +41,8 @@ export function useAuthSession({
   currentDoctorProfile,
   setCurrentDoctorProfile,
   setSelectedPatientId,
-  setSelectedPatientDoctorId
+  setSelectedPatientDoctorId,
+  onResetLocalState
 }: UseAuthSessionOptions) {
   const [currentScreen, setCurrentScreen] = useState<AppScreen>('landing');
   const [userRole, setUserRole] = useState<UserRole | null>(null);
@@ -54,21 +65,65 @@ export function useAuthSession({
   const [showTwoFactorModal, setShowTwoFactorModal] = useState(false);
   const [pendingTwoFactorUser, setPendingTwoFactorUser] = useState<PendingTwoFactorUser | null>(null);
 
+  // BUG-02.1/02.2 — este efeito só roda uma vez (monta o listener do Firebase
+  // Auth e nunca mais); sem essa ref, o callback ficaria fechado (closure)
+  // sobre o `saasDoctors` do primeiro render (quase sempre [], antes do
+  // useDoctorsDirectory carregar) pra sempre, e nunca acharia a médica certa
+  // ao restaurar sessão depois de um reload.
+  const saasDoctorsRef = useRef(saasDoctors);
+  useEffect(() => {
+    saasDoctorsRef.current = saasDoctors;
+  }, [saasDoctors]);
+
   // Restaura a sessão quando a página é recarregada com um usuário já logado.
+  //
+  // BUG-02.1 — achado adjacente corrigido aqui: antes, esta restauração
+  // sempre fazia setUserRole('medica'), mesmo pra uma secretária, e nunca
+  // chamava setCurrentDoctorProfile — currentDoctorProfile simplesmente
+  // ficava com o que quer que já estivesse em memória (o perfil de outra
+  // médica, ou o placeholder). Agora resolve o papel e o tenant de verdade a
+  // partir do e-mail autenticado, do mesmo jeito que handleGoogleDoctorLogin
+  // já fazia — nunca assume.
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
       if (!currentUser) return;
 
       const userEmail = currentUser.email?.toLowerCase().trim() || '';
       if (userEmail) {
-        // Sessão de médica/secretária/admin (login por e-mail e senha ou Google).
         if (SUPER_ADMIN_EMAILS.includes(userEmail)) {
           setUserRole('medica');
           setCurrentScreen('master_admin');
-        } else {
+          return;
+        }
+
+        const matchedDoctor = saasDoctorsRef.current.find((d) => d.email.toLowerCase().trim() === userEmail);
+        if (matchedDoctor) {
+          setCurrentDoctorProfile(matchedDoctor);
           setUserRole('medica');
           setCurrentScreen('doctor_panel');
+          return;
         }
+
+        try {
+          const secSnap = await getDocs(query(collectionGroup(db, 'secretaries'), where('email', '==', userEmail)));
+          const secDoc = secSnap.docs[0];
+          const secretaryDoctorProfile = secDoc
+            ? saasDoctorsRef.current.find((d) => d.id === secDoc.ref.parent.parent!.id)
+            : undefined;
+          if (secretaryDoctorProfile) {
+            setCurrentDoctorProfile(secretaryDoctorProfile);
+            setUserRole('secretaria');
+            setCurrentScreen('doctor_panel');
+            return;
+          }
+        } catch (err) {
+          console.error('Erro ao restaurar sessão da equipe:', err);
+        }
+
+        // E-mail autenticado, mas sem registro correspondente (ainda
+        // carregando saasDoctors, ou conta órfã) — não deixa a sessão restaurar
+        // "pela metade" com um perfil que pode não ser o certo.
+        setUserRole(null);
         return;
       }
 
@@ -91,19 +146,49 @@ export function useAuthSession({
     return () => unsubscribeAuth();
   }, []);
 
+  // BUG-02.1 — achado adjacente corrigido: este login nunca chamava
+  // setCurrentDoctorProfile, então currentDoctorProfile ficava com o que
+  // quer que estivesse em memória de antes (a médica anterior no mesmo
+  // aparelho, ou o placeholder) em vez da médica/secretária que de fato
+  // acabou de autenticar. Agora resolve o tenant certo antes de entrar no
+  // painel — mesma lógica de busca que handleGoogleDoctorLogin já usa, só
+  // disparada pelo login por e-mail/senha. Se a autenticação passar mas
+  // nenhum registro correspondente for encontrado, desfaz o login (signOut)
+  // em vez de deixar a sessão entrar com um perfil errado.
   const handleDoctorLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
     setResetMessage('');
     try {
       await signInWithEmailAndPassword(auth, doctorEmail.trim(), doctorPassword);
+      const emailNorm = doctorEmail.trim().toLowerCase();
+
       if (loginRole === 'secretaria') {
+        const secSnap = await getDocs(query(collectionGroup(db, 'secretaries'), where('email', '==', emailNorm)));
+        const secDoc = secSnap.docs[0];
+        const secretaryDoctorProfile = secDoc
+          ? saasDoctors.find((d) => d.id === secDoc.ref.parent.parent!.id)
+          : undefined;
+        if (!secretaryDoctorProfile) {
+          setLoginError('E-mail não encontrado como secretária de nenhuma clínica.');
+          await signOut(auth);
+          return;
+        }
+        setCurrentDoctorProfile(secretaryDoctorProfile);
         setUserRole('secretaria');
         setDoctorPanelTab('agenda_geral');
       } else {
+        const matchedDoctor = saasDoctors.find((d) => d.email.toLowerCase().trim() === emailNorm);
+        if (!matchedDoctor) {
+          setLoginError('E-mail não encontrado como médica cadastrada.');
+          await signOut(auth);
+          return;
+        }
+        setCurrentDoctorProfile(matchedDoctor);
         setUserRole('medica');
         setDoctorPanelTab('pacientes');
       }
+
       setCurrentScreen('doctor_panel');
       setShowDoctorLoginModal(false);
     } catch (err) {
@@ -286,10 +371,45 @@ export function useAuthSession({
     );
   };
 
+  // BUG-02.2 — estado de sessão que é do próprio hook (não do App.tsx):
+  // campos de formulário de login e a folha de 2FA pendente. Compartilhado
+  // por "Sair" e "Trocar usuário" pra nenhum dos dois esquecer um campo que
+  // o outro já limpa (a lista de campos só existe em um lugar).
+  const resetLocalAuthUI = () => {
+    setDoctorEmail('');
+    setDoctorPassword('');
+    setMasterEmail('');
+    setMasterPassword('');
+    setLoginCpf('');
+    setLoginSenha('');
+    setLoginError('');
+    setResetMessage('');
+    setShowPatientLoginModal(false);
+    setShowDoctorLoginModal(false);
+    setShowMasterLoginModal(false);
+    setShowTwoFactorModal(false);
+    setPendingTwoFactorUser(null);
+  };
+
   const handleLogout = async () => {
     await signOut(auth);
     setUserRole(null);
+    onResetLocalState();
+    resetLocalAuthUI();
     setCurrentScreen('landing');
+  };
+
+  // BUG-02.2 — "Trocar usuário": mesmo mecanismo técnico do logout (encerra
+  // a sessão do Firebase Auth de verdade, zera o mesmo estado), só que o
+  // destino final é a tela neutra "Quem vai acessar?" em vez da landing
+  // pública — pensado pra quando alguém já sabe que vai entrar com outra
+  // identidade agora mesmo, sem passar pela landing de vendas.
+  const handleSwitchUser = async () => {
+    await signOut(auth);
+    setUserRole(null);
+    onResetLocalState();
+    resetLocalAuthUI();
+    setCurrentScreen('switch_user');
   };
 
   return {
@@ -320,6 +440,7 @@ export function useAuthSession({
     handlePatientLogin,
     handleGoogleDoctorLogin,
     handlePasswordReset,
-    handleLogout
+    handleLogout,
+    handleSwitchUser
   };
 }
