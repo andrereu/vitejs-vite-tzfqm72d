@@ -19,6 +19,11 @@ interface PregnancyStatsProps {
 // morar na coluna principal (junto do Hero/Próxima consulta), não mais na
 // coluna estreita secundária — por isso a grade volta a usar 4 colunas no
 // desktop, com mais espaço disponível.
+//
+// UX-06.2 — maior candidato à compactação do Dashboard: célula reduzida de
+// p-4/p-5 pra p-3/p-3.5 e ícone com menos margem — no mobile (grid-cols-2,
+// 2 linhas) isso corta uma fatia real da altura do bloco sem tirar nenhum
+// dos 4 indicadores.
 export const PregnancyStats: React.FC<PregnancyStatsProps> = ({ ultimaConsulta, pesoInicial, onViewEvolucao }) => {
   const peso = ultimaConsulta
     ? `${ultimaConsulta.peso.toFixed(1).replace('.', ',')} kg`
@@ -34,7 +39,7 @@ export const PregnancyStats: React.FC<PregnancyStatsProps> = ({ ultimaConsulta, 
   ];
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <div className="flex items-center justify-between px-1">
         <h4 className="font-bold text-gray-900 text-sm lg:text-base">Último atendimento</h4>
         <button type="button" onClick={onViewEvolucao} className="text-xs lg:text-sm text-[var(--brand-primary)] font-bold cursor-pointer">
@@ -46,10 +51,10 @@ export const PregnancyStats: React.FC<PregnancyStatsProps> = ({ ultimaConsulta, 
           {itens.map((item) => {
             const Icon = item.icon;
             return (
-              <div key={item.label} className="p-4 lg:p-5">
-                <Icon className="w-4 h-4 lg:w-5 lg:h-5 text-[var(--brand-primary)]/50 mb-2 lg:mb-3" />
+              <div key={item.label} className="p-3 lg:p-3.5">
+                <Icon className="w-4 h-4 text-[var(--brand-primary)]/50 mb-1.5" />
                 <div className="text-[10px] lg:text-[11px] text-gray-400 font-bold uppercase">{item.label}</div>
-                <div className="text-sm lg:text-base font-bold text-gray-900 mt-0.5 lg:mt-1 truncate">{item.valor}</div>
+                <div className="text-sm lg:text-base font-bold text-gray-900 mt-0.5 truncate">{item.valor}</div>
               </div>
             );
           })}

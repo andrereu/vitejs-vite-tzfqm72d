@@ -24,7 +24,9 @@ const MAX_ITENS_RESUMO = 3;
 // nenhuma prévia de documento, nenhum resumo de IA — isso já existe nas
 // telas próprias (Exames Laboratoriais / Central de Laudos e Imagens); este
 // bloco só aponta pra lá. Some por completo quando não há nada recente de
-// nenhum dos dois tipos.
+// nenhum dos dois tipos. Já nasceu como um único card compacto de até duas
+// linhas — a UX-06.2 só reduziu padding/ícone (p-4→p-3.5) pra ficar
+// consistente com o resto do Dashboard compactado.
 export const RecentExams: React.FC<RecentExamsProps> = ({
   ultimoGrupoLaboratorial,
   ultimaEcografia,
@@ -54,9 +56,9 @@ export const RecentExams: React.FC<RecentExamsProps> = ({
           <button
             type="button"
             onClick={onViewExamesLaboratoriais}
-            className="w-full flex items-center gap-3 p-4 text-left cursor-pointer hover:bg-gray-50"
+            className="w-full flex items-center gap-3 p-3.5 text-left cursor-pointer hover:bg-gray-50"
           >
-            <span className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <span className="w-9 h-9 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
               <FlaskConical className="w-4.5 h-4.5" />
             </span>
             <div className="flex-1 min-w-0">
@@ -73,9 +75,9 @@ export const RecentExams: React.FC<RecentExamsProps> = ({
           <button
             type="button"
             onClick={onViewCentralLaudos}
-            className="w-full flex items-center gap-3 p-4 text-left cursor-pointer hover:bg-gray-50"
+            className="w-full flex items-center gap-3 p-3.5 text-left cursor-pointer hover:bg-gray-50"
           >
-            <span className="w-10 h-10 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
+            <span className="w-9 h-9 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
               <FileImage className="w-4.5 h-4.5" />
             </span>
             <div className="flex-1 min-w-0">

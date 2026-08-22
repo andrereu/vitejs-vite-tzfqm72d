@@ -33,7 +33,7 @@ export const NextAppointment: React.FC<NextAppointmentProps> = ({
   onAddAgenda
 }) => {
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <div className="flex items-center justify-between px-1">
         <h4 className="font-bold text-gray-900 text-sm lg:text-base">Próxima consulta</h4>
         <button onClick={onViewAgenda} className="text-xs lg:text-sm text-[var(--brand-primary)] font-bold cursor-pointer">
@@ -42,9 +42,9 @@ export const NextAppointment: React.FC<NextAppointmentProps> = ({
       </div>
 
       {nextAppointment ? (
-        <div className="bg-white rounded-3xl border border-gray-200 shadow-xs p-4 lg:p-5 flex items-center gap-3 lg:gap-4">
-          <span className="w-11 h-11 lg:w-14 lg:h-14 rounded-2xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] flex items-center justify-center shrink-0">
-            <CalendarClock className="w-5 h-5 lg:w-6 lg:h-6" />
+        <div className="bg-white rounded-3xl border border-gray-200 shadow-xs p-3.5 lg:p-4 flex items-center gap-3 lg:gap-3.5">
+          <span className="w-10 h-10 lg:w-12 lg:h-12 rounded-2xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] flex items-center justify-center shrink-0">
+            <CalendarClock className="w-4.5 h-4.5 lg:w-5 lg:h-5" />
           </span>
           <div className="flex-1 min-w-0">
             <strong className="text-sm lg:text-base text-gray-900 block truncate">{nextAppointment.tipo}</strong>
@@ -58,7 +58,7 @@ export const NextAppointment: React.FC<NextAppointmentProps> = ({
               href={generateAppointmentReminderLink(currentPatient, nextAppointment)}
               target="_blank"
               rel="noreferrer"
-              className="px-3 py-1.5 lg:px-4 lg:py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-[11px] lg:text-xs font-bold flex items-center gap-1.5 shadow-xs shrink-0"
+              className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-[11px] lg:text-xs font-bold flex items-center gap-1.5 shadow-xs shrink-0"
             >
               <Send className="w-3.5 h-3.5" /> Zap
             </a>
@@ -67,7 +67,7 @@ export const NextAppointment: React.FC<NextAppointmentProps> = ({
           )}
         </div>
       ) : (
-        <div className="bg-gray-50 border border-gray-200 p-4 lg:p-5 rounded-3xl flex justify-between items-center text-xs lg:text-sm text-gray-500">
+        <div className="bg-gray-50 border border-gray-200 p-3.5 lg:p-4 rounded-3xl flex justify-between items-center text-xs lg:text-sm text-gray-500">
           <span>Nenhuma consulta agendada no momento.</span>
           {userRole === 'paciente' && (
             <button onClick={onRequestAppointment} className="text-[var(--brand-primary)] font-bold underline cursor-pointer shrink-0">
@@ -83,7 +83,7 @@ export const NextAppointment: React.FC<NextAppointmentProps> = ({
       )}
 
       {examAlerts.length > 0 && (
-        <div className="bg-rose-50 border border-rose-100 rounded-2xl px-4 py-3 text-xs text-rose-800 font-medium">
+        <div className="bg-rose-50 border border-rose-100 rounded-2xl px-3.5 py-2.5 text-xs text-rose-800 font-medium">
           Lembrete: {examAlerts[0].titulo}
           {examAlerts.length > 1 ? ` e mais ${examAlerts.length - 1} exame(s) recomendado(s) para esta fase.` : '.'}
         </div>

@@ -71,15 +71,22 @@ export const PatientHome: React.FC<PatientHomeProps> = ({
   const exclusaoPendente = Boolean(currentPatient.solicitacaoExclusao && !currentPatient.solicitacaoExclusao.atendida);
 
   return (
-    <div className="space-y-5 print:hidden">
+    <div className="space-y-4 print:hidden">
+      {/* UX-06.2 — saudação só pra paciente (a médica/secretária já se
+          identifica pela PatientContextBar, que não muda). Curta, sem virar
+          um card — só duas linhas soltas antes do Hero, microcopy própria do
+          MaternaIA (não copiada de nenhuma referência). */}
       {userRole === 'paciente' && (
-        <p className="text-xl font-bold text-gray-900">
-          Olá, {currentPatient.nome.split(' ')[0]} 👋
-        </p>
+        <div className="px-1">
+          <p className="text-xl font-bold text-gray-900">
+            Olá, {currentPatient.nome.split(' ')[0]} 👋
+          </p>
+          <p className="text-sm text-gray-500 mt-0.5">Acompanhe sua gestação por aqui.</p>
+        </div>
       )}
 
-      <div className="lg:grid lg:grid-cols-5 lg:gap-6 xl:gap-8 space-y-5 lg:space-y-0">
-        <div className="lg:col-span-3 space-y-5 lg:space-y-6">
+      <div className="lg:grid lg:grid-cols-5 lg:gap-5 xl:gap-7 space-y-4 lg:space-y-0">
+        <div className="lg:col-span-3 space-y-4 lg:space-y-5">
           <PregnancyHero
             weeks={currentGest.weeks}
             days={currentGest.days}
@@ -104,7 +111,7 @@ export const PatientHome: React.FC<PatientHomeProps> = ({
           )}
         </div>
 
-        <div className="lg:col-span-2 space-y-5 lg:space-y-6">
+        <div className="lg:col-span-2 space-y-4 lg:space-y-5">
           {canViewIndicadores && (
             <RecentExams
               ultimoGrupoLaboratorial={ultimoGrupoLaboratorial}

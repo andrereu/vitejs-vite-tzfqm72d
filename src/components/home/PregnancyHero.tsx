@@ -10,6 +10,11 @@ interface PregnancyHeroProps {
 // Cartão principal da Home da gestante: o número de semanas é o dado que ela
 // mais quer ver de cara, por isso vira um "hero" com anel de progresso (0 a
 // 40 semanas) em vez de mais um card de indicador igual aos outros.
+//
+// UX-06.2 — compactado moderadamente (padding, gap e anel um degrau menor
+// em cada breakpoint) pra reduzir espaço vertical sem virar uma barra: o
+// número de semanas continua sendo o maior elemento de texto da tela, IG/
+// trimestre/DPP continuam todos visíveis, nenhum dado foi removido.
 export const PregnancyHero: React.FC<PregnancyHeroProps> = ({ weeks, days, dpp, hasGestationalData }) => {
   const trimestre = weeks < 14 ? '1º trimestre' : weeks < 28 ? '2º trimestre' : '3º trimestre';
 
@@ -19,9 +24,9 @@ export const PregnancyHero: React.FC<PregnancyHeroProps> = ({ weeks, days, dpp, 
   const offset = circunferencia * (1 - progresso);
 
   return (
-    <div className="bg-white rounded-3xl border border-gray-200 shadow-xs p-5 sm:p-6 lg:p-8 flex items-center gap-5 lg:gap-8">
+    <div className="bg-white rounded-3xl border border-gray-200 shadow-xs p-4 sm:p-5 lg:p-6 flex items-center gap-4 lg:gap-6">
       {hasGestationalData ? (
-        <div className="relative w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 xl:w-36 xl:h-36 shrink-0">
+        <div className="relative w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32 shrink-0">
           <svg viewBox="0 0 96 96" className="w-full h-full -rotate-90">
             <circle cx="48" cy="48" r={raio} fill="none" stroke="currentColor" strokeWidth="8" className="text-gray-100" />
             <circle
@@ -37,12 +42,12 @@ export const PregnancyHero: React.FC<PregnancyHeroProps> = ({ weeks, days, dpp, 
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 leading-none">{weeks}</span>
+            <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 leading-none">{weeks}</span>
             <span className="text-[10px] lg:text-xs text-gray-400 font-bold uppercase mt-0.5">semanas</span>
           </div>
         </div>
       ) : (
-        <span className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 xl:w-36 xl:h-36 rounded-full bg-[var(--brand-primary)]/10 flex items-center justify-center text-4xl lg:text-5xl shrink-0">🤰</span>
+        <span className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32 rounded-full bg-[var(--brand-primary)]/10 flex items-center justify-center text-3xl lg:text-4xl shrink-0">🤰</span>
       )}
 
       <div className="min-w-0">
@@ -51,11 +56,11 @@ export const PregnancyHero: React.FC<PregnancyHeroProps> = ({ weeks, days, dpp, 
             <span className="inline-block px-2 py-0.5 lg:px-2.5 lg:py-1 bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] text-[10px] lg:text-xs font-bold rounded-full">
               {trimestre}
             </span>
-            <p className="text-lg lg:text-2xl font-bold text-gray-900 mt-1.5 lg:mt-2.5 leading-tight">
+            <p className="text-base lg:text-xl font-bold text-gray-900 mt-1 lg:mt-1.5 leading-tight">
               {weeks} semanas e {days} dia{days === 1 ? '' : 's'}
             </p>
             {dpp && (
-              <p className="text-xs lg:text-sm text-gray-500 mt-0.5 lg:mt-1.5">
+              <p className="text-xs lg:text-sm text-gray-500 mt-0.5 lg:mt-1">
                 Data provável do parto: <strong className="text-gray-700">{new Date(dpp).toLocaleDateString('pt-BR')}</strong>
               </p>
             )}
